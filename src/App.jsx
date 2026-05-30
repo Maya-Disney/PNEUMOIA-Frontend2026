@@ -1,122 +1,77 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+// src/App.jsx
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { ThemeProvider } from './features/medecin/contexts/ThemeContext';
+import { ToastProvider } from './contexts/ToastContext';
+import './App.css';
+import HomePage from './features/home/HomePage';
+import AboutPage from './features/about/AboutPage';
+import CasCliniquePage from './features/casClinique/CascliniquePage';
+import Fonctionnalité from './features/fonctionnaliés/FeaturesPage';
+import MainLayout from './layouts/MainLayout';
+
+//SECTION MEDECIN 
+
+import MedecinLayout from './features/medecin/layout/MedecinLayout';
+import Dashboard from './features/medecin/pages/Dashboard';
+import Consultation from './features/medecin/pages/Consultations';
+import Patients from './features/medecin/pages/Patients';
+import Messagerie from './features/medecin/pages/Messagerie';
+import Partage from './features/medecin/pages/Partage';
+import CasCliniques from './features/medecin/pages/CasCliniques';
+import Notification from './features/medecin/pages/Notifications';
+import Profil from './features/medecin/pages/Profil';
+import Historique from './features/medecin/pages/Historique';
+import Parametres from './features/medecin/pages/Parametres';
+import Recherche from './features/medecin/pages/Recherche';
+import Monitoring from './features/medecin/pages/Monitoring';
+import Commantaire from './features/medecin/pages/Commantaire';
+
+
+import ActivationPage from './features/activation/ActivationPage';
+
+
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <BrowserRouter>  {/* Un seul Router ici */}
+      <Routes>
+        <Route element={<ToastProvider><ThemeProvider><Outlet /></ThemeProvider></ToastProvider>}>
+          <Route path="/" element={<MainLayout />}>
+             <Route index element={<HomePage />} />
+            <Route path="/apropos" element={<AboutPage />} />
+            <Route path="/cas-cliniques" element={<CasCliniquePage />} />
+            <Route path="/fonctionnalites" element={<Fonctionnalité />} />
+          </Route>
 
-      <div className="ticks"></div>
+          {/* ROUTE CONCERNANT LA SECTION MEDECIN */}
+          <Route path="/medecin" element={<MedecinLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="consultation" element={<Consultation />} />
+            <Route path="patients" element={<Patients />} />
+            <Route path="partage" element={<Partage/>} />
+            <Route path="cas-cliniques" element={<CasCliniques/>} />
+            <Route path="messagerie" element={<Messagerie/>} />
+            <Route path="notifications" element={<Notification/>} />
+            <Route path="recherche" element={<Recherche />} />
+            <Route path="profil" element={ <Profil/>} />
+            <Route path="parametres" element={<Parametres/>} />
+            <Route path="historique" element={<Historique/>} />
+            <Route path="monitoring" element={<Monitoring/>} />
+            <Route path="commentaires" element={<Commantaire/>} />
+          </Route>
+        </Route>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {/* PAGE D'ACTIVATION — lien reçu par email après validation admin */}
+       <Route path="/activation" element={<ActivationPage />} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
+
+
+
+
