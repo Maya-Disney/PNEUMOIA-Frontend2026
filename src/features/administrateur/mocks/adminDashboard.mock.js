@@ -1,0 +1,95 @@
+export const MOCKS = [
+  {
+    stats: {
+      medecins_actifs:      { val: 142,   trend: "+8 ce mois",     urgent: false },
+      inscriptions_attente: { val: 17,    trend: "À traiter",      urgent: true  },
+      consultations_total:  { val: 4380,  trend: "+12% vs mois -1", urgent: false },
+      precision_ia:         { val: 94.7,  trend: "Stable",          urgent: false },
+    },
+    demandes: [
+      { id: 1, initials: "DK", nom: "Dr. Daniel Kamga",     spec: "Pneumologie",   depuis: "2 h" },
+      { id: 2, initials: "AF", nom: "Dr. Awa Fomba",        spec: "Cardiologie",   depuis: "5 h" },
+      { id: 3, initials: "JN", nom: "Dr. Jean Nkomo",       spec: "Radiologie",    depuis: "1 j" },
+      { id: 4, initials: "MB", nom: "Dr. Marie Bella",      spec: "Médecine interne", depuis: "2 j" },
+    ],
+    activite: {
+      total_semaine: 1247,
+      moy_jour: "178 / j",
+      pic: { val: 312, jour: "Lun" },
+      variation: "+9%",
+      courbe: [
+        { jour: "Lun", val: 312 },
+        { jour: "Mar", val: 198 },
+        { jour: "Mer", val: 245 },
+        { jour: "Jeu", val: 167 },
+        { jour: "Ven", val: 189 },
+        { jour: "Sam", val: 78  },
+        { jour: "Dim", val: 58  },
+      ],
+    },
+    audit: [
+      { id: 1, type: "success", msg: "Dr. Kamga validé par admin@pneumoia.cm", temps: "8 min" },
+      { id: 2, type: "danger",  msg: "Tentative connexion suspecte bloquée",    temps: "22 min" },
+      { id: 3, type: "info",    msg: "Modèle IA mis à jour vers v2.4.1",        temps: "1 h" },
+      { id: 4, type: "success", msg: "Sauvegarde automatique réussie",          temps: "3 h" },
+      { id: 5, type: "danger",  msg: "Dr. Ngono suspendu — non-conformité",     temps: "5 h" },
+    ],
+    medecins: [
+      { id: 1, initials: "DK", nom: "Dr. Daniel Kamga",  consult: 312, derniere_co: "Il y a 2 h",  statut: "Actif"    },
+      { id: 2, initials: "AF", nom: "Dr. Awa Fomba",     consult: 198, derniere_co: "Il y a 5 h",  statut: "Attente"  },
+      { id: 3, initials: "JN", nom: "Dr. Jean Nkomo",    consult: 245, derniere_co: "Hier",         statut: "Actif"    },
+      { id: 4, initials: "MB", nom: "Dr. Marie Bella",   consult: 87,  derniere_co: "Il y a 3 j",  statut: "Suspendu" },
+      { id: 5, initials: "PS", nom: "Dr. Paul Soppo",    consult: 421, derniere_co: "Il y a 1 h",  statut: "Actif"    },
+    ],
+    systeme: {
+      modele_ia:       98,
+      serveur:         99,
+      base_de_donnees: 74,
+      stockage:        61,
+    },
+  },
+  {
+    stats: {
+      medecins_actifs:      { val: 138,   trend: "+3 ce mois",     urgent: false },
+      inscriptions_attente: { val: 9,     trend: "À traiter",      urgent: false },
+      consultations_total:  { val: 3870,  trend: "+5% vs mois -1", urgent: false },
+      precision_ia:         { val: 93.2,  trend: "Stable",          urgent: false },
+    },
+    demandes: [
+      { id: 1, initials: "SN", nom: "Dr. Sylvie Ndi",       spec: "Pneumologie",   depuis: "3 h" },
+      { id: 2, initials: "CT", nom: "Dr. Claude Tchoupo",   spec: "Neurologie",    depuis: "8 h" },
+      { id: 3, initials: "EA", nom: "Dr. Eric Abanda",      spec: "Chirurgie",     depuis: "1 j" },
+    ],
+    activite: {
+      total_semaine: 1053,
+      moy_jour: "150 / j",
+      pic: { val: 267, jour: "Mar" },
+      variation: "+4%",
+      courbe: [
+        { jour: "Lun", val: 210 },
+        { jour: "Mar", val: 267 },
+        { jour: "Mer", val: 195 },
+        { jour: "Jeu", val: 143 },
+        { jour: "Ven", val: 162 },
+        { jour: "Sam", val: 45  },
+        { jour: "Dim", val: 31  },
+      ],
+    },
+    audit: [
+      { id: 1, type: "success", msg: "Dr. Ndi validée par admin@pneumoia.cm",   temps: "15 min" },
+      { id: 2, type: "info",    msg: "Rapport mensuel généré automatiquement",   temps: "2 h"    },
+      { id: 3, type: "success", msg: "Paramètres SMS mis à jour",                temps: "4 h"    },
+    ],
+    medecins: [
+      { id: 1, initials: "SN", nom: "Dr. Sylvie Ndi",     consult: 267, derniere_co: "Il y a 3 h",  statut: "Attente" },
+      { id: 2, initials: "CT", nom: "Dr. Claude Tchoupo", consult: 195, derniere_co: "Il y a 8 h",  statut: "Actif"   },
+      { id: 3, initials: "EA", nom: "Dr. Eric Abanda",    consult: 143, derniere_co: "Hier",         statut: "Actif"   },
+    ],
+    systeme: {
+      modele_ia:       96,
+      serveur:         97,
+      base_de_donnees: 68,
+      stockage:        55,
+    },
+  },
+];

@@ -29,6 +29,20 @@ import Commantaire from './features/medecin/pages/Commantaire';
 
 import ActivationPage from './features/activation/ActivationPage';
 
+// SECTION ADMINISTRATEUR
+import AdminLogin          from './features/administrateur/authAdmin/loginPage';
+import AdminLayout         from './features/administrateur/layouts/AdminLayout';
+import AdminDashboard      from './features/administrateur/pages/Dashboard';
+import NouvellesDemandes   from './features/administrateur/pages/NouvellesDemandes';
+import ValidesCeMois       from './features/administrateur/pages/ValidesCeMois';
+import Refusees            from './features/administrateur/pages/Refusees';
+import Suspendus           from './features/administrateur/pages/Suspendus';
+import MedecinActifs       from './features/administrateur/pages/MedecinActifs';
+import JournalAudit        from './features/administrateur/pages/JournalAudit';
+import Statistiques        from './features/administrateur/pages/Statistiques';
+import RepartitionGeographique from './features/administrateur/pages/RepartitionGeographique';
+import CourbeActive        from './features/administrateur/pages/CourbeActive';
+import ParametresPlateforme from './features/administrateur/pages/ParametresPlateforme';
 
 
 function App() {
@@ -63,7 +77,24 @@ function App() {
         </Route>
 
         {/* PAGE D'ACTIVATION — lien reçu par email après validation admin */}
-       <Route path="/activation" element={<ActivationPage />} />
+        <Route path="/activation" element={<ActivationPage />} />
+
+        {/* ROUTES CONCERNANT LA SECTION ADMINISTRATEUR */}
+        <Route path="/administrateur/login" element={<AdminLogin />} />
+        <Route path="/administrateur" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="dashboard"              element={<AdminDashboard />} />
+          <Route path="nouvelles-demandes"     element={<NouvellesDemandes />} />
+          <Route path="valides-ce-mois"        element={<ValidesCeMois />} />
+          <Route path="refusees"               element={<Refusees />} />
+          <Route path="suspendus"              element={<Suspendus />} />
+          <Route path="medecins-actifs"        element={<MedecinActifs />} />
+          <Route path="journal-audit"          element={<JournalAudit />} />
+          <Route path="statistiques"           element={<Statistiques />} />
+          <Route path="repartition-geographique" element={<RepartitionGeographique />} />
+          <Route path="courbe-active"          element={<CourbeActive />} />
+          <Route path="parametres"             element={<ParametresPlateforme />} />
+        </Route>
 
       </Routes>
     </BrowserRouter>
