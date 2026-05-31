@@ -1,15 +1,12 @@
-import { useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
+
+const AdminThemeCtx = createContext({ dark: false, setDark: () => {} });
+
+export function AdminThemeProvider({ children }) {
+  const [dark, setDark] = useState(false);
+  return <AdminThemeCtx.Provider value={{ dark, setDark }}>{children}</AdminThemeCtx.Provider>;
+}
 
 export function useAdminTheme() {
-  const [dark, setDark] = useState(() => {
-    const saved = localStorage.getItem("pneumo_theme");
-    return saved === "dark";
-  });
-
-  useEffect(() => {
-    localStorage.setItem("pneumo_theme", dark ? "dark" : "light");
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
-
-  return { dark, setDark };
+  return useContext(AdminThemeCtx);
 }

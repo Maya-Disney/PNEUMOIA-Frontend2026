@@ -7,6 +7,9 @@ const T1 = "#1f7a75";   // teal moyen-light
 const T2 = "#339991";   // teal principal light
 const T3 = "#5ab3ac";   // teal clair très light
 
+// ── Blanc cassé doux pour réduire la fatigue oculaire ───────────────────────
+const OFF_WHITE = "#faf9f6"; // Blanc papier naturel (alternative: "#f9f7f2" pour plus de chaleur)
+
 const MISSIONS = [
   { icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>, title: "Validation des médecins", desc: "Diplômes, habilitations et documents" },
   { icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, title: "Sécurité & contrôle des accès", desc: "Rôles, permissions et authentifications" },
@@ -182,15 +185,15 @@ export default function AdminLogin() {
   const cardBg   = dark ? "#161b22" : "#ffffff";
   const cardBord = dark ? "rgba(255,255,255,.15)" : "#e5e7eb";
 
-  // Topbar
-  const topbarBg   = dark ? "#0d1117" : "#f8faf9";
+  // Topbar - Blanc cassé doux
+  const topbarBg   = dark ? "#0d1117" : OFF_WHITE;
   const topbarBord = dark ? "rgba(255,255,255,.1)" : "#e2e8e4";
 
   // Panneau gauche
   const asideBg = `linear-gradient(160deg, ${T1} 0%, ${T2} 55%, ${T3} 100%)`;
 
-  // Panneau droit
-  const rightBg = dark ? "#0d1117" : "#f8faf9";
+  // Panneau droit - Blanc cassé doux
+  const rightBg = dark ? "#0d1117" : OFF_WHITE;
 
   const iconMail = <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>;
   const iconLock = <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
