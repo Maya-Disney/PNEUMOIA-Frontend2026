@@ -15,19 +15,18 @@ const CAL = [
 ];
 
 export default function HeroBanner() {
-  const today = new Date();
+  const today  = new Date();
   const dateStr = today.toLocaleDateString("fr-FR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric"
   });
 
-  const [msgIdx, setMsgIdx] = useState(0);
+  const [msgIdx, setMsgIdx]     = useState(0);
   const [displayed, setDisplayed] = useState("");
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting]   = useState(false);
 
   useEffect(() => {
     const current = PHRASES[msgIdx];
     let timeout;
-
     if (!deleting) {
       if (displayed.length < current.length) {
         timeout = setTimeout(() => setDisplayed(current.slice(0, displayed.length + 1)), 75);
@@ -42,17 +41,19 @@ export default function HeroBanner() {
         setMsgIdx((msgIdx + 1) % PHRASES.length);
       }
     }
-
     return () => clearTimeout(timeout);
   }, [displayed, deleting, msgIdx]);
 
   return (
-    <div className="rounded-xl bg-green-800 dark:bg-[#0f2d18] border border-green-700 dark:border-[#1a3a2a] p-5 grid grid-cols-[1fr_auto] gap-2 items-center relative overflow-hidden">
-      <div>
+    <div className="rounded-xl bg-teal-800 dark:bg-gray-800 border border-teal-700 dark:border-gray-700 p-5 grid grid-cols-[1fr_auto] gap-2 items-center relative overflow-hidden">
+      {/* Motif de fond */}
+      <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(circle_at_2px_2px,_white_1px,_transparent_0)] bg-[length:22px_22px]" />
+
+      <div className="relative">
         <p className="text-[10px] text-white/40 uppercase tracking-widest mb-2">{dateStr}</p>
         <h1 className="text-3xl font-extrabold text-white tracking-tight leading-tight">
           {displayed}
-          <span className="inline-block w-[3px] h-[0.85em] bg-green-300 dark:bg-[#22c55e] ml-1 align-middle animate-pulse" />
+          <span className="inline-block w-[3px] h-[0.85em] bg-teal-300 dark:bg-teal-400 ml-1 align-middle animate-pulse" />
         </h1>
         <div className="flex gap-2 mt-4 flex-wrap">
           {["Semaine 22", "41% de l'année", "T2 · 2026"].map(p => (
@@ -64,24 +65,25 @@ export default function HeroBanner() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#161b22] rounded-xl p-4 min-w-[220px] border border-gray-100 dark:border-[#21262d]">
+      {/* Mini calendrier */}
+      <div className="relative bg-white dark:bg-gray-800 rounded-xl p-4 min-w-[220px] border border-gray-100 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[11px] text-gray-400 dark:text-[#484f58] cursor-pointer hover:text-gray-600 select-none">‹</span>
-          <span className="text-[13px] font-bold text-gray-800 dark:text-[#e6edf3]">Mai 2026</span>
-          <span className="text-[11px] text-gray-400 dark:text-[#484f58] cursor-pointer hover:text-gray-600 select-none">›</span>
+          <span className="text-[11px] text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 select-none">‹</span>
+          <span className="text-[13px] font-bold text-gray-800 dark:text-white">Mai 2026</span>
+          <span className="text-[11px] text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 select-none">›</span>
         </div>
         <div className="grid grid-cols-7 gap-0.5 text-center">
-          {["L","M","M","J","V","S","D"].map((d,i) => (
-            <div key={i} className="text-[9px] font-bold text-gray-300 dark:text-[#484f58] py-0.5">{d}</div>
+          {["L","M","M","J","V","S","D"].map((d, i) => (
+            <div key={i} className="text-[9px] font-bold text-gray-300 dark:text-gray-600 py-0.5">{d}</div>
           ))}
           {CAL.map((week, wi) => week.map((d, di) => (
             <div key={`${wi}-${di}`}
               className={`text-[10px] py-1 rounded cursor-pointer leading-none
                 ${wi === 4 && d === 30
-                  ? "bg-green-600 dark:bg-[#22c55e] text-white font-bold"
+                  ? "bg-teal-600 dark:bg-teal-500 text-white font-bold"
                   : wi === 0 && d > 20
-                    ? "text-gray-200 dark:text-[#484f58]/50"
-                    : "text-gray-500 dark:text-[#8b949e] hover:bg-gray-50 dark:hover:bg-[#21262d]"
+                    ? "text-gray-200 dark:text-gray-700"
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
                 }`}
             >{d}</div>
           )))}
