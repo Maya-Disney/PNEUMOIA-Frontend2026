@@ -21,7 +21,7 @@ import CasCliniques from './features/medecin/pages/CasCliniques';
 import Notification from './features/medecin/pages/Notifications';
 import Profil from './features/medecin/pages/Profil';
 import Historique from './features/medecin/pages/Historique';
-import Parametres from './features/medecin/pages/Parametres';
+import ParametresMedecin from './features/medecin/pages/Parametres';
 import Recherche from './features/medecin/pages/Recherche';
 import Monitoring from './features/medecin/pages/Monitoring';
 import Commantaire from './features/medecin/pages/Commantaire';
@@ -29,6 +29,20 @@ import Commantaire from './features/medecin/pages/Commantaire';
 
 import ActivationPage from './features/activation/ActivationPage';
 
+// SECTION ADMINISTRATEUR
+import AdminLogin          from './features/administrateur/authAdmin/loginPage';
+import AdminLayout         from './features/administrateur/layouts/AdminLayout';
+import AdminDashboard      from './features/administrateur/pages/Dashboard';
+import ValidesCeMois       from './features/administrateur/pages/ValidesCeMois';
+import Refusees            from './features/administrateur/pages/Refuses';
+import MedecinsSuspendus   from './features/administrateur/pages/MedecinsSuspendus';
+import MedecinsActifs      from './features/administrateur/pages/Medecinsactifs';
+import JournalAudit        from './features/administrateur/pages/JournalAudit';
+import Statistiques        from './features/administrateur/pages/Statistiques';
+import RepartitionGeo      from './features/administrateur/pages/RepartitionGeographique';
+import CourbeActivite      from './features/administrateur/pages/Courbesactives';
+import PerformancesIA      from './features/administrateur/pages/PerformanceIA';
+import Parametres          from './features/administrateur/pages/Parametres';
 
 
 function App() {
@@ -55,7 +69,7 @@ function App() {
             <Route path="notifications" element={<Notification/>} />
             <Route path="recherche" element={<Recherche />} />
             <Route path="profil" element={ <Profil/>} />
-            <Route path="parametres" element={<Parametres/>} />
+            <Route path="parametres" element={<ParametresMedecin/>} />
             <Route path="historique" element={<Historique/>} />
             <Route path="monitoring" element={<Monitoring/>} />
             <Route path="commentaires" element={<Commantaire/>} />
@@ -63,7 +77,25 @@ function App() {
         </Route>
 
         {/* PAGE D'ACTIVATION — lien reçu par email après validation admin */}
-       <Route path="/activation" element={<ActivationPage />} />
+        <Route path="/activation" element={<ActivationPage />} />
+
+        {/* ROUTES CONCERNANT LA SECTION ADMINISTRATEUR */}
+        <Route path="/administrateur/login" element={<AdminLogin />} />
+        <Route path="/administrateur" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="dashboard"      element={<AdminDashboard />} />
+          <Route path="demandes"       element={<Navigate to="/administrateur/dashboard" replace />} />
+          <Route path="validees"       element={<ValidesCeMois />} />
+          <Route path="refusees"       element={<Refusees />} />
+          <Route path="medecins"       element={<MedecinsActifs />} />
+          <Route path="suspendus"      element={<MedecinsSuspendus />} />
+          <Route path="activite"       element={<CourbeActivite />} />
+          <Route path="stats"          element={<Statistiques />} />
+          <Route path="performances"   element={<PerformancesIA />} />
+          <Route path="geo"            element={<RepartitionGeo />} />
+          <Route path="audit"          element={<JournalAudit />} />
+          <Route path="parametres"     element={<Parametres />} />
+        </Route>
 
       </Routes>
     </BrowserRouter>

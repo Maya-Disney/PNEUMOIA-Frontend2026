@@ -1,14 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: 'class', // Utilisation du mode sombre basé sur une classe
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class',
   theme: {
     extend: {
-
       colors: {
         primary: {
           DEFAULT: '#097185',
@@ -24,12 +22,9 @@ export default {
         wa: '#D97706',
         er: '#DC2626',
       },
-
       fontFamily: {
         jakarta: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
       },
-
-      // ✨ ANIMATIONS
       keyframes: {
         fadeIn: {
           '0%': { opacity: 0, transform: 'translateY(20px)' },
@@ -40,12 +35,10 @@ export default {
           '100%': { opacity: 1, transform: 'translateY(0)' },
         },
       },
-
       animation: {
         fadeIn: 'fadeIn 0.8s ease-out forwards',
         slideUp: 'slideUp 1s ease-out forwards',
       },
-
     },
   },
   plugins: [],
