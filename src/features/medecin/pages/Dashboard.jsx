@@ -278,14 +278,36 @@ export default function Dashboard() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-5">
               {/* Photo de profil */}
-              <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm overflow-hidden shrink-0 shadow-lg border-2 border-white/30 flex items-center justify-center">
-                {profil?.photo_url && (
-                  <img src={profil.photo_url} alt="Profil" className="w-full h-full object-cover"
-                    onError={e => { e.currentTarget.style.display='none'; e.currentTarget.nextSibling.style.display='flex'; }} />
-                )}
-                <div className="w-full h-full items-center justify-center text-xl font-bold text-white"
-                  style={{ display: profil?.photo_url ? 'none' : 'flex' }}>
-                  {profil?.prenom?.[0]}{profil?.nom?.[0]}
+              <div className="relative shrink-0">
+                {/* Halo ambiant */}
+                <div className="absolute inset-0 rounded-full bg-white/25 blur-lg scale-125 pointer-events-none" />
+
+                {/* Anneau décoratif externe */}
+                <div className="absolute -inset-1.5 rounded-full border border-white/20 pointer-events-none" />
+
+                {/* Anneau principal */}
+                <div className="relative w-20 h-20 rounded-full p-[2.5px] bg-linear-to-br from-white/70 via-blue-200/50 to-white/20 shadow-2xl">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-linear-to-br from-blue-500/60 to-blue-800/80 flex items-center justify-center">
+                    {profil?.photo_url ? (
+                      <img
+                        src={profil.photo_url}
+                        alt="Profil"
+                        className="w-full h-full object-cover"
+                        onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
+                      />
+                    ) : null}
+                    <span
+                      className="text-xl font-black text-white tracking-tight select-none"
+                      style={{ display: profil?.photo_url ? 'none' : 'flex' }}
+                    >
+                      {profil?.prenom?.[0]}{profil?.nom?.[0]}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Indicateur de présence */}
+                <div className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-emerald-400 border-[2.5px] border-blue-800 shadow-lg">
+                  <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-50" />
                 </div>
               </div>
               <div>
@@ -328,34 +350,45 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Cartes stats - toutes en bleu */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Cartes stats — 2 zones */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {dashboardData.stats.map((card, i) => {
           const Icon = card.icon;
+          const tints = {
+            'from-blue-500 to-blue-600':       'bg-blue-50 dark:bg-blue-500/[.07]',
+            'from-orange-500 to-orange-600':   'bg-orange-50 dark:bg-orange-500/[.07]',
+            'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-500/[.07]',
+          };
+          const tint = tints[card.gradient] ?? 'bg-slate-50 dark:bg-slate-500/[.07]';
           return (
             <motion.div
               key={i}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.1 }}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07, duration: 0.32 }}
               onClick={() => navigate(card.link)}
-              className="group relative overflow-hidden bg-(--sf) rounded-2xl p-6 shadow-md hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer"
+              className="group overflow-hidden bg-(--sf) border border-(--ln) rounded-2xl cursor-pointer hover:shadow-lg transition-all duration-300"
             >
-              <div className="relative">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-14 h-14 rounded-2xl bg-linear-to-br ${card.gradient} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-7 h-7 text-white" />
-                  </div>
-                  <span className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                    <TrendingUp className="w-3 h-3" />
-                    {card.increase}
-                  </span>
+              {/* Zone haute — fond teint + chiffre + titre */}
+              <div className={`px-5 pt-5 pb-5 ${tint}`}>
+                <p className="text-4xl font-black text-(--t1) tracking-tight leading-none tabular-nums">
+                  {card.value}
+                </p>
+                <p className="text-sm font-semibold text-(--t2) mt-2">{card.title}</p>
+              </div>
+
+              {/* Séparateur */}
+              <div className="h-px bg-(--ln)" />
+
+              {/* Zone basse — icône + sous-titre + badge */}
+              <div className="px-5 py-3.5 flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg bg-linear-to-br ${card.gradient} flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-200`}>
+                  <Icon className="w-4 h-4 text-white" />
                 </div>
-                <div>
-                  <p className="text-3xl font-bold text-(--t1)">{card.value}</p>
-                  <p className="text-sm text-(--t3) mt-1">{card.title}</p>
-                  <p className="text-xs text-(--t4) mt-1">{card.subtitle}</p>
-                </div>
+                <p className="text-xs text-(--t4) flex-1 leading-snug truncate">{card.subtitle}</p>
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0 tabular-nums">
+                  {card.increase}
+                </span>
               </div>
             </motion.div>
           );

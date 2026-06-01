@@ -52,7 +52,7 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
       className: 'text-[var(--t2)] hover:bg-[var(--sf2)]',
     },
     { divider: true },
-    { icon: LogOut, label: 'Déconnexion', path: '/logout', className: 'text-red-600 hover:bg-red-50' },
+    { icon: LogOut, label: 'Déconnexion', path: '/', className: 'text-red-600 hover:bg-red-50' },
   ];
 
   return (
