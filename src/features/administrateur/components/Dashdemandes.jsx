@@ -46,6 +46,15 @@ export default function DashDemandes({ dark }) {
           </div>
         ))}
       </div>
+
+      <button
+        onClick={() => navigate("/administrateur/demandes")}
+        className="mt-3 w-full py-2 rounded-xl text-[11px] font-bold border transition-colors"
+        style={{ borderColor: BRAND, color: BRAND }}
+        onMouseEnter={e => { e.currentTarget.style.background = BRAND; e.currentTarget.style.color = "#fff"; }}
+        onMouseLeave={e => { e.currentTarget.style.background = ""; e.currentTarget.style.color = BRAND; }}>
+        Gérer les demandes →
+      </button>
     </Card>
   );
 }

@@ -43,6 +43,7 @@ import RepartitionGeo      from './features/administrateur/pages/RepartitionGeog
 import CourbeActivite      from './features/administrateur/pages/Courbesactives';
 import PerformancesIA      from './features/administrateur/pages/PerformanceIA';
 import Parametres          from './features/administrateur/pages/Parametres';
+import NouvellesDemandes   from './features/administrateur/pages/NouvellesDemandes';
 
 
 function App() {
@@ -84,7 +85,7 @@ function App() {
         <Route path="/administrateur" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="dashboard"      element={<AdminDashboard />} />
-          <Route path="demandes"       element={<Navigate to="/administrateur/dashboard" replace />} />
+          <Route path="demandes"       element={<NouvellesDemandes />} />
           <Route path="validees"       element={<ValidesCeMois />} />
           <Route path="refusees"       element={<Refusees />} />
           <Route path="medecins"       element={<MedecinsActifs />} />
