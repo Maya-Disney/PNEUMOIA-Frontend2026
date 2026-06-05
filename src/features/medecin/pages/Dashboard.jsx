@@ -288,20 +288,12 @@ export default function Dashboard() {
                 {/* Anneau principal */}
                 <div className="relative w-20 h-20 rounded-full p-[2.5px] bg-linear-to-br from-white/70 via-blue-200/50 to-white/20 shadow-2xl">
                   <div className="w-full h-full rounded-full overflow-hidden bg-linear-to-br from-blue-500/60 to-blue-800/80 flex items-center justify-center">
-                    {profil?.photo_url ? (
-                      <img
-                        src={profil.photo_url}
-                        alt="Profil"
-                        className="w-full h-full object-cover"
-                        onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
-                      />
-                    ) : null}
-                    <span
-                      className="text-xl font-black text-white tracking-tight select-none"
-                      style={{ display: profil?.photo_url ? 'none' : 'flex' }}
-                    >
-                      {profil?.prenom?.[0]}{profil?.nom?.[0]}
-                    </span>
+                    {profil?.photo_url
+                      ? <img src={profil.photo_url} alt="Profil" className="w-full h-full object-cover" />
+                      : <span className="text-xl font-black text-white tracking-tight select-none">
+                          {profil?.prenom?.[0]}{profil?.nom?.[0]}
+                        </span>
+                    }
                   </div>
                 </div>
 
@@ -354,12 +346,12 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {dashboardData.stats.map((card, i) => {
           const Icon = card.icon;
-          const tints = {
-            'from-blue-500 to-blue-600':       'bg-blue-50 dark:bg-blue-500/[.07]',
-            'from-orange-500 to-orange-600':   'bg-orange-50 dark:bg-orange-500/[.07]',
-            'from-emerald-500 to-emerald-600': 'bg-emerald-50 dark:bg-emerald-500/[.07]',
-          };
-          const tint = tints[card.gradient] ?? 'bg-slate-50 dark:bg-slate-500/[.07]';
+          const tintVar = {
+            'from-blue-500 to-blue-600':       'var(--tint-blue)',
+            'from-orange-500 to-orange-600':   'var(--tint-orange)',
+            'from-emerald-500 to-emerald-600': 'var(--tint-green)',
+          }[card.gradient] ?? 'var(--tint-default)';
+
           return (
             <motion.div
               key={i}
@@ -369,8 +361,8 @@ export default function Dashboard() {
               onClick={() => navigate(card.link)}
               className="group overflow-hidden bg-(--sf) border border-(--ln) rounded-2xl cursor-pointer hover:shadow-lg transition-all duration-300"
             >
-              {/* Zone haute — fond teint + chiffre + titre */}
-              <div className={`px-5 pt-5 pb-5 ${tint}`}>
+              {/* Zone haute — fond teinté via variable CSS (s'adapte light/dark) */}
+              <div className="px-5 pt-5 pb-5" style={{ backgroundColor: tintVar }}>
                 <p className="text-4xl font-black text-(--t1) tracking-tight leading-none tabular-nums">
                   {card.value}
                 </p>
@@ -380,13 +372,13 @@ export default function Dashboard() {
               {/* Séparateur */}
               <div className="h-px bg-(--ln)" />
 
-              {/* Zone basse — icône + sous-titre + badge */}
-              <div className="px-5 py-3.5 flex items-center gap-3">
+              {/* Zone basse */}
+              <div className="px-5 py-3.5 flex items-center gap-3 bg-(--sf)">
                 <div className={`w-8 h-8 rounded-lg bg-linear-to-br ${card.gradient} flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-200`}>
                   <Icon className="w-4 h-4 text-white" />
                 </div>
                 <p className="text-xs text-(--t4) flex-1 leading-snug truncate">{card.subtitle}</p>
-                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0 tabular-nums">
+                <span className="text-[11px] font-bold shrink-0 tabular-nums" style={{ color: 'var(--ok)' }}>
                   {card.increase}
                 </span>
               </div>
@@ -439,7 +431,7 @@ export default function Dashboard() {
               </div>
             </div>
             
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer key={period} width="100%" height={280}>
               <AreaChart data={dashboardData.chartData}>
                 <defs>
                   <linearGradient id="colorConsultations" x1="0" y1="0" x2="0" y2="1">
