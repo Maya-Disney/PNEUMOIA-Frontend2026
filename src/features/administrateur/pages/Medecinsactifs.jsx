@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Download, Eye, Trash2, X, AlertTriangle } from "lucide-react";
@@ -243,6 +243,19 @@ function ModaleSuppression({ m, onClose, onConfirm, dark }) {
   );
 }
 
+// ── Bouton pagination ─────────────────────────────────────────────────────────
+function PagBtn({ onClick, disabled, label, dark }) {
+  return (
+    <button onClick={onClick} disabled={disabled}
+      className={`w-8 h-8 flex items-center justify-center rounded-lg border text-[11px] transition-colors
+        ${disabled
+          ? dark?"border-[#21262d] text-[#484f58] cursor-not-allowed":"border-gray-100 text-gray-300 cursor-not-allowed"
+          : dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-600 hover:bg-gray-100"}`}>
+      {label}
+    </button>
+  );
+}
+
 // ── Composant principal ───────────────────────────────────────────────────────
 export default function MedecinsActifs() {
   const { dark } = useOutletContext() || {};
@@ -253,6 +266,8 @@ export default function MedecinsActifs() {
   const [modaleSusp,  setModaleSusp]  = useState(null);
   const [modaleSuppr, setModaleSuppr] = useState(null);
   const [toast,       setToast]       = useState(null);
+  const [page,        setPage]        = useState(1);
+  const [perPage,     setPerPage]     = useState(10);
 
   useEffect(() => {
     if (!toast) return;
@@ -263,6 +278,11 @@ export default function MedecinsActifs() {
   const nbActifs   = medecins.filter(m => m.statut === "Actif").length;
   const nbInactifs = medecins.filter(m => m.statut === "Inactif").length;
   const liste      = medecins.filter(m => filtre==="Actif"?m.statut==="Actif":filtre==="Inactif"?m.statut==="Inactif":true);
+
+  const totalPages = Math.max(1, Math.ceil(liste.length / perPage));
+  const paginated  = liste.slice((page-1)*perPage, page*perPage);
+  const from = liste.length===0 ? 0 : (page-1)*perPage+1;
+  const to   = Math.min(page*perPage, liste.length);
 
   function exportExcel() {
     const ws = XLSX.utils.json_to_sheet(medecins.map((m,i) => ({"#":i+1,Nom:m.nom,CNOM:m.cnom,Spécialité:m.specialite,Établissement:m.hopital,Ville:m.ville,Patients:m.patients,Consultations:m.consultations,"Concordance IA":`${m.concordanceIA}%`,Statut:m.statut,"Créé le":m.creeLE,"Validé le":m.valideLE})));
@@ -313,7 +333,7 @@ export default function MedecinsActifs() {
       {/* Filtres */}
       <div className="flex gap-2 flex-wrap">
         {[{k:"Tous",l:`Tous (${medecins.length})`},{k:"Actif",l:`Actifs (${nbActifs})`},{k:"Inactif",l:`Inactifs (${nbInactifs})`}].map(f=>(
-          <button key={f.k} onClick={()=>setFiltre(f.k)}
+          <button key={f.k} onClick={()=>{setFiltre(f.k);setPage(1);}}
             className="px-4 py-1.5 rounded-xl text-[11px] font-bold border transition-colors"
             style={filtre===f.k?{background:BRAND,borderColor:BRAND,color:"#fff"}:{borderColor:dark?"#21262d":"#e5e7eb",color:dark?"#484f58":"#9ca3af"}}>
             {f.l}
@@ -329,9 +349,9 @@ export default function MedecinsActifs() {
               {["Médecin","CNOM","Établissement","Ville","Patients","Consultations","Créé le","Validé le","Statut","Actions"].map(h=><th key={h} className={th}>{h}</th>)}
             </tr></thead>
             <tbody>
-              {liste.length===0
+              {paginated.length===0
                 ? <tr><td colSpan={10} className={`${td} text-center py-14 text-[12px] text-gray-300 dark:text-[#484f58]`}>Aucun médecin dans cette catégorie</td></tr>
-                : liste.map(m=>(
+                : paginated.map(m=>(
                   <tr key={m.id} className={`transition-colors ${dark?"hover:bg-[#0d1117]/60":"hover:bg-gray-50/80"}`}>
                     <td className={td}>
                       <div className="flex items-center gap-2.5 cursor-pointer group" onClick={()=>setModalePhoto(m)}>
@@ -371,8 +391,30 @@ export default function MedecinsActifs() {
             </tbody>
           </table>
         </div>
-        <div className={`px-4 py-3 border-t text-[11px] text-right ${dark?"border-[#21262d] text-[#484f58]":"border-gray-50 text-gray-300"}`}>
-          Dernière mise à jour : {new Date().toLocaleString("fr-FR")}
+        <div className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t text-[11px] ${dark?"border-[#21262d] text-[#484f58]":"border-gray-50 text-gray-400"}`}>
+          <span>Affichage {from} à {to} sur {liste.length} médecin{liste.length>1?"s":""}</span>
+          <div className="flex items-center gap-2">
+            <span>Lignes :</span>
+            <select value={perPage} onChange={e=>{setPerPage(Number(e.target.value));setPage(1);}}
+              className={`text-[11px] px-2 py-1 rounded-lg border outline-none cursor-pointer ${dark?"bg-[#0d1117] border-[#21262d] text-white":"bg-white border-gray-200 text-gray-700"}`}>
+              {[5,10,20,50].map(n=><option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-1">
+            <PagBtn onClick={()=>setPage(1)} disabled={page===1} label="«" dark={dark}/>
+            <PagBtn onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} label="‹" dark={dark}/>
+            {Array.from({length:totalPages},(_,i)=>i+1)
+              .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
+              .reduce((acc,p,idx,arr)=>{if(idx>0&&p-arr[idx-1]>1)acc.push("…"+idx);acc.push(p);return acc;},[])
+              .map(p=>typeof p==="string"
+                ? <span key={p} className="px-1 opacity-30">…</span>
+                : <button key={p} onClick={()=>setPage(p)}
+                    className="w-7 h-7 rounded-lg border text-[11px] font-medium transition-colors"
+                    style={p===page?{background:BRAND,borderColor:BRAND,color:"#fff"}:{}}>{p}</button>
+              )}
+            <PagBtn onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} label="›" dark={dark}/>
+            <PagBtn onClick={()=>setPage(totalPages)} disabled={page===totalPages} label="»" dark={dark}/>
+          </div>
         </div>
       </div>
 

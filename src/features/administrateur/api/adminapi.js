@@ -51,14 +51,29 @@ export async function adminResetConfirm({ email, otp, new_password, confirm_pass
 
 // ─── Demandes ──────────────────────────────────────────────────────────────────
 
+// ─── Demandes médecins ────────────────────────────────────────────────────────
+
+/**
+ * Récupère tous les médecins en attente (statut: "en_attente")
+ * avec leurs documents et photo de profil
+ * GET /api/admin/demandes
+ */
 export async function getDemandes() {
   return request("GET", "/api/admin/demandes", null, true);
 }
 
+/**
+ * Valide un médecin — statut passe à "valide"
+ * POST /api/admin/demandes/{id}/valider
+ */
 export async function validerMedecin(medecinId) {
   return request("POST", `/api/admin/demandes/${medecinId}/valider`, null, true);
 }
 
+/**
+ * Rejette un médecin — statut passe à "rejete"
+ * POST /api/admin/demandes/{id}/rejeter
+ */
 export async function rejeterMedecin(medecinId, motif) {
   return request("POST", `/api/admin/demandes/${medecinId}/rejeter`, { motif }, true);
 }

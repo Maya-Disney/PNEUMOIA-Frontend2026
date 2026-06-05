@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
+import { getDemandes, validerMedecin, rejeterMedecin } from "../api/adminApi";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Download, Eye, CheckCircle, XCircle, FileText } from "lucide-react";
 
 const BRAND = "#0f766e";
-const API   = "http://localhost:8000/api/v1";
-
 // ── Helpers date ───────────────────────────────────────────────────────────────
 const JOURS = ["dim.","lun.","mar.","mer.","jeu.","ven.","sam."];
 const MOIS  = ["jan","fév","mar","avr","mai","juin","juil","août","sep","oct","nov","déc"];
@@ -33,7 +32,7 @@ const MOCK = [
     name:"Dr. Kamga Denis", specialite:"Pneumologue",
     hopital:"H. Central, Yaoundé", ville:"Yaoundé",
     email:"kamga.denis@pneumo.cm", telephone:"+237 698 001 234",
-    cnom:"CM-2025-4401", submittedAt:sub(2*3600*1000), status:"pending",
+    cnom:"CM-2025-4401", submittedAt:sub(2*3600*1000), status:"en_attente",
     documents:[
       {label:"Diplôme de spécialisation en pneumologie", status:"verified"},
       {label:"Diplôme de docteur en médecine",           status:"verified"},
@@ -48,7 +47,7 @@ const MOCK = [
     name:"Dr. Abena Nkolo", specialite:"Pneumologue",
     hopital:"H. Laquintinie, Douala", ville:"Douala",
     email:"abena.nkolo@pnm.cm", telephone:"+237 677 555 021",
-    cnom:"CM-2025-4398", submittedAt:sub(5*3600*1000), status:"pending",
+    cnom:"CM-2025-4398", submittedAt:sub(5*3600*1000), status:"en_attente",
     documents:[
       {label:"Diplôme de spécialisation en pneumologie", status:"verified"},
       {label:"Diplôme de docteur en médecine",           status:"verified"},
@@ -63,7 +62,7 @@ const MOCK = [
     name:"Dr. Mbala Berthe", specialite:"Pneumologue",
     hopital:"CHU, Bafoussam", ville:"Bafoussam",
     email:"mbala.berthe@chu-baf.cm", telephone:"+237 655 300 887",
-    cnom:"CM-2025-4410", submittedAt:sub(24*3600*1000), status:"pending",
+    cnom:"CM-2025-4410", submittedAt:sub(24*3600*1000), status:"en_attente",
     documents:[
       {label:"Diplôme de spécialisation en pneumologie", status:"verified"},
       {label:"Diplôme de docteur en médecine",           status:"pending"},
@@ -99,19 +98,24 @@ function avatarColor(str) {
 
 function mapMedecin(m) {
   return {
-    id: m.id,
-    initials: `${(m.prenom?.[0]||"").toUpperCase()}${(m.nom?.[0]||"").toUpperCase()}`,
-    name: `${m.civilite||"Dr"} ${m.prenom} ${m.nom}`,
-    specialite: m.specialite||"Pneumologue",
-    hopital: m.etablissement||"—",
-    ville: "—",
-    email: m.email,
-    telephone: m.telephone||"—",
-    cnom: m.numero_rpps||"—",
+    id:          m.id,
+    initials:    `${(m.prenom?.[0]||"").toUpperCase()}${(m.nom?.[0]||"").toUpperCase()}`,
+    name:        `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
+    specialite:  m.specialite || "Pneumologue",
+    hopital:     m.etablissement || "—",
+    ville:       "—",
+    email:       m.email,
+    telephone:   m.telephone || "—",
+    cnom:        m.numero_rpps || "—",
+    photo_url:   m.photo_url || null,
     submittedAt: new Date(m.created_at),
-    status: "pending",
-    avatarBg: avatarColor(`${m.prenom}${m.nom}`),
-    documents: [],
+    status:      m.statut || "en_attente",   // ← backend retourne "en_attente"
+    avatarBg:    avatarColor(`${m.prenom}${m.nom}`),
+    documents:   (m.documents || []).map(d => ({
+      label:  d.label,
+      url:    d.url,
+      status: "pending",   // l'admin part de zéro à chaque ouverture
+    })),
   };
 }
 
@@ -144,12 +148,16 @@ function ModaleProfil({ doc: m, onClose, dark }) {
     <Modal dark={dark} onClose={onClose} title={m.name} sub="Photo d'identité (CNI)"
       footer={<button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[12px] font-semibold border transition-colors ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>Fermer</button>}>
       <div className="flex flex-col items-center gap-4 py-4">
-        <div className={`w-36 h-36 rounded-full flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
-          <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-          <span className="text-[10px] text-center px-2">Photo soumise à l'adhésion</span>
-        </div>
+        {m.photo_url
+          ? <img src={m.photo_url} alt={m.name}
+              className="w-36 h-36 rounded-full object-cover border-2 border-gray-200 shadow" />
+          : <div className={`w-36 h-36 rounded-full flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
+              <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span className="text-[10px] text-center px-2">Aucune photo</span>
+            </div>
+        }
         <div className="text-center">
           <p className={`text-[12px] font-bold ${dark?"text-white":"text-gray-800"}`}>{m.name}</p>
           <p className={`text-[10px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.specialite} · CNOM {m.cnom}</p>
@@ -440,14 +448,13 @@ export default function NouvellesDemandes() {
   // Chargement API avec fallback mock
   useEffect(() => {
     setLoading(true);
-    fetch(`${API}/admin/demandes`)
-      .then(r => r.json())
+    getDemandes()
       .then(data => setDemandes(Array.isArray(data) ? data.map(mapMedecin) : MOCK))
       .catch(() => setDemandes(MOCK))
       .finally(() => setLoading(false));
   }, []);
 
-  const pending = useMemo(() => demandes.filter(d => d.status==="pending"), [demandes]);
+  const pending = useMemo(() => demandes, [demandes]); // affiche tous les statuts
 
   const filtered = useMemo(() => {
     let items = pending.filter(d =>
@@ -484,21 +491,19 @@ export default function NouvellesDemandes() {
 
   async function handleAction(id, action, extra={}) {
     try {
-      if (action==="validated") {
-        const res  = await fetch(`${API}/admin/demandes/${id}/valider`, {method:"POST"});
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail||"Erreur validation");
-        if (!data.email_envoye) setActivationInfo({email:data.email_medecin, lien:data.lien_activation});
-      } else if (action==="refused") {
-        const motif = extra.motif||"Dossier incomplet";
-        const res   = await fetch(`${API}/admin/demandes/${id}/rejeter`, {
-          method:"POST", headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({motif}),
-        });
-        if (!res.ok) { const d=await res.json(); throw new Error(d.detail||"Erreur refus"); }
+      if (action === "valide") {
+        const data = await validerMedecin(id);
+        if (!data.email_envoye) {
+          setActivationInfo({ email: data.email_medecin, lien: data.lien_activation });
+        }
+      } else if (action === "rejete") {
+        const motif = extra.motif || "Dossier incomplet";
+        await rejeterMedecin(id, motif);
       }
-    } catch(e) { console.error("[handleAction]",e.message); }
-    setDemandes(p => p.map(item => item.id===id ? {...item,status:action} : item));
+    } catch(e) {
+      console.error("[handleAction]", e.message);
+    }
+    setDemandes(p => p.map(item => item.id === id ? { ...item, status: action } : item));
   }
 
   function handleUpdateDocs(id, newDocs) {
@@ -506,13 +511,13 @@ export default function NouvellesDemandes() {
   }
 
   function handleValider() {
-    handleAction(modaleValider.id, "validated");
+    handleAction(modaleValider.id, "valide");
     setToast({msg:`${modaleValider.name} validé — e-mail d'activation envoyé`, type:"success"});
     setModaleValider(null);
   }
   function handleRefuser({motif, msg}) {
     const motifFull = msg ? `${motif} : ${msg}` : motif;
-    handleAction(modaleRefuser.id, "refused", {motif:motifFull});
+    handleAction(modaleRefuser.id, "rejete", {motif:motifFull});
     setToast({msg:`Demande de ${modaleRefuser.name} refusée`, type:"error"});
     setModaleRefuser(null);
   }
@@ -565,7 +570,7 @@ export default function NouvellesDemandes() {
         <div className={`flex items-center justify-between gap-4 px-5 py-3 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
           <div className="flex items-center gap-2">
             <span className={`text-[12px] font-bold ${dark?"text-white":"text-gray-800"}`}>Demandes en attente</span>
-            <span className="bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full">{pending.length}</span>
+            <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{demandes.filter(d=>d.status==="en_attente").length} en attente</span>
           </div>
           <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}}
             placeholder="Rechercher par nom, e-mail, CNOM, ville…"
@@ -582,14 +587,15 @@ export default function NouvellesDemandes() {
                 <th className={th}>Spécialité</th>
                 <th className={th}>Dossier</th>
                 <th className={th} onClick={()=>handleSort("submittedAt")}>Soumis <SortIcon field="submittedAt"/></th>
-                <th className={`${th} text-center`}>Actions</th>
+                <th className={`${th} text-center`}>Statut</th>
+                <th className={th} style={{minWidth:250}}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className={`${td} text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Chargement…</td></tr>
+                <tr><td colSpan={8} className={`${td} text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Chargement…</td></tr>
               ) : paginated.length===0 ? (
-                <tr><td colSpan={7} className={`${td} text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Aucune demande en attente</td></tr>
+                <tr><td colSpan={8} className={`${td} text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Aucune demande en attente</td></tr>
               ) : paginated.map((doc, i) => {
                 const ds  = docState(doc);
                 const num = (page-1)*perPage+i+1;
@@ -638,30 +644,51 @@ export default function NouvellesDemandes() {
                       <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{elapsedStr(doc.submittedAt)}</p>
                     </td>
 
+
                     <td className={`${td} text-center`}>
-                      <div className="flex items-center justify-center gap-1.5">
-                        {/* 1. Voir dossier — toujours en premier */}
+                      {{
+                        "en_attente": (
+                          <span style={{display:"inline-block",padding:"3px 10px",borderRadius:99,fontSize:10,fontWeight:700,background:"#fffbeb",color:"#b45309",border:"1px solid #fde68a",whiteSpace:"nowrap"}}>
+                            En attente
+                          </span>
+                        ),
+                        "valide": (
+                          <span style={{display:"inline-block",padding:"3px 10px",borderRadius:99,fontSize:10,fontWeight:700,background:"#ecfdf5",color:"#065f46",border:"1px solid #6ee7b7",whiteSpace:"nowrap"}}>
+                            Validé
+                          </span>
+                        ),
+                        "rejete": (
+                          <span style={{display:"inline-block",padding:"3px 10px",borderRadius:99,fontSize:10,fontWeight:700,background:"#fef2f2",color:"#991b1b",border:"1px solid #fca5a5",whiteSpace:"nowrap"}}>
+                            Refusé
+                          </span>
+                        ),
+                      }[doc.status] || (
+                        <span style={{display:"inline-block",padding:"3px 10px",borderRadius:99,fontSize:10,fontWeight:700,background:"#f3f4f6",color:"#6b7280",border:"1px solid #e5e7eb",whiteSpace:"nowrap"}}>
+                          Inconnu
+                        </span>
+                      )}
+                    </td>
+                    <td className={td}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
                         <button onClick={()=>setModaleDossier(doc)}
-                          className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border transition-colors ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-100"}`}>
-                          <Eye size={11}/> Dossier
+                          style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:76,height:28,fontSize:10,fontWeight:700,borderRadius:8,cursor:"pointer",flexShrink:0,border:"1px solid #e5e7eb",background:"#fff",color:"#6b7280"}}>
+                          <Eye size={10}/> Dossier
                         </button>
-                        {/* 2. Valider — seulement si tous les docs vérifiés */}
                         {ds==="ok"
                           ? <button onClick={()=>setModaleValider(doc)}
-                              className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border transition-colors ${dark?"border-[#21262d] text-teal-400 hover:bg-teal-900/20":"border-gray-200 text-teal-700 hover:bg-gray-50"}`}>
-                              <CheckCircle size={11}/> Valider
+                              style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:76,height:28,fontSize:10,fontWeight:700,borderRadius:8,cursor:"pointer",flexShrink:0,border:"1px solid #6ee7b7",background:"#ecfdf5",color:"#065f46"}}>
+                              <CheckCircle size={10}/> Valider
                             </button>
-                          : <span className={`px-2.5 py-1.5 text-[10px] rounded-lg border ${dark?"border-[#30363d] text-[#484f58]":"border-gray-200 text-gray-300"}`}>
+                          : <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:76,height:28,fontSize:10,borderRadius:8,flexShrink:0,border:"1px solid #e5e7eb",color:"#d1d5db"}}>
                               Valider
                             </span>
                         }
-                        {/* 3. Refuser — actif seulement si tous les docs vérifiés */}
-                        {ds === "ok"
+                        {ds==="ok"
                           ? <button onClick={()=>setModaleRefuser(doc)}
-                              className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border transition-colors ${dark?"border-[#21262d] text-red-400 hover:bg-red-900/20":"border-gray-200 text-red-500 hover:bg-gray-50"}`}>
-                              <XCircle size={11}/> Refuser
+                              style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:76,height:28,fontSize:10,fontWeight:700,borderRadius:8,cursor:"pointer",flexShrink:0,border:"1px solid #fca5a5",background:"#fef2f2",color:"#991b1b"}}>
+                              <XCircle size={10}/> Refuser
                             </button>
-                          : <span className={`px-2.5 py-1.5 text-[10px] rounded-lg border ${dark?"border-[#30363d] text-[#484f58]":"border-gray-200 text-gray-300"}`}>
+                          : <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:76,height:28,fontSize:10,borderRadius:8,flexShrink:0,border:"1px solid #e5e7eb",color:"#d1d5db"}}>
                               Refuser
                             </span>
                         }

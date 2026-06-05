@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Download, X, FileText, User } from "lucide-react";
@@ -359,6 +359,19 @@ function ModaleSuppression({ medecin: m, onClose, onConfirm, dark }) {
   );
 }
 
+// ── Bouton pagination ─────────────────────────────────────────────────────────
+function PagBtn({ onClick, disabled, label, dark }) {
+  return (
+    <button onClick={onClick} disabled={disabled}
+      className={`w-8 h-8 flex items-center justify-center rounded-lg border text-[11px] transition-colors
+        ${disabled
+          ? dark?"border-[#21262d] text-[#484f58] cursor-not-allowed":"border-gray-100 text-gray-300 cursor-not-allowed"
+          : dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-600 hover:bg-gray-100"}`}>
+      {label}
+    </button>
+  );
+}
+
 // ── Composant principal ───────────────────────────────────────────────────────
 export default function ValideesCeMois() {
   const { dark } = useOutletContext() || {};
@@ -369,6 +382,13 @@ export default function ValideesCeMois() {
   const [modaleSusp,    setModaleSusp]    = useState(null);
   const [modaleSuppr,   setModaleSuppr]   = useState(null);
   const [toast,         setToast]         = useState(null);
+  const [page,          setPage]          = useState(1);
+  const [perPage,       setPerPage]       = useState(10);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
+  const paginated  = rows.slice((page-1)*perPage, page*perPage);
+  const from = rows.length===0 ? 0 : (page-1)*perPage+1;
+  const to   = Math.min(page*perPage, rows.length);
 
   useEffect(() => {
     if (!toast) return;
@@ -437,7 +457,7 @@ export default function ValideesCeMois() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(doc => (
+              {paginated.map(doc => (
                 <tr key={doc.id} className={`transition-colors ${dark ? "hover:bg-[#0d1117]/60" : "hover:bg-gray-50/80"}`}>
                   <td className={td}>
                     <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => setModalePhoto(doc)}>
@@ -474,8 +494,30 @@ export default function ValideesCeMois() {
             </tbody>
           </table>
         </div>
-        <div className={`px-4 py-3 border-t text-[11px] ${dark ? "border-[#21262d] text-[#484f58]" : "border-gray-50 text-gray-300"}`}>
-          {rows.length} inscription{rows.length > 1 ? "s" : ""} validée{rows.length > 1 ? "s" : ""} ce mois
+        <div className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t text-[11px] ${dark?"border-[#21262d] text-[#484f58]":"border-gray-50 text-gray-400"}`}>
+          <span>Affichage {from} à {to} sur {rows.length} inscription{rows.length>1?"s":""}</span>
+          <div className="flex items-center gap-2">
+            <span>Lignes :</span>
+            <select value={perPage} onChange={e=>{setPerPage(Number(e.target.value));setPage(1);}}
+              className={`text-[11px] px-2 py-1 rounded-lg border outline-none cursor-pointer ${dark?"bg-[#0d1117] border-[#21262d] text-white":"bg-white border-gray-200 text-gray-700"}`}>
+              {[5,10,20,50].map(n=><option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-1">
+            <PagBtn onClick={()=>setPage(1)} disabled={page===1} label="«" dark={dark}/>
+            <PagBtn onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} label="‹" dark={dark}/>
+            {Array.from({length:totalPages},(_,i)=>i+1)
+              .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
+              .reduce((acc,p,idx,arr)=>{if(idx>0&&p-arr[idx-1]>1)acc.push("…"+idx);acc.push(p);return acc;},[])
+              .map(p=>typeof p==="string"
+                ? <span key={p} className="px-1 opacity-30">…</span>
+                : <button key={p} onClick={()=>setPage(p)}
+                    className="w-7 h-7 rounded-lg border text-[11px] font-medium transition-colors"
+                    style={p===page?{background:BRAND,borderColor:BRAND,color:"#fff"}:{}}>{p}</button>
+              )}
+            <PagBtn onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} label="›" dark={dark}/>
+            <PagBtn onClick={()=>setPage(totalPages)} disabled={page===totalPages} label="»" dark={dark}/>
+          </div>
         </div>
       </div>
 
