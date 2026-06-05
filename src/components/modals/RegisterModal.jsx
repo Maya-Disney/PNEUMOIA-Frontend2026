@@ -134,7 +134,6 @@ export default function RegisterModal({ isOpen, onClose }) {
   const handleSubmit = async () => {
     setApiError('');
 
-    // Validation mot de passe
     if (form.motDePasse !== form.confirmationMdp) {
       setApiError('Les mots de passe ne correspondent pas.');
       return;
@@ -154,10 +153,12 @@ export default function RegisterModal({ isOpen, onClose }) {
 
     setLoading(true);
 
+    // Timeout 60 s — l'upload de 7 fichiers peut être long
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 60000);
+
     try {
       const formData = new FormData();
-
-      // Champs texte
       formData.append('civilite',      form.civilite);
       formData.append('nom',           form.nom);
       formData.append('prenom',        form.prenom);
@@ -171,32 +172,32 @@ export default function RegisterModal({ isOpen, onClose }) {
       formData.append('website',       form.website);
       formData.append('email',         form.emailPro);
       formData.append('password',      form.motDePasse);
-
-      // Photo
-      formData.append('photo_profil', form.photoProfil);
-
-      // 6 documents
+      formData.append('photo_profil',  form.photoProfil);
       DOCUMENTS_REQUIS.forEach(doc => {
         formData.append(doc.id, documents[doc.id]);
       });
 
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
-        body: formData,
+        body:   formData,
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data.detail || 'Erreur lors de la soumission.');
       }
 
-      // Succès → afficher la confirmation
       toast.success('Dossier soumis ! Vous serez contacté sous 24-48h.', { title: 'Inscription envoyée ✅' });
       setShowConfirmation(true);
 
     } catch (err) {
-      const msg = err.message || 'Erreur réseau. Réessayez.';
+      clearTimeout(timeoutId);
+      const msg = err.name === 'AbortError'
+        ? 'Délai dépassé (60 s) — réessayez avec des fichiers plus légers (< 2 Mo chacun).'
+        : err.message || 'Erreur réseau. Réessayez.';
       setApiError(msg);
       toast.error(msg, { title: 'Erreur' });
     } finally {

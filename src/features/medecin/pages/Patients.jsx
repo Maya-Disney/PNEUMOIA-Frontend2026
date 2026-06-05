@@ -936,11 +936,13 @@ function Toast({ toasts, remove }) {
 // ─── MAIN APP ──────────────────────────────────────────────────────────
 
 export default function PatientsPage() {
-  const [patients, setPatients] = useState(PATIENTS);
-  const [selected, setSelected] = useState(null);
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [toasts, setToasts] = useState([]);
+  const [patients,  setPatients]  = useState({});
+  const [selected,  setSelected]  = useState(null);
+  const [filter,    setFilter]    = useState("all");
+  const [search,    setSearch]    = useState("");
+  const [toasts,    setToasts]    = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState(null);
   let toastId = useRef(0);
 
   const addToast = (type, title, msg) => {
@@ -949,6 +951,120 @@ export default function PatientsPage() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3800);
   };
 
+  // ── Charger les patients depuis la BDD ──────────────────────────
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token    = localStorage.getItem('token') || localStorage.getItem('access_token');
+        const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+        const res      = await fetch(`${BASE_URL}/patients/mes-patients`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Impossible de charger les patients');
+        const data = await res.json();
+
+        const obj = {};
+        data.forEach(p => {
+          obj[p.id] = {
+            name:        `${p.nom} ${p.prenom}`,
+            init:        `${p.prenom?.[0] || ''}${p.nom?.[0] || ''}`,
+            age:         _calculerAge(p.date_naissance),
+            sex:         p.sexe === 'M' ? 'Masculin' : p.sexe === 'F' ? 'Féminin' : 'Non renseigné',
+            id:          p.id,
+            dob:         p.date_naissance ? new Date(p.date_naissance).toLocaleDateString('fr-FR') : 'N/A',
+            city:        p.adresse || 'Non renseignée',
+            tel:         p.telephone || 'Non renseigné',
+            created:     new Date(p.created_at || Date.now()).toLocaleDateString('fr-FR'),
+            shared:      false,
+            status:      'actif',
+            religion:    p.religion || null,
+            groupe_sanguin: p.groupe_sanguin || null,
+            allergies:   Array.isArray(p.allergies) ? p.allergies : ['Aucune allergie connue'],
+            antecedents: _formaterAntecedents(p.antecedents || {}),
+            diag:        'Chargement...',
+            diagSince:   '',
+            iaPct:       0,
+            vitals:      {},
+            treatments:  [],
+            docs:        [],
+            notes:       '',
+            iaDiags:     [],
+            iaDiffs:     [],
+            iaCriteria:  [],
+            tl:          [],
+          };
+        });
+        setPatients(obj);
+      } catch (err) {
+        setError(err.message);
+        addToast('error', 'Erreur', err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // ── Charger les consultations quand un patient est sélectionné ──
+  useEffect(() => {
+    if (!selected) return;
+    const patient = patients[selected];
+    if (!patient || patient.diag !== 'Chargement...') return;
+
+    const loadConsultations = async () => {
+      try {
+        const token    = localStorage.getItem('token') || localStorage.getItem('access_token');
+        const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+        const res      = await fetch(`${BASE_URL}/patients/${selected}/consultations`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const consultations = await res.json();
+
+        if (!consultations.length) {
+          setPatients(prev => ({
+            ...prev,
+            [selected]: { ...prev[selected], diag: 'Aucune consultation', iaPct: 0 },
+          }));
+          return;
+        }
+
+        const derniere = consultations[0];
+        setPatients(prev => ({
+          ...prev,
+          [selected]: {
+            ...prev[selected],
+            diag:      derniere.diagnostic?.maladies?.[0]?.nom    || 'Pas de diagnostic',
+            diagSince: `Consulté le ${new Date(derniere.created_at).toLocaleDateString('fr-FR')}`,
+            iaPct:     derniere.diagnostic?.maladies?.[0]?.pct    || 0,
+            notes:     derniere.observations                       || '',
+            tl: consultations.map(c => ({
+              date:  new Date(c.created_at).toLocaleDateString('fr-FR'),
+              title: c.diagnostic?.maladies?.[0]?.nom || 'Consultation',
+              note:  c.observations || c.recommandations || '',
+              ia:    c.diagnostic?.maladies?.[0]?.pct || 0,
+              color: c.statut === 'terminee' ? '#1D6FEB' : '#D97706',
+              conc:  'En attente',
+            })),
+            iaDiags: consultations
+              .filter(c => c.diagnostic)
+              .map(c => ({
+                date: new Date(c.created_at).toLocaleDateString('fr-FR'),
+                diag: c.diagnostic.maladies?.[0]?.nom || '—',
+                pct:  c.diagnostic.maladies?.[0]?.pct || 0,
+                conc: 'Concordant',
+              })),
+          },
+        }));
+      } catch (err) {
+        console.error('Erreur chargement consultations:', err);
+      }
+    };
+    loadConsultations();
+  }, [selected]);
+
   const handleStatusChange = (newStatus) => {
     if (!selected) return;
     setPatients(prev => ({ ...prev, [selected]: { ...prev[selected], status: newStatus } }));
@@ -956,12 +1072,38 @@ export default function PatientsPage() {
   };
 
   const filteredPatients = Object.entries(patients).filter(([, p]) => {
-    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.diag.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === "all" || (filter === "urgent" && p.status === "urgent") || (filter === "shared" && p.shared);
+    const matchSearch = !search
+      || p.name.toLowerCase().includes(search.toLowerCase())
+      || (p.diag || '').toLowerCase().includes(search.toLowerCase());
+    const matchFilter = filter === "all"
+      || (filter === "urgent" && p.status === "urgent")
+      || (filter === "shared" && p.shared);
     return matchSearch && matchFilter;
   });
 
   const currentPatient = selected ? patients[selected] : null;
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-center">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-sm text-(--t3)">Chargement des patients...</p>
+      </div>
+    </div>
+  );
+
+  if (error && Object.keys(patients).length === 0) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-center p-6 bg-red-50 rounded-xl border border-red-200">
+        <p className="text-sm font-medium text-red-800">Impossible de charger les patients</p>
+        <p className="text-xs text-red-600 mt-1">{error}</p>
+        <button onClick={() => window.location.reload()}
+          className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm">
+          Réessayer
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex h-screen overflow-hidden font-sans antialiased bg-[var(--bg)] text-(--t1)" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
@@ -1070,4 +1212,31 @@ export default function PatientsPage() {
       </div>
     </div>
   );
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+function _calculerAge(dateNaissance) {
+  if (!dateNaissance) return 'N/A';
+  const diff = Date.now() - new Date(dateNaissance).getTime();
+  return `${Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))} ans`;
+}
+
+function _formaterAntecedents(antecedents) {
+  if (!antecedents || typeof antecedents !== 'object') return ['Aucun antécédent renseigné'];
+  const labels = {
+    diabete: 'Diabète', hypertension: 'Hypertension', asthme: 'Asthme',
+    bpco: 'BPCO', tuberculose: 'Tuberculose', vih: 'VIH/SIDA',
+    cancerPoumon: 'Cancer du poumon', hepatiteB: 'Hépatite B',
+  };
+  const result = [];
+  if (antecedents.tabagisme === 'fumeur')
+    result.push(`Tabagisme actif${antecedents.cigarettesParJour ? ` (${antecedents.cigarettesParJour} cig/j)` : ''}`);
+  if (antecedents.tabagisme === 'ancien')
+    result.push('Ancien fumeur');
+  Object.entries(labels).forEach(([key, label]) => {
+    if (antecedents[key]) result.push(label);
+  });
+  if (antecedents.allergieMedicaments)
+    result.push(`Allergie : ${antecedents.allergieMedicaments}`);
+  return result.length ? result : ['Aucun antécédent renseigné'];
 }

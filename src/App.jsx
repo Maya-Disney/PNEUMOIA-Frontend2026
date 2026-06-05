@@ -1,5 +1,7 @@
 // src/App.jsx
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { synchroniserAvecServeur } from './services/offlineManager';
 import { ThemeProvider } from './features/medecin/contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import './App.css';
@@ -47,6 +49,15 @@ import NouvellesDemandes   from './features/administrateur/pages/NouvellesDemand
 
 
 function App() {
+  useEffect(() => {
+    const handleOnline = async () => {
+      console.log('🌐 Réseau rétabli — synchronisation...');
+      await synchroniserAvecServeur();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
+
   return (
     <BrowserRouter>  {/* Un seul Router ici */}
       <Routes>

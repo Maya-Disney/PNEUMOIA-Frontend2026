@@ -7,6 +7,11 @@
   :root {
     --bg: #F4F8FA;
     --sf: #FFFFFF;
+    /* Tintes cards stats dashboard */
+    --tint-blue:    #EFF6FF;
+    --tint-orange:  #FFF7ED;
+    --tint-green:   #ECFDF5;
+    --tint-default: #F8FAFC;
     --sf2: #EEF4F7;
     --sf3: #DDE8ED;
     --ln: #D0E2E8;
@@ -37,6 +42,11 @@
   .dark {
     --bg: #06101A;
     --sf: #0D1B26;
+    /* Tintes cards stats dashboard — version sombre */
+    --tint-blue:    rgba(30, 58, 138, 0.22);
+    --tint-orange:  rgba(124, 45, 18, 0.22);
+    --tint-green:   rgba(6, 78, 59, 0.22);
+    --tint-default: rgba(30, 41, 59, 0.30);
     --sf2: #132231;
     --sf3: #1A2D3C;
     --ln: #1E3547;
