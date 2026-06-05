@@ -3,6 +3,16 @@ import { adminLogin, adminResetRequest, adminResetConfirm } from "../api/adminAp
 import { useNavigate } from "react-router-dom";
 import logo from "../../../assets/images/logo.png";
 
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
+  useEffect(() => {
+    const fn = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return isDesktop;
+}
+
 const T1 = "#1f7a75";
 const T2 = "#339991";
 const T3 = "#5ab3ac";
@@ -141,6 +151,7 @@ function StrengthMeter({ pwd, dark }) {
 
 export default function AdminLogin() {
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   // Thème local à la page login uniquement — séparé du thème global de l'app
   const [dark, setDark] = useState(() => localStorage.getItem("pneumo_login_theme") === "dark");
   const [view, setView] = useState("login");
@@ -285,10 +296,10 @@ export default function AdminLogin() {
       </header>
 
       {/* ── MAIN ── */}
-      <main className="flex-1 flex flex-col lg:grid overflow-auto lg:overflow-hidden" style={{ gridTemplateColumns: "43% 57%" }}>
+      <main style={{ flex: 1, display: "flex", flexDirection: "row", overflow: "hidden", minHeight: 0 }}>
 
         {/* ── GAUCHE ── */}
-        <aside className="hidden lg:flex" style={{ position: "relative", flexDirection: "column", padding: "28px 28px", overflow: "hidden", background: asideBg }}>
+        <aside style={{ position:"relative", flexDirection:"column", padding:"20px", overflow:"hidden", background:asideBg, flexShrink:0, display:"flex", minHeight:180 }} className="w-full lg:w-[43%] lg:min-w-[43%] lg:min-h-0 lg:h-auto">
           <div style={{ position: "absolute", inset: 0, opacity: .03, backgroundImage: "radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)", backgroundSize: "22px 22px" }} />
           <div style={{ position: "absolute", top: -70, right: -70, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.1), transparent 70%)" }} />
           <div style={{ position: "absolute", bottom: -50, left: -50, width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.08), transparent 70%)" }} />
@@ -299,7 +310,7 @@ export default function AdminLogin() {
             <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".15em", color: "rgba(255,255,255,.6)", marginBottom: 10 }}>Mission du moment</p>
             <AnimatedTagline />
           </div>
-          <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 12, flex: 1, justifyContent: "center" }}>
+          <div className="hidden lg:flex" style={{ position:"relative", flexDirection:"column", gap:12, flex:1, justifyContent:"center" }}>
             {MISSIONS.map((m, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, borderRadius: 12, padding: "14px 16px", background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.15)", cursor: "default", transition: "all .2s" }}
                 onMouseEnter={e => { e.currentTarget.style.background="rgba(255,255,255,.2)"; e.currentTarget.style.transform="translateX(5px)"; }}
@@ -317,8 +328,8 @@ export default function AdminLogin() {
         </aside>
 
         {/* ── DROITE ── */}
-        <section style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 16px", background: rightBg, overflowY: "auto", transition: "background .25s", minHeight: 0 }} className="flex-1 lg:px-8">
-          <div style={{ width: "100%", maxWidth: 440, borderRadius: 18, background: cardBg, border: `1px solid ${cardBord}`, boxShadow: dark ? "0 8px 40px rgba(0,0,0,.4)" : "0 8px 32px rgba(31,122,117,.12)", padding: "24px 20px", transition: "all .25s" }} className="md:px-7">
+        <section style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:"24px 16px", background:rightBg, overflowY:"auto", transition:"background .25s", flex:1, minWidth:0, scrollbarWidth:"thin" }}>
+          <div style={{ width: "100%", maxWidth: 440, borderRadius: 18, background: cardBg, border: `1px solid ${cardBord}`, boxShadow: dark ? "0 8px 40px rgba(0,0,0,.4)" : "0 8px 32px rgba(31,122,117,.12)", padding: "20px 20px", transition: "all .25s" }} className="md:px-7">
 
             {/* ── LOGIN ── */}
             {view === "login" && (

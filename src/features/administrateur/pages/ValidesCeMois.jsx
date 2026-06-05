@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Download, X, FileText, User } from "lucide-react";
+import { getMedecinsValides } from "../api/adminapi";
 
 const BRAND = "#0f766e";
 
@@ -173,14 +174,28 @@ function ModalePhoto({ doc: m, onClose, dark }) {
 
 // ── Modal dossier ─────────────────────────────────────────────────────────────
 function ModaleDossier({ doc: m, onClose, dark }) {
+  function handleVoir(d) {
+    if (d.url) window.open(d.url, "_blank");
+    else alert("Document disponible après connexion backend.\nEndpoint : GET /api/admin/demandes/" + m.id + "/documents");
+  }
+  function handleDl(d) {
+    if (d.url) {
+      const a = document.createElement("a");
+      a.href = d.url; a.download = d.label; a.click();
+    } else {
+      alert("Téléchargement disponible après connexion backend.");
+    }
+  }
+
   return (
-    <Modal dark={dark} onClose={onClose} title="Dossier de validation" sub={`${m.name} · validé le ${formatValidation(m.dateValidation)}`}
+    <Modal dark={dark} onClose={onClose} title="Dossier de validation" sub={`${m.name} · validé le ${formatValidation(m.dateValidation)}`} wide
       footer={
         <button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[12px] font-semibold border transition-colors ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-[#21262d]" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
           Fermer
         </button>
       }>
       <div className="flex flex-col gap-3">
+
         {/* Bandeau validé */}
         <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${dark ? "bg-teal-900/20 border-teal-700/40 text-teal-300" : "bg-teal-50 border-teal-200 text-teal-700"}`}>
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="shrink-0">
@@ -191,38 +206,75 @@ function ModaleDossier({ doc: m, onClose, dark }) {
           </p>
         </div>
 
-        {/* Infos */}
+        {/* Infos médecin */}
         <div className={`rounded-xl border overflow-hidden ${dark ? "bg-[#0d1117] border-[#21262d]" : "bg-gray-50 border-gray-100"}`}>
           {[
-            {l:"Médecin",          v:m.name},
-            {l:"Spécialité",       v:m.specialite},
-            {l:"CNOM",             v:m.cnom},
-            {l:"Établissement",    v:m.hopital},
-            {l:"Date demande",     v:formatFull(m.dateDemande)},
-            {l:"Date validation",  v:formatFull(m.dateValidation), teal:true},
+            {l:"Médecin",         v:m.name},
+            {l:"Spécialité",      v:m.specialite},
+            {l:"CNOM",            v:m.cnom},
+            {l:"Établissement",   v:m.hopital},
+            {l:"Date demande",    v:formatFull(m.dateDemande)},
+            {l:"Date validation", v:formatFull(m.dateValidation), teal:true},
           ].map(({l,v,teal},i) => (
             <div key={i} className={`flex items-center justify-between px-4 py-2.5 border-b last:border-0 ${dark ? "border-[#21262d]" : "border-gray-100"}`}>
               <span className={`text-[11px] ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{l}</span>
-              <span className={`text-[11px] font-medium ${teal ? "text-[#0f766e] dark:text-teal-400" : dark ? "text-[#8b949e]" : "text-gray-700"}`}>{v}</span>
+              <span className={`text-[11px] font-medium ${teal ? "text-[#0f766e]" : dark ? "text-[#8b949e]" : "text-gray-700"}`}>{v}</span>
             </div>
           ))}
         </div>
 
-        {/* Documents */}
-        <p className={`text-[10px] font-bold uppercase tracking-wider ${dark ? "text-[#484f58]" : "text-gray-300"}`}>
-          Pièces justificatives ({m.documents.length})
-        </p>
+        {/* Documents — 6 pièces consultables */}
+        <div className="flex items-center justify-between">
+          <p className={`text-[10px] font-bold uppercase tracking-wider ${dark ? "text-[#484f58]" : "text-gray-400"}`}>
+            Pièces justificatives
+          </p>
+          <span className="text-[10px] font-bold text-teal-600">{m.documents.length}/6 vérifiées</span>
+        </div>
+
         <div className={`rounded-xl border overflow-hidden ${dark ? "bg-[#0d1117] border-[#21262d]" : "bg-gray-50 border-gray-100"}`}>
-          {m.documents.map((d,i) => {
-            const c = DOC_CFG[d.status] || DOC_CFG.missing;
+          {m.documents.map((d, i) => {
+            const cfg = DOC_CFG[d.status] || DOC_CFG.missing;
             return (
-              <div key={i} className={`flex items-center justify-between gap-3 px-4 py-2.5 border-b last:border-0 ${dark ? "border-[#21262d]" : "border-gray-100"}`}>
-                <span className={`text-[11px] ${dark ? "text-[#8b949e]" : "text-gray-600"}`}>{d.label}</span>
-                <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${c.cls}`}>{c.label}</span>
+              <div key={i} className={`flex items-center gap-3 px-4 py-3 border-b last:border-0 ${dark ? "border-[#21262d]" : "border-gray-100"}`}>
+
+                {/* Numéro */}
+                <span className={`text-[10px] font-bold w-5 shrink-0 ${dark ? "text-[#484f58]" : "text-gray-300"}`}>{i+1}</span>
+
+                {/* Nom document */}
+                <span className={`text-[11px] font-medium flex-1 ${dark ? "text-[#8b949e]" : "text-gray-600"}`}>{d.label}</span>
+
+                {/* Badge statut */}
+                <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${cfg.cls}`}>
+                  {cfg.label}
+                </span>
+
+                {/* Boutons Voir + Télécharger */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button onClick={() => handleVoir(d)} title="Voir le document"
+                    className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-lg border transition-colors
+                      ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white" : "border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
+                    <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Voir
+                  </button>
+                  <button onClick={() => handleDl(d)} title="Télécharger"
+                    className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-lg border transition-colors
+                      ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white" : "border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
+                    <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Télécharger
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
+
+        <p className={`text-[10px] text-center ${dark ? "text-[#484f58]" : "text-gray-300"}`}>
+          Documents soumis par le médecin à l'inscription · Stockés de façon sécurisée
+        </p>
       </div>
     </Modal>
   );
@@ -359,32 +411,60 @@ function ModaleSuppression({ medecin: m, onClose, onConfirm, dark }) {
   );
 }
 
-// ── Bouton pagination ─────────────────────────────────────────────────────────
-function PagBtn({ onClick, disabled, label, dark }) {
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className={`w-8 h-8 flex items-center justify-center rounded-lg border text-[11px] transition-colors
-        ${disabled
-          ? dark?"border-[#21262d] text-[#484f58] cursor-not-allowed":"border-gray-100 text-gray-300 cursor-not-allowed"
-          : dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-600 hover:bg-gray-100"}`}>
-      {label}
-    </button>
-  );
-}
-
 // ── Composant principal ───────────────────────────────────────────────────────
 export default function ValideesCeMois() {
   const { dark } = useOutletContext() || {};
-  const [rows]   = useState(MOCK);
+
+  // ── états ────────────────────────────────────────────────────────────────────
+  const [rows,       setRows]       = useState(MOCK);
+  const [loading,    setLoading]    = useState(true);
+  const [moisSelec,  setMoisSelec]  = useState(new Date().getMonth() + 1);
+  const [anneeSelec, setAnneeSelec] = useState(new Date().getFullYear());
+  const [page,       setPage]       = useState(1);
+  const [perPage,    setPerPage]    = useState(10);
   const [modalePhoto,   setModalePhoto]   = useState(null);
   const [modaleDossier, setModaleDossier] = useState(null);
   const [modaleProfil,  setModaleProfil]  = useState(null);
   const [modaleSusp,    setModaleSusp]    = useState(null);
   const [modaleSuppr,   setModaleSuppr]   = useState(null);
   const [toast,         setToast]         = useState(null);
-  const [page,          setPage]          = useState(1);
-  const [perPage,       setPerPage]       = useState(10);
 
+  useEffect(() => {
+    setLoading(true);
+    getMedecinsValides(moisSelec, anneeSelec)
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setRows(data.map(m => ({
+            id:              m.id,
+            initials:        `${(m.prenom?.[0]||"").toUpperCase()}${(m.nom?.[0]||"").toUpperCase()}`,
+            name:            `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
+            specialite:      m.specialite || "Pneumologue",
+            hopital:         m.etablissement || "—",
+            ville:           "—",
+            email:           m.email,
+            telephone:       m.telephone || "—",
+            cnom:            m.numero_rpps || "—",
+            avatarBg:        ["#1D9E75","#185FA5","#7C3AED","#DC2626","#D97706","#0891B2"][Math.abs(m.id?.charCodeAt(0)||0) % 6],
+            patients:        0,
+            consultations:   0,
+            concordanceIA:   0,
+            statut:          "Actif",
+            rangCommunaute:  "—",
+            casPartages:     "—",
+            creeLE:          m.created_at ? new Date(m.created_at).toLocaleString("fr-FR") : "—",
+            valideLE:        m.valide_le  ? new Date(m.valide_le).toLocaleString("fr-FR")  : "—",
+            dateDemande:     m.created_at ? new Date(m.created_at) : new Date(),
+            dateValidation:  m.valide_le  ? new Date(m.valide_le)  : new Date(),
+            validePar:       m.valide_par || "Administrateur",
+            documents:       (m.documents || []).map(d => ({ label: d.label, url: d.url, status: "verified" })),
+            activiteRecente: [],
+          })));
+        }
+        // sinon garde les mocks
+      })
+      .catch(() => {}) // garde les mocks si erreur
+      .finally(() => setLoading(false));
+  }, [moisSelec, anneeSelec]);
   const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
   const paginated  = rows.slice((page-1)*perPage, page*perPage);
   const from = rows.length===0 ? 0 : (page-1)*perPage+1;
@@ -424,10 +504,11 @@ export default function ValideesCeMois() {
   return (
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
 
+      {/* ── Header : titre + export ── */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className={`text-xl md:text-2xl font-black tracking-tight ${dark ? "text-white" : "text-gray-900"}`}>
-            Inscriptions validées — {titreMois()}
+            Inscriptions validées — {MOIS_LONG[moisSelec-1].charAt(0).toUpperCase() + MOIS_LONG[moisSelec-1].slice(1)} {anneeSelec}
           </h1>
           <p className={`text-[12px] mt-1 ${dark ? "text-[#8b949e]" : "text-gray-400"}`}>
             {rows.length} compte{rows.length > 1 ? "s" : ""} médecin{rows.length > 1 ? "s" : ""} activé{rows.length > 1 ? "s" : ""} ce mois
@@ -439,6 +520,31 @@ export default function ValideesCeMois() {
           onMouseLeave={e => { e.currentTarget.style.background = ""; e.currentTarget.style.color = ""; e.currentTarget.style.borderColor = ""; }}>
           <Download size={13} /> Export Excel
         </button>
+      </div>
+
+      {/* ── Filtres mois/année — au-dessus du tableau avec marge ── */}
+      <div style={{ marginTop: 8, marginBottom: 4, display:"flex", alignItems:"center", gap:10 }}>
+        <span className={`text-[11px] font-semibold ${dark?"text-[#484f58]":"text-gray-400"}`}>
+          Période :
+        </span>
+        <select
+          value={moisSelec}
+          onChange={e => { setMoisSelec(Number(e.target.value)); setPage(1); }}
+          className={`text-[12px] px-3 py-2 rounded-xl border outline-none cursor-pointer font-semibold ${dark?"bg-[#161b22] border-[#21262d] text-white":"bg-white border-gray-200 text-gray-700"}`}>
+          {MOIS_LONG.map((m, i) => (
+            <option key={i} value={i+1}>
+              {m.charAt(0).toUpperCase() + m.slice(1)}
+            </option>
+          ))}
+        </select>
+        <select
+          value={anneeSelec}
+          onChange={e => { setAnneeSelec(Number(e.target.value)); setPage(1); }}
+          className={`text-[12px] px-3 py-2 rounded-xl border outline-none cursor-pointer font-semibold ${dark?"bg-[#161b22] border-[#21262d] text-white":"bg-white border-gray-200 text-gray-700"}`}>
+          {Array.from({length: 10}, (_, i) => 2026 + i).map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
       </div>
 
       <div className={`rounded-2xl border overflow-hidden ${dark ? "bg-[#161b22] border-[#21262d]" : "bg-white border-gray-100 shadow-sm"}`}>
@@ -457,7 +563,11 @@ export default function ValideesCeMois() {
               </tr>
             </thead>
             <tbody>
-              {paginated.map(doc => (
+              {loading ? (
+                <tr><td colSpan={8} className={`text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Chargement…</td></tr>
+              ) : paginated.length === 0 ? (
+                <tr><td colSpan={8} className={`text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Aucune validation ce mois</td></tr>
+              ) : paginated.map(doc => (
                 <tr key={doc.id} className={`transition-colors ${dark ? "hover:bg-[#0d1117]/60" : "hover:bg-gray-50/80"}`}>
                   <td className={td}>
                     <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => setModalePhoto(doc)}>
@@ -504,19 +614,10 @@ export default function ValideesCeMois() {
             </select>
           </div>
           <div className="flex items-center gap-1">
-            <PagBtn onClick={()=>setPage(1)} disabled={page===1} label="«" dark={dark}/>
-            <PagBtn onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} label="‹" dark={dark}/>
-            {Array.from({length:totalPages},(_,i)=>i+1)
-              .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
-              .reduce((acc,p,idx,arr)=>{if(idx>0&&p-arr[idx-1]>1)acc.push("…"+idx);acc.push(p);return acc;},[])
-              .map(p=>typeof p==="string"
-                ? <span key={p} className="px-1 opacity-30">…</span>
-                : <button key={p} onClick={()=>setPage(p)}
-                    className="w-7 h-7 rounded-lg border text-[11px] font-medium transition-colors"
-                    style={p===page?{background:BRAND,borderColor:BRAND,color:"#fff"}:{}}>{p}</button>
-              )}
-            <PagBtn onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} label="›" dark={dark}/>
-            <PagBtn onClick={()=>setPage(totalPages)} disabled={page===totalPages} label="»" dark={dark}/>
+            <button onClick={()=>setPage(1)} disabled={page===1} className={`w-8 h-8 flex items-center justify-center rounded-lg border text-[11px] transition-colors ${page===1?dark?"border-[#21262d] text-[#484f58] cursor-not-allowed":"border-gray-100 text-gray-300 cursor-not-allowed":dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-600 hover:bg-gray-100"}`}>«</button>
+            <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} className={`w-8 h-8 flex items-center justify-center rounded-lg border text-[11px] transition-colors ${page===1?dark?"border-[#21262d] text-[#484f58] cursor-not-allowed":"border-gray-100 text-gray-300 cursor-not-allowed":dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-600 hover:bg-gray-100"}`}>‹</button>
+            <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} className={`w-8 h-8 flex items-center justify-center rounded-lg border text-[11px] transition-colors ${page===totalPages?dark?"border-[#21262d] text-[#484f58] cursor-not-allowed":"border-gray-100 text-gray-300 cursor-not-allowed":dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-600 hover:bg-gray-100"}`}>›</button>
+            <button onClick={()=>setPage(totalPages)} disabled={page===totalPages} className={`w-8 h-8 flex items-center justify-center rounded-lg border text-[11px] transition-colors ${page===totalPages?dark?"border-[#21262d] text-[#484f58] cursor-not-allowed":"border-gray-100 text-gray-300 cursor-not-allowed":dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-600 hover:bg-gray-100"}`}>»</button>
           </div>
         </div>
       </div>

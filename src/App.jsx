@@ -46,6 +46,7 @@ import CourbeActivite      from './features/administrateur/pages/Courbesactives'
 import PerformancesIA      from './features/administrateur/pages/PerformanceIA';
 import Parametres          from './features/administrateur/pages/Parametres';
 import NouvellesDemandes   from './features/administrateur/pages/NouvellesDemandes';
+import ProfilMedecin       from './features/administrateur/pages/ProfilMedecin';
 
 
 function App() {
@@ -107,6 +108,7 @@ function App() {
           <Route path="geo"            element={<RepartitionGeo />} />
           <Route path="audit"          element={<JournalAudit />} />
           <Route path="parametres"     element={<Parametres />} />
+          <Route path="medecins/:id"   element={<ProfilMedecin />} />
         </Route>
 
       </Routes>

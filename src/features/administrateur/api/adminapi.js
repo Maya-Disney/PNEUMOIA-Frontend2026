@@ -49,8 +49,6 @@ export async function adminResetConfirm({ email, otp, new_password, confirm_pass
   });
 }
 
-// ─── Demandes ──────────────────────────────────────────────────────────────────
-
 // ─── Demandes médecins ────────────────────────────────────────────────────────
 
 /**
@@ -76,6 +74,45 @@ export async function validerMedecin(medecinId) {
  */
 export async function rejeterMedecin(medecinId, motif) {
   return request("POST", `/api/admin/demandes/${medecinId}/rejeter`, { motif }, true);
+}
+
+// ─── Validées ce mois ─────────────────────────────────────────────────────────
+
+/**
+ * Récupère les médecins validés pour un mois et une année donnés
+ * GET /api/admin/demandes/valides?mois=6&annee=2026
+ */
+export async function getMedecinsValides(mois, annee) {
+  const params = mois && annee ? `?mois=${mois}&annee=${annee}` : "";
+  return request("GET", `/api/admin/demandes/valides${params}`, null, true);
+}
+
+// ─── Refusées ─────────────────────────────────────────────────────────────────
+
+/**
+ * Récupère tous les médecins refusés
+ * GET /api/admin/demandes/statut/rejete
+ */
+export async function getMedecinsRefuses() {
+  return request("GET", "/api/admin/demandes/statut/rejete", null, true);
+}
+
+// ─── Médecins actifs ──────────────────────────────────────────────────────────
+
+/**
+ * Récupère tous les médecins actifs (statut: "valide")
+ * GET /api/admin/demandes/statut/valide
+ */
+export async function getMedecinsActifs() {
+  return request("GET", "/api/admin/demandes/statut/valide", null, true);
+}
+
+/**
+ * Récupère tous les médecins suspendus
+ * GET /api/admin/demandes/statut/suspendu
+ */
+export async function getMedecinsSuspendus() {
+  return request("GET", "/api/admin/demandes/statut/suspendu", null, true);
 }
 
 // ─── Statistiques ──────────────────────────────────────────────────────────────
