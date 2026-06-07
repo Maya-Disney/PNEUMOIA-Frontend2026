@@ -127,7 +127,7 @@ export default function TestimonialsSection() {
               transition={{ duration: 0.5 }}
               className="grid grid-cols-1 lg:grid-cols-2 gap-6"
             >
-              {groupedTestimonials[currentIndex].map((testimonial) => (
+              {(groupedTestimonials[currentIndex] ?? []).map((testimonial) => (
                 <div
                   key={testimonial.id}
                   className="bg-[var(--sf)] rounded-2xl p-6 md:p-8 shadow-lg hover:shadow-xl transition-all"

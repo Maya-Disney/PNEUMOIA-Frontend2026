@@ -1,5 +1,6 @@
 // src/features/medecin/pages/ConsultationHistory.jsx
 import { useState } from 'react';
+import { TablePagination } from '../../../components/ui/TablePagination';
 import { useProfil } from '../hooks/useAuth';
 import { 
   Search, Calendar, Clock, User, Stethoscope, 
@@ -16,8 +17,8 @@ export default function ConsultationHistory() {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [viewMode, setViewMode] = useState('cards');
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
-  const itemsPerPage = 9;
 
   const nomMedecin = profil
     ? `${profil.civilite || 'Dr'}. ${profil.prenom} ${profil.nom}`
@@ -524,32 +525,13 @@ export default function ConsultationHistory() {
       {viewMode === 'cards' ? <CardsView /> : <TableView />}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4">
-          <p className="text-sm text-[var(--t3)]">
-            {filteredConsultations.length} consultation(s)
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-(--ln) hover:bg-(--sf2) disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="px-4 py-2 text-sm text-[var(--t2)]">
-              Page {currentPage} / {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border border-(--ln) hover:bg-(--sf2) disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <ChevronRightIcon className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      <TablePagination
+        total={filteredConsultations.length}
+        page={currentPage}
+        pageSize={itemsPerPage}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={s => { setItemsPerPage(s); setCurrentPage(1); }}
+      />
 
       {/* État vide */}
       {filteredConsultations.length === 0 && (

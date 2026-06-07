@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Download, Trash2, X } from "lucide-react";
+import { TablePagination } from '../../../components/ui/TablePagination';
 
 const BRAND = "#0f766e";
 const NOW   = new Date();
@@ -17,9 +18,13 @@ const MOCK = [
 
 export default function Refusees() {
   const { dark } = useOutletContext() || {};
-  const [rows,   setRows]   = useState(MOCK);
-  const [target, setTarget] = useState(null);
-  const [toast,  setToast]  = useState(null);
+  const [rows,      setRows]      = useState(MOCK);
+  const [target,    setTarget]    = useState(null);
+  const [toast,     setToast]     = useState(null);
+  const [page,      setPage]      = useState(1);
+  const [pageSize,  setPageSize]  = useState(10);
+  const from       = (page - 1) * pageSize;
+  const paginated  = rows.slice(from, from + pageSize);
 
   function supprimer() {
     setRows(p => p.filter(r => r.id !== target.id));
@@ -82,7 +87,7 @@ export default function Refusees() {
             <tbody>
               {rows.length === 0
                 ? <tr><td colSpan={8} className={`${td} text-center py-14 text-[12px] text-gray-300 dark:text-[#484f58]`}>Aucun dossier refusé</td></tr>
-                : rows.map(r => (
+                : paginated.map(r => (
                   <tr key={r.id} className={`transition-colors ${dark ? "hover:bg-[#0d1117]/60" : "hover:bg-gray-50/80"}`}>
                     <td className={td}>
                       <div className="flex items-center gap-2.5">
@@ -117,11 +122,14 @@ export default function Refusees() {
             </tbody>
           </table>
         </div>
-        {rows.length > 0 && (
-          <div className={`px-4 py-3 border-t text-[11px] ${dark ? "border-[#21262d] text-[#484f58]" : "border-gray-50 text-gray-300"}`}>
-            {rows.length} dossier{rows.length > 1 ? "s" : ""}
-          </div>
-        )}
+        <TablePagination
+          total={rows.length}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={s => { setPageSize(s); setPage(1); }}
+          dark={dark}
+        />
       </div>
 
       {/* Modal suppression */}

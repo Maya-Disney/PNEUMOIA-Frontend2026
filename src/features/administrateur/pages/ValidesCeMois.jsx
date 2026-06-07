@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Download, X, FileText, User } from "lucide-react";
+import { TablePagination } from '../../../components/ui/TablePagination';
 
 const BRAND = "#0f766e";
 
@@ -363,6 +364,10 @@ function ModaleSuppression({ medecin: m, onClose, onConfirm, dark }) {
 export default function ValideesCeMois() {
   const { dark } = useOutletContext() || {};
   const [rows]   = useState(MOCK);
+  const [page,     setPage]     = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const from      = (page - 1) * pageSize;
+  const paginated = rows.slice(from, from + pageSize);
   const [modalePhoto,   setModalePhoto]   = useState(null);
   const [modaleDossier, setModaleDossier] = useState(null);
   const [modaleProfil,  setModaleProfil]  = useState(null);
@@ -437,7 +442,7 @@ export default function ValideesCeMois() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(doc => (
+              {paginated.map(doc => (
                 <tr key={doc.id} className={`transition-colors ${dark ? "hover:bg-[#0d1117]/60" : "hover:bg-gray-50/80"}`}>
                   <td className={td}>
                     <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => setModalePhoto(doc)}>
@@ -474,9 +479,14 @@ export default function ValideesCeMois() {
             </tbody>
           </table>
         </div>
-        <div className={`px-4 py-3 border-t text-[11px] ${dark ? "border-[#21262d] text-[#484f58]" : "border-gray-50 text-gray-300"}`}>
-          {rows.length} inscription{rows.length > 1 ? "s" : ""} validée{rows.length > 1 ? "s" : ""} ce mois
-        </div>
+        <TablePagination
+          total={rows.length}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={s => { setPageSize(s); setPage(1); }}
+          dark={dark}
+        />
       </div>
 
       {modalePhoto   && <ModalePhoto      doc={modalePhoto}    dark={dark} onClose={() => setModalePhoto(null)} />}

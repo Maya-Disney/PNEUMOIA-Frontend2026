@@ -1,9 +1,16 @@
 // src/features/medecin/components/PatientTable.jsx
+import { useState } from 'react';
 import { Eye, Trash2, Stethoscope } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { TablePagination } from '../../../components/ui/TablePagination';
 
 export default function PatientTable({ patients, onViewPatient, onDeletePatient }) {
   const navigate = useNavigate();
+  const [page,     setPage]     = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const total     = patients.length;
+  const from      = (page - 1) * pageSize;
+  const paginated = patients.slice(from, from + pageSize);
 
   return (
     <div className="bg-(--sf) rounded-xl border border-(--ln) overflow-hidden">
@@ -20,7 +27,7 @@ export default function PatientTable({ patients, onViewPatient, onDeletePatient 
             </tr>
           </thead>
           <tbody className="divide-y divide-(--ln)">
-            {patients.map((patient) => (
+            {paginated.map((patient) => (
               <tr
                 key={patient.id}
                 className="hover:bg-(--sf2) cursor-pointer transition-colors group"
@@ -102,6 +109,13 @@ export default function PatientTable({ patients, onViewPatient, onDeletePatient 
           </tbody>
         </table>
       </div>
+      <TablePagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={s => { setPageSize(s); setPage(1); }}
+      />
     </div>
   );
 }

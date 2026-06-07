@@ -14,7 +14,7 @@ import {
   Search, X, XCircle, Circle, User, Phone, Calendar as CalendarIcon,
   Briefcase, Loader2, Globe, MapPin, Lock, Unlock, Users, Share2, FileText,
   TrendingUp, Award, Sparkles, Eye, MessageSquare, Clock, Heart, Droplet,
-  Thermometer, Wind, HeartPulse, Syringe, Microscope, Hospital
+  Thermometer, Wind, HeartPulse, Syringe, Microscope, Hospital, WifiOff
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -344,64 +344,113 @@ export default function Consultation() {
   }, []);
 
   // ==================== FONCTIONS DE NAVIGATION ====================
-  const createAndContinue = async () => {
-    if (!patientInfo.nom || !patientInfo.prenom) {
-      addToast('Veuillez remplir au moins le nom et prénom', 'warning');
+ // ============================================================
+// REMPLACER entièrement la fonction createAndContinue()
+// dans Consultation.jsx
+// ============================================================
+
+const createAndContinue = async () => {
+  if (!patientInfo.nom || !patientInfo.prenom) {
+    addToast('Veuillez remplir au moins le nom et prénom', 'warning');
+    return;
+  }
+  setIsSaving(true);
+
+  const patientData = {
+    civilite:             patientInfo.civilite,
+    nom:                  patientInfo.nom,
+    prenom:               patientInfo.prenom,
+    date_naissance:       patientInfo.dateNaissance || null,
+    groupe_sanguin:       patientInfo.groupeSanguin || null,
+    religion:             patientInfo.religion      || null,
+    telephone:            patientInfo.telephone     || null,
+    email:                patientInfo.email         || null,
+    adresse:              patientInfo.adresse       || null,
+    profession:           patientInfo.profession    || null,
+    personne_a_contacter: patientInfo.personneAContacter || null,
+    telephone_urgence:    patientInfo.telephoneUrgence   || null,
+    allergies:   [],
+    antecedents: {},
+  };
+
+  try {
+    // ── CAS 1 : Patient déjà créé → UPDATE uniquement, pas de nouvelle consultation ──
+    if (patientId) {
+      // Si c'est un ID local (offline), on met à jour l'action en attente
+      if (String(patientId).startsWith('local-')) {
+        await sauvegarderAction('UPDATE_PATIENT', {
+          local_id: patientId,
+          data: patientData,
+        });
+        addToast('Informations patient mises à jour (mode hors ligne)', 'success');
+      } else {
+        // ID serveur réel → PATCH direct
+        await apiFetch(`/patients/${patientId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(patientData),
+        });
+        addToast('Informations patient mises à jour', 'success');
+      }
+      setCurrentStep(2);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setIsSaving(false);
       return;
     }
-    setIsSaving(true);
 
-    const patientData = {
-      civilite:             patientInfo.civilite,
-      nom:                  patientInfo.nom,
-      prenom:               patientInfo.prenom,
-      date_naissance:       patientInfo.dateNaissance || null,
-      groupe_sanguin:       patientInfo.groupeSanguin || null,
-      religion:             patientInfo.religion      || null,
-      telephone:            patientInfo.telephone     || null,
-      email:                patientInfo.email         || null,
-      adresse:              patientInfo.adresse       || null,
-      profession:           patientInfo.profession    || null,
-      personne_a_contacter: patientInfo.personneAContacter || null,
-      telephone_urgence:    patientInfo.telephoneUrgence   || null,
-      allergies:   [],
-      antecedents: {},
-    };
+    // ── CAS 2 : Nouveau patient → POST + création consultation ──
+    const patient = await apiFetch('/patients', {
+      method: 'POST',
+      body: JSON.stringify(patientData),
+    });
+    setPatientId(patient.id);
 
-    try {
-      const patient = await apiFetch('/patients', { method: 'POST', body: JSON.stringify(patientData) });
-      setPatientId(patient.id);
+    const cons = await apiFetch('/consultations', {
+      method: 'POST',
+      body: JSON.stringify({ patient_id: patient.id }),
+    });
+    setConsultationId(cons.id);
+    setModeOffline(false);
+    addToast(`Patient ${patient.prenom} ${patient.nom} créé`, 'success');
 
-      const cons = await apiFetch('/consultations', {
-        method: 'POST',
-        body: JSON.stringify({ patient_id: patient.id }),
+  } catch (err) {
+    if (!isNetworkError(err)) {
+      addToast(err.message, 'error');
+      setIsSaving(false);
+      return;
+    }
+
+    // ── Mode offline ──
+    setModeOffline(true);
+
+    if (patientId) {
+      // Patient existe déjà en local → juste mettre à jour
+      await sauvegarderAction('UPDATE_PATIENT', {
+        local_id: patientId,
+        data: patientData,
       });
-      setConsultationId(cons.id);
-      setModeOffline(false);
-      addToast(`Patient ${patient.prenom} ${patient.nom} créé`, 'success');
-    } catch (err) {
-      if (!isNetworkError(err)) {
-        addToast(err.message, 'error');
-        setIsSaving(false);
-        return;
-      }
-      setModeOffline(true);
+      addToast('Informations patient mises à jour (hors ligne)', 'warning');
+    } else {
+      // Nouveau patient offline
       const pLocalId = genLocalId();
       const cLocalId = genLocalId();
       await sauvegarderAction('CREATE_PATIENT',      { local_id: pLocalId, data: patientData });
-      await sauvegarderAction('CREATE_CONSULTATION', { local_id: cLocalId, patient_local_id: pLocalId, patient_id: null });
+      await sauvegarderAction('CREATE_CONSULTATION', {
+        local_id:         cLocalId,
+        patient_local_id: pLocalId,
+        patient_id:       null,
+      });
       setPatientId(pLocalId);
       setConsultationId(cLocalId);
       setPatientLocalId(pLocalId);
       setConsultationLocalId(cLocalId);
       addToast('Mode hors ligne — données sauvegardées localement', 'warning');
     }
+  }
 
-    setCurrentStep(2);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setIsSaving(false);
-  };
-
+  setCurrentStep(2);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setIsSaving(false);
+};
   const selectAndContinue = (patientData) => {
     setPatientInfo({ ...patientInfo, ...patientData });
     setShowSearch(false);
@@ -520,11 +569,30 @@ export default function Consultation() {
     } catch (err) {
       if (isNetworkError(err) || err.message === 'offline') {
         setModeOffline(true);
+
         await sauvegarderAction('SAVE_OPINION', {
-          consultation_local_id: consultationLocalId || consultationId,
+          consultation_local_id: consultationLocalId,
           consultation_id:       consultationId,
           data: opinionData,
         });
+
+        // ── NOUVEAU : sauvegarder le feedback (concordance médecin) ──
+        if (diagnosticIaId && prescription.diagnosticFinal) {
+          const diagnosticRetenu = prescription.diagnosticFinal === 'autre'
+            ? prescription.diagnosticAutre
+            : prescription.diagnosticFinal;
+
+          await sauvegarderAction('SAVE_FEEDBACK', {
+            local_diagnostic_id: diagnosticIaId, // "offline-xxxxx" ou vrai UUID
+            diagnostic_id:       String(diagnosticIaId).startsWith('offline-') ? null : diagnosticIaId,
+            data: {
+              diagnostic_final: diagnosticRetenu,
+              concordance:      prescription.concordanceIA,
+              commentaire:      prescription.observations,
+            },
+          });
+        }
+
         addToast('Consultation sauvegardée localement — sera synchronisée à la reconnexion', 'warning');
         setTimeout(() => navigate('/medecin/dashboard'), 2000);
       } else {
@@ -698,7 +766,21 @@ export default function Consultation() {
             abg_pco2:       diagPayload.abg_pco2,
             abg_ph:         diagPayload.abg_ph,
           });
-          addToast('Mode hors ligne — diagnostic local (non sauvegardé)', 'warning');
+
+          // ── NOUVEAU : sauvegarder le diagnostic offline pour sync ──
+          const localDiagId = result.diagnostic_id; // "offline-xxxxx"
+          await sauvegarderAction('SAVE_DIAGNOSTIC', {
+            consultation_local_id: consultationLocalId,
+            consultation_id:       consultationId,
+            local_diagnostic_id:   localDiagId,
+            data: {
+              // payload identique à ce qu'on envoie au serveur en ligne
+              ...diagPayload,
+              consultation_id: consultationId, // sera remplacé par le vrai ID à la sync
+            },
+          });
+
+          addToast('Mode hors ligne — diagnostic local (sera synchronisé à la reconnexion)', 'warning');
         } catch {
           addToast('Mode hors ligne — modèles IA en cours de chargement, réessayez dans quelques secondes', 'warning');
           setIsAnalyzing(false);
@@ -837,11 +919,11 @@ export default function Consultation() {
           </FormCard>
 
           {isTemoinJehovah && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
+            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-medium text-amber-800">Patient Témoin de Jéhovah</p>
-                <p className="text-[10px] text-amber-700">Ne peut pas recevoir de transfusion sanguine. Cette information sera visible sur le dossier.</p>
+                <p className="text-xs font-medium text-amber-800 dark:text-amber-200">Patient Témoin de Jéhovah</p>
+                <p className="text-[10px] text-amber-700 dark:text-amber-300">Ne peut pas recevoir de transfusion sanguine. Cette information sera visible sur le dossier.</p>
               </div>
             </div>
           )}
@@ -1095,10 +1177,10 @@ export default function Consultation() {
       {/* Alertes religion / groupe sanguin / urgence */}
       {(aiResult.alertes || []).map((alerte, i) => (
         <div key={i} className={`rounded-xl p-4 flex items-start gap-3 border ${
-          alerte.type === 'religious'      ? 'bg-amber-50 border-amber-200' :
-          alerte.type === 'urgence'        ? 'bg-red-50 border-red-200' :
-          alerte.type === 'groupe_sanguin' ? 'bg-blue-50 border-blue-200' :
-                                             'bg-gray-50 border-gray-200'
+          alerte.type === 'religious'      ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30' :
+          alerte.type === 'urgence'        ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30' :
+          alerte.type === 'groupe_sanguin' ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30' :
+                                             'bg-gray-50 dark:bg-gray-500/10 border-gray-200 dark:border-gray-500/30'
         }`}>
           <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${
             alerte.type === 'religious'      ? 'text-amber-600' :
@@ -1107,9 +1189,9 @@ export default function Consultation() {
           }`} />
           <div className="flex-1">
             <p className={`text-sm font-bold mb-1 ${
-              alerte.type === 'religious'      ? 'text-amber-800' :
-              alerte.type === 'urgence'        ? 'text-red-800' :
-              alerte.type === 'groupe_sanguin' ? 'text-blue-800' : 'text-gray-800'
+              alerte.type === 'religious'      ? 'text-amber-800 dark:text-amber-200' :
+              alerte.type === 'urgence'        ? 'text-red-800 dark:text-red-200' :
+              alerte.type === 'groupe_sanguin' ? 'text-blue-800 dark:text-blue-200' : 'text-gray-800 dark:text-gray-200'
             }`}>{alerte.titre}</p>
 
             {alerte.restrictions?.map((r, j) => (
@@ -1139,26 +1221,26 @@ export default function Consultation() {
 
       {/* Alerte données insuffisantes */}
       {aiResult.donneesManquantes?.length > 0 && (
-        <div className="bg-orange-50 border border-orange-300 rounded-xl p-4">
+        <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-300 dark:border-orange-500/30 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-bold text-orange-800 mb-1">
+              <p className="text-sm font-bold text-orange-800 dark:text-orange-200 mb-1">
                 Résultat indicatif — données cliniques insuffisantes
               </p>
-              <p className="text-xs text-orange-700 mb-2">{aiResult.messagePrecision}</p>
-              <p className="text-xs font-medium text-orange-800 mb-1">
+              <p className="text-xs text-orange-700 dark:text-orange-300 mb-2">{aiResult.messagePrecision}</p>
+              <p className="text-xs font-medium text-orange-800 dark:text-orange-200 mb-1">
                 Données manquantes pour le modèle haute précision (96.8%) :
               </p>
               <ul className="space-y-1">
                 {aiResult.donneesManquantes.map((d, i) => (
-                  <li key={i} className="text-xs text-orange-700 flex items-center gap-1.5">
+                  <li key={i} className="text-xs text-orange-700 dark:text-orange-300 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
                     {d}
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-orange-600 mt-2 italic">
+              <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 italic">
                 Retournez à l'étape 3 et remplissez ces valeurs pour un diagnostic plus précis.
               </p>
             </div>
@@ -1198,13 +1280,13 @@ export default function Consultation() {
           <h3 className="font-bold text-sm mb-3 flex items-center gap-2 text-(--t1)">
             <Target className="w-4 h-4 text-blue-600" /> Diagnostic principal
           </h3>
-          <div className="text-center p-4 bg-linear-to-br from-blue-50 to-indigo-50 rounded-lg">
-            <div className="text-xl font-bold text-blue-700">{aiResult.principal || 'En attente'}</div>
-            <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 rounded-full text-xs">
+          <div className="text-center p-4 bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/5 rounded-lg">
+            <div className="text-xl font-bold text-blue-700 dark:text-blue-300">{aiResult.principal || 'En attente'}</div>
+            <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 dark:bg-blue-500/20 rounded-full text-xs">
               <Brain className="w-3 h-3" /> Confiance patient : {aiResult.confidence}%
             </div>
             {aiResult.versionModele && (
-              <div className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 rounded-full text-xs ml-1">
+              <div className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 dark:bg-emerald-500/20 rounded-full text-xs ml-1">
                 <Sparkles className="w-3 h-3" /> Fiabilité modèle : {aiResult.versionModele}
               </div>
             )}
@@ -1508,7 +1590,7 @@ export default function Consultation() {
                 </div>
               )}
               {prescription.partageDestinataireId && (
-                <div className="mt-1 flex items-center gap-2 text-xs text-blue-600 bg-blue-50 p-2 rounded-lg">
+                <div className="mt-1 flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 p-2 rounded-lg">
                   <User className="w-3 h-3" />
                   <span>Destinataire : <strong>{prescription.partageDestinataireNom}</strong></span>
                   <button
@@ -1567,7 +1649,7 @@ export default function Consultation() {
 
       {modeOffline && (
         <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl dark:bg-amber-500/10 dark:border-amber-500/30">
-          <span className="text-amber-600 text-sm">📶</span>
+          <WifiOff size={15} className="text-amber-600 shrink-0" />
           <div>
             <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">Mode hors ligne actif</p>
             <p className="text-[10px] text-amber-600 dark:text-amber-400">

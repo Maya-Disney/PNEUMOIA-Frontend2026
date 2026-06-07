@@ -1,5 +1,6 @@
 // src/features/medecin/pages/Monitoring.jsx
 import { useState } from 'react';
+import { TablePagination } from '../../../components/ui/TablePagination';
 import { motion } from 'framer-motion';
 import {
   Activity, AlertTriangle, CheckCircle, Clock, TrendingUp,
@@ -61,6 +62,10 @@ function VitalBadge({ value, label, icon: Icon, ok }) {
 export default function Monitoring() {
   const [alertFilter, setAlertFilter] = useState('all');
   const [lastRefresh] = useState(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+  const [vitalsPage,     setVitalsPage]     = useState(1);
+  const [vitalsPageSize, setVitalsPageSize] = useState(10);
+  const vitalsFrom      = (vitalsPage - 1) * vitalsPageSize;
+  const paginatedVitals = PATIENTS_VITALS.slice(vitalsFrom, vitalsFrom + vitalsPageSize);
 
   const criticalCount = ALERTS.filter(a => a.level === 'critical').length;
   const warningCount  = ALERTS.filter(a => a.level === 'warning').length;
@@ -283,7 +288,7 @@ export default function Monitoring() {
               </tr>
             </thead>
             <tbody className="divide-y divide-(--ln)">
-              {PATIENTS_VITALS.map((p, i) => {
+              {paginatedVitals.map((p, i) => {
                 const sc = statusConfig[p.status];
                 return (
                   <motion.tr
@@ -334,6 +339,13 @@ export default function Monitoring() {
             </tbody>
           </table>
         </div>
+        <TablePagination
+          total={PATIENTS_VITALS.length}
+          page={vitalsPage}
+          pageSize={vitalsPageSize}
+          onPageChange={setVitalsPage}
+          onPageSizeChange={s => { setVitalsPageSize(s); setVitalsPage(1); }}
+        />
       </div>
     </div>
   );

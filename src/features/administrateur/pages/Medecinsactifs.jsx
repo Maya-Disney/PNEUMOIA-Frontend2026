@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Download, Eye, Trash2, X, AlertTriangle } from "lucide-react";
+import { TablePagination } from '../../../components/ui/TablePagination';
 
 const BRAND = "#0f766e";
 const NOW   = new Date();
@@ -263,6 +264,11 @@ export default function MedecinsActifs() {
   const nbActifs   = medecins.filter(m => m.statut === "Actif").length;
   const nbInactifs = medecins.filter(m => m.statut === "Inactif").length;
   const liste      = medecins.filter(m => filtre==="Actif"?m.statut==="Actif":filtre==="Inactif"?m.statut==="Inactif":true);
+  const [page,     setPage]     = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  useEffect(() => { setPage(1); }, [filtre]);
+  const from      = (page - 1) * pageSize;
+  const paginated = liste.slice(from, from + pageSize);
 
   function exportExcel() {
     const ws = XLSX.utils.json_to_sheet(medecins.map((m,i) => ({"#":i+1,Nom:m.nom,CNOM:m.cnom,Spécialité:m.specialite,Établissement:m.hopital,Ville:m.ville,Patients:m.patients,Consultations:m.consultations,"Concordance IA":`${m.concordanceIA}%`,Statut:m.statut,"Créé le":m.creeLE,"Validé le":m.valideLE})));
@@ -331,7 +337,7 @@ export default function MedecinsActifs() {
             <tbody>
               {liste.length===0
                 ? <tr><td colSpan={10} className={`${td} text-center py-14 text-[12px] text-gray-300 dark:text-[#484f58]`}>Aucun médecin dans cette catégorie</td></tr>
-                : liste.map(m=>(
+                : paginated.map(m=>(
                   <tr key={m.id} className={`transition-colors ${dark?"hover:bg-[#0d1117]/60":"hover:bg-gray-50/80"}`}>
                     <td className={td}>
                       <div className="flex items-center gap-2.5 cursor-pointer group" onClick={()=>setModalePhoto(m)}>
@@ -371,9 +377,14 @@ export default function MedecinsActifs() {
             </tbody>
           </table>
         </div>
-        <div className={`px-4 py-3 border-t text-[11px] text-right ${dark?"border-[#21262d] text-[#484f58]":"border-gray-50 text-gray-300"}`}>
-          Dernière mise à jour : {new Date().toLocaleString("fr-FR")}
-        </div>
+        <TablePagination
+          total={liste.length}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={s => { setPageSize(s); setPage(1); }}
+          dark={dark}
+        />
       </div>
 
       {modalePhoto  && <ModalePhoto      m={modalePhoto}  dark={dark} onClose={()=>setModalePhoto(null)}/>}

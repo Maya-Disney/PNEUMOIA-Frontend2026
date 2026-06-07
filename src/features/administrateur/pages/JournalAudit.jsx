@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Trash2, X, AlertTriangle } from "lucide-react";
+import { TablePagination } from '../../../components/ui/TablePagination';
 
 const BRAND="#0f766e";
 const NOW=new Date();
@@ -32,6 +33,10 @@ export default function MedecinsSuspendus(){
   const [suspendus,setSuspendus]=useState(MOCK);
   const [modaleSuppr,setModaleSuppr]=useState(null);
   const [toast,setToast]=useState(null);
+  const [page,setPage]=useState(1);
+  const [pageSize,setPageSize]=useState(10);
+  const from=( page-1)*pageSize;
+  const paginated=suspendus.slice(from,from+pageSize);
 
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(null),3000);return()=>clearTimeout(t);},[toast]);
 
@@ -57,7 +62,7 @@ export default function MedecinsSuspendus(){
             <tbody>
               {suspendus.length===0
                 ? <tr><td colSpan={7} className={`${td} text-center py-14 text-[12px] text-gray-300 dark:text-[#484f58]`}>Aucun compte suspendu</td></tr>
-                : suspendus.map(m=>(
+                : paginated.map(m=>(
                   <tr key={m.id} className={`transition-colors ${dark?"hover:bg-[#0d1117]/60":"hover:bg-gray-50/80"}`}>
                     <td className={td}>
                       <div className="flex items-center gap-2.5">
@@ -82,6 +87,14 @@ export default function MedecinsSuspendus(){
             </tbody>
           </table>
         </div>
+        <TablePagination
+          total={suspendus.length}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={s=>{setPageSize(s);setPage(1);}}
+          dark={dark}
+        />
       </div>
 
       {modaleSuppr&&<Modal onClose={()=>setModaleSuppr(null)} title="Supprimer le compte"

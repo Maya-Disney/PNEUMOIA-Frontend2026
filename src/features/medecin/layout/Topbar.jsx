@@ -1,7 +1,7 @@
 // src/features/medecin/components/Topbar.jsx
 import { useState, useRef, useEffect } from 'react';
 import {useProfil} from '../hooks/useAuth';
-import { Menu, Search, Bell, MessageCircle, User, Settings, LogOut, UserCircle, ChevronDown, Sun, Moon } from 'lucide-react';
+import { Menu, Search, Bell, Trash2, User, Settings, LogOut, UserCircle, ChevronDown, Sun, Moon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -115,13 +115,13 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
             </Link>
 
-            {/* Bouton Messagerie */}
-            <Link 
-              to="/medecin/messagerie" 
+            {/* Bouton Corbeille */}
+            <Link
+              to="/medecin/corbeille"
               className="relative p-2 rounded-xl bg-[var(--sf2)] border border-[var(--ln)] hover:bg-[var(--sf3)] transition-all group"
+              title="Corbeille"
             >
-              <MessageCircle className="w-5 h-5 text-[var(--t3)] group-hover:text-blue-600 transition-colors" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+              <Trash2 className="w-5 h-5 text-(--t3) group-hover:text-red-500 transition-colors" />
             </Link>
 
             {/* Menu utilisateur */}

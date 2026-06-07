@@ -27,43 +27,41 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Ne pas intercepter les fichiers source Vite (dev) ni les imports dynamiques
-  if (url.pathname.startsWith('/src/') || url.pathname.startsWith('/@')) {
-    return;
-  }
+  // Ne pas intercepter les fichiers source Vite
+  if (url.pathname.startsWith('/src/') || url.pathname.startsWith('/@')) return;
+
+  // Ne pas intercepter les appels API
+  if (url.pathname.startsWith('/api/')) return;
 
   // Modèles ONNX → cache d'abord
   if (url.pathname.startsWith('/models/')) {
     event.respondWith(
       caches.match(event.request).then(cached => {
         if (cached) return cached;
-        return fetch(event.request).then(res => {
-          const clone = res.clone();
-          caches.open(ONNX_CACHE).then(c => c.put(event.request, clone));
-          return res;
+        return fetch(event.request).then(response => {
+          // ✅ Cloner AVANT toute opération sur la réponse
+          const responseToCache = response.clone();
+          caches.open(ONNX_CACHE).then(c => c.put(event.request, responseToCache));
+          return response;
         });
       })
     );
     return;
   }
 
-  // ── IMPORTANT : appels API → NE PAS intercepter ──────────────
-  // On laisse le fetch échouer naturellement (TypeError/Failed to fetch)
-  // Le composant React gère lui-même la bascule offline
-  if (url.pathname.startsWith('/api/')) {
-    return; // ← pas de event.respondWith → fetch normal
-  }
-
   // Assets statiques → cache puis réseau
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
-      return fetch(event.request)
-        .then(res => {
-          if (res.ok) caches.open(CACHE_NAME).then(c => c.put(event.request, res.clone()));
-          return res;
-        })
-        .catch(() => caches.match('/index.html'));
+      return fetch(event.request).then(response => {
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
+        }
+        // ✅ Cloner AVANT de mettre en cache
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then(c => c.put(event.request, responseToCache));
+        return response;
+      }).catch(() => caches.match('/index.html'));
     })
   );
 });

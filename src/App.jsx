@@ -27,6 +27,7 @@ import ParametresMedecin from './features/medecin/pages/Parametres';
 import Recherche from './features/medecin/pages/Recherche';
 import Monitoring from './features/medecin/pages/Monitoring';
 import Commantaire from './features/medecin/pages/Commantaire';
+import Corbeille   from './features/medecin/pages/Corbeille';
 
 
 import ActivationPage from './features/activation/ActivationPage';
@@ -84,6 +85,7 @@ function App() {
             <Route path="historique" element={<Historique/>} />
             <Route path="monitoring" element={<Monitoring/>} />
             <Route path="commentaires" element={<Commantaire/>} />
+            <Route path="corbeille"   element={<Corbeille />} />
           </Route>
         </Route>
 

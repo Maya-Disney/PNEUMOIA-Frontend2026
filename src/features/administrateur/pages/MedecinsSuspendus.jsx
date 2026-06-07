@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Trash2, X, AlertTriangle, User } from "lucide-react";
+import { TablePagination } from '../../../components/ui/TablePagination';
 
 const BRAND = "#0f766e";
 const NOW   = new Date();
@@ -85,6 +86,10 @@ export default function MedecinsSuspendus() {
   const [modaleSuppr, setModaleSuppr] = useState(null);
   const [modalePhoto, setModalePhoto] = useState(null);
   const [toast,       setToast]       = useState(null);
+  const [page,        setPage]        = useState(1);
+  const [pageSize,    setPageSize]    = useState(10);
+  const from      = (page - 1) * pageSize;
+  const paginated = suspendus.slice(from, from + pageSize);
 
   useEffect(() => {
     if (!toast) return;
@@ -141,7 +146,7 @@ export default function MedecinsSuspendus() {
                     Aucun compte suspendu
                   </td>
                 </tr>
-              ) : suspendus.map(m => (
+              ) : paginated.map(m => (
                 <tr key={m.id} className={`transition-colors ${dark ? "hover:bg-[#0d1117]/60" : "hover:bg-gray-50/80"}`}>
 
                   {/* Médecin — cliquable → photo CNI */}
@@ -192,11 +197,14 @@ export default function MedecinsSuspendus() {
             </tbody>
           </table>
         </div>
-        {suspendus.length > 0 && (
-          <div className={`px-4 py-3 border-t text-[11px] text-right ${dark ? "border-[#21262d] text-[#484f58]" : "border-gray-50 text-gray-300"}`}>
-            Dernière mise à jour : {new Date().toLocaleString("fr-FR")}
-          </div>
-        )}
+        <TablePagination
+          total={suspendus.length}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={s => { setPageSize(s); setPage(1); }}
+          dark={dark}
+        />
       </div>
 
       {/* Modale photo CNI */}
