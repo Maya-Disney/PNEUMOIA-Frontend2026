@@ -6,14 +6,46 @@ import {
   User, Settings, LogOut, History, Menu, X,
   ChevronLeft, Activity, MessageSquare
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
+async function fetchPartageBadge() {
+  const token = localStorage.getItem('token');
+  if (!token) return 0;
+  const headers = { Authorization: `Bearer ${token}` };
+  let total = 0;
+  try {
+    const res = await fetch(`${API_URL}/patients/access-requests/recues`, { headers });
+    if (res.ok) {
+      const d = await res.json();
+      total += Array.isArray(d) ? d.length : 0;
+    }
+  } catch {}
+  try {
+    const res = await fetch(`${API_URL}/patients/mes-partages`, { headers });
+    if (res.ok) {
+      const d = await res.json();
+      total += Array.isArray(d) ? d.length : 0;
+    }
+  } catch {}
+  return total;
+}
 import logo from '../../../assets/images/logo.png';
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen, onCollapsedChange }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const [partageBadge, setPartageBadge] = useState(0);
   const location = useLocation();
   const isDashboardActive = location.pathname === '/medecin' || location.pathname === '/medecin/';
+
+  // Charger le badge dynamique des demandes reçues
+  useEffect(() => {
+    fetchPartageBadge().then(setPartageBadge);
+    const interval = setInterval(() => fetchPartageBadge().then(setPartageBadge), 60000);
+    return () => clearInterval(interval);
+  }, []);
   
   // Détecter la taille de l'écran
   useEffect(() => {
@@ -47,7 +79,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, onCollapsedChange
     { path: '/medecin/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
     { path: '/medecin/consultation', icon: Stethoscope, label: 'Consultation' },
     { path: '/medecin/patients', icon: Users, label: 'Patients' },
-    { path: '/medecin/partage', icon: Share2, label: 'Partage', badge: 3 },
+    { path: '/medecin/partage', icon: Share2, label: 'Partage', badge: partageBadge || null },
   ];
 
   const communityItems = [

@@ -5,13 +5,36 @@ import { Menu, Search, Bell, Trash2, User, Settings, LogOut, UserCircle, Chevron
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
 export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [searchQuery,   setSearchQuery]   = useState('');
+  const [userMenuOpen,  setUserMenuOpen]  = useState(false);
+  const [pendingCount,  setPendingCount]  = useState(0);
   const userMenuRef = useRef(null);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { profil } = useProfil();
+
+  // Charger le nombre de demandes en attente pour la cloche
+  useEffect(() => {
+    const fetchPending = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_URL}/patients/access-requests/recues`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPendingCount(Array.isArray(data) ? data.length : 0);
+        }
+      } catch {}
+    };
+    fetchPending();
+    const interval = setInterval(fetchPending, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const nomComplet  = profil ? `${profil.civilite || 'Dr.'} ${profil.prenom} ${profil.nom}` : 'Chargement...';
   const specialite  = profil?.specialite || '';
@@ -106,13 +129,18 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
               <Search className="w-5 h-5 text-[var(--t3)]" />
             </button>
 
-            {/* Bouton Notifications */}
-            <Link 
-              to="/medecin/notifications" 
+            {/* Bouton Notifications — badge = demandes d'accès en attente */}
+            <Link
+              to="/medecin/partage"
               className="relative p-2 rounded-xl bg-[var(--sf2)] border border-[var(--ln)] hover:bg-[var(--sf3)] transition-all group"
+              title={pendingCount > 0 ? `${pendingCount} demande${pendingCount > 1 ? 's' : ''} d'accès en attente` : 'Partage'}
             >
               <Bell className="w-5 h-5 text-[var(--t3)] group-hover:text-blue-600 transition-colors" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+              {pendingCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4.5 h-4.5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-(--sf)">
+                  {pendingCount > 9 ? '9+' : pendingCount}
+                </span>
+              )}
             </Link>
 
             {/* Bouton Corbeille */}

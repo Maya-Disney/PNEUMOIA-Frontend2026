@@ -31,6 +31,12 @@ export const rechercherPatient = (q) =>
 export const demanderAcces = (data) =>
   apiFetch('/patients/access-requests', { method: 'POST', body: JSON.stringify(data) });
 
+export const mesDemandesEnvoyees = () =>
+  apiFetch('/patients/access-requests/envoyees');
+
+export const rechercheParCode = (code) =>
+  apiFetch(`/patients/recherche-par-code?code=${encodeURIComponent(code)}`);
+
 // ── Consultations ─────────────────────────────────────────────
 export const creerConsultation = (patient_id) =>
   apiFetch('/consultations', { method: 'POST', body: JSON.stringify({ patient_id }) });

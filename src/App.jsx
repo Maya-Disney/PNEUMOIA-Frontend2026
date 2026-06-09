@@ -27,7 +27,8 @@ import ParametresMedecin from './features/medecin/pages/Parametres';
 import Recherche from './features/medecin/pages/Recherche';
 import Monitoring from './features/medecin/pages/Monitoring';
 import Commantaire from './features/medecin/pages/Commantaire';
-import Corbeille   from './features/medecin/pages/Corbeille';
+import Corbeille        from './features/medecin/pages/Corbeille';
+import PatientDossier  from './features/medecin/pages/PatientDossier';
 
 
 import ActivationPage from './features/activation/ActivationPage';
@@ -50,12 +51,19 @@ import Parametres          from './features/administrateur/pages/Parametres';
 
 function App() {
   useEffect(() => {
-    const handleOnline = async () => {
-      console.log('🌐 Réseau rétabli — synchronisation...');
-      await synchroniserAvecServeur();
-    };
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
+    // Délai de 500ms pour laisser StrictMode terminer son double-montage
+    // avant d'enregistrer le listener — évite deux syncs simultanées
+    const timer = setTimeout(() => {
+      const handleOnline = async () => {
+        console.log('🌐 Réseau rétabli — synchronisation...');
+        await synchroniserAvecServeur();
+      };
+      window.addEventListener('online', handleOnline);
+      // Cleanup : retirer le listener au démontage
+      return () => window.removeEventListener('online', handleOnline);
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -85,7 +93,8 @@ function App() {
             <Route path="historique" element={<Historique/>} />
             <Route path="monitoring" element={<Monitoring/>} />
             <Route path="commentaires" element={<Commantaire/>} />
-            <Route path="corbeille"   element={<Corbeille />} />
+            <Route path="corbeille"        element={<Corbeille />} />
+            <Route path="patients/:patientId" element={<PatientDossier />} />
           </Route>
         </Route>
 
@@ -116,7 +125,3 @@ function App() {
 }
 
 export default App;
-
-
-
-

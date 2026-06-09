@@ -604,7 +604,7 @@ function DossierTab({ p }) {
             <p className="text-sm text-(--t2)">{p.prescriptions.conseils_maison}</p>
           </div>
         )}
-        {p.prescriptions?.suivi && (
+        {p.prescriptions?.suivi && p.prescriptions.suivi !== '7 jours' && (
           <div className="bg-(--sf2) border border-(--ln) rounded-xl p-3 flex items-center gap-2">
             <p className="flex items-center gap-1 text-xs text-(--t3)"><Calendar size={10} />Suivi prévu dans : <span className="font-semibold text-(--t1)">{p.prescriptions.suivi}</span></p>
           </div>
@@ -633,11 +633,11 @@ function IATab({ p }) {
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-linear-to-br from-blue-50 to-blue-100/50 border border-blue-200 rounded-2xl p-5 flex items-center gap-5 mb-6 shadow-sm dark:from-blue-500/10 dark:to-blue-500/5 dark:border-blue-500/20"
+        className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-700/40 rounded-2xl p-5 flex items-center gap-5 mb-6 shadow-sm"
       >
         <IARing pct={p.iaPct} size={80} />
         <div className="flex-1">
-          <div className="text-xs font-black uppercase tracking-widest text-blue-500 mb-1">Concordance IA globale</div>
+          <div className="text-xs font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-1">Concordance IA globale</div>
           <div className="text-lg font-black text-(--t1) leading-tight">{p.diag}</div>
           <div className="text-xs text-(--t3) mb-2.5 mt-1">{p.iaDiags.length} analyses · {p.tl.length} consultations</div>
           <Badge variant={confVariant}>{confLabel}</Badge>
@@ -653,7 +653,7 @@ function IATab({ p }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className={`p-3.5 rounded-xl border ${i === 0 ? "bg-blue-50 border-blue-200 shadow-sm dark:bg-blue-500/10 dark:border-blue-500/20" : "bg-(--sf) border-(--ln) hover:bg-(--sf2) hover:shadow-md transition-shadow"}`}
+            className={`p-3.5 rounded-xl border ${i === 0 ? "bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-700/40 shadow-sm" : "bg-(--sf) border-(--ln) hover:bg-(--sf2) hover:shadow-md transition-shadow"}`}
           >
             {/* Diagnostic IA */}
             <div className="flex items-center justify-between mb-1.5">
@@ -668,10 +668,10 @@ function IATab({ p }) {
             </div>
             {/* Avis médecin */}
             {d.concordance !== null && d.concordance !== undefined ? (
-              <div className={`mt-2 pt-2 border-t border-(--ln) rounded-lg px-2 py-1.5 ${d.concordance ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'bg-amber-50 dark:bg-amber-500/10'}`}>
+              <div className={`mt-2 pt-2 border-t border-(--ln) rounded-lg px-2 py-1.5 ${d.concordance ? 'bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-700/30' : 'bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-700/30'}`}>
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="text-[10px] font-bold uppercase tracking-wide text-(--t4)">Avis médecin</span>
-                  <span className={`text-[10px] font-semibold inline-flex items-center gap-1 ${d.concordance ? 'text-emerald-600' : 'text-amber-600'}`}>
+                  <span className={`text-[10px] font-semibold inline-flex items-center gap-1 ${d.concordance ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                     {d.concordance ? <><CheckCircle2 size={10} />Concordant</> : <><AlertTriangle size={10} />Divergent</>}
                   </span>
                 </div>
@@ -795,8 +795,8 @@ function IATab({ p }) {
       {p.iaDiags?.[0]?.concordance !== null && p.iaDiags?.[0]?.concordance !== undefined && (
         <>
           <p className="text-xs font-black uppercase tracking-widest text-(--t4) mb-3">Avis médecin — Dernière consultation</p>
-          <div className={`p-3 rounded-xl border mb-6 ${p.iaDiags[0].concordance ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20'}`}>
-            <p className={`flex items-center gap-1.5 text-sm font-bold ${p.iaDiags[0].concordance ? 'text-emerald-800 dark:text-emerald-200' : 'text-amber-800 dark:text-amber-200'}`}>
+          <div className={`p-3 rounded-xl border mb-6 ${p.iaDiags[0].concordance ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-700/30' : 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-700/30'}`}>
+            <p className={`flex items-center gap-1.5 text-sm font-bold ${p.iaDiags[0].concordance ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'}`}>
               {p.iaDiags[0].concordance ? <><CheckCircle2 size={14} />Concordant avec le diagnostic IA</> : <><AlertTriangle size={14} />Divergent du diagnostic IA</>}
             </p>
             {!p.iaDiags[0].concordance && p.iaDiags[0].diagnosticFinal && (

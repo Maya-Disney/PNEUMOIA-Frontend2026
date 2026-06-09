@@ -6,6 +6,11 @@
 const DB_NAME    = 'pneumoia-offline';
 const DB_VERSION = 2;
 
+// ── Verrou global anti-doublon ────────────────────────────────────
+// Empêche deux appels simultanés à synchroniserAvecServeur()
+// (causés par StrictMode React ou double événement 'online')
+let _syncEnCours = false;
+
 function ouvrirDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -92,24 +97,30 @@ export async function sauvegarderAction(type, payload) {
 
 // ── Synchroniser avec le serveur ──────────────────────────────────
 export async function synchroniserAvecServeur() {
-  const actions = await dbGetAll('actions_pending');
-  if (!actions.length) {
-    console.log('Aucune action en attente de synchronisation');
+  // ── Verrou : un seul appel à la fois ─────────────────────────
+  if (_syncEnCours) {
+    console.log('⏳ Synchronisation déjà en cours — appel ignoré');
     return;
   }
+  _syncEnCours = true;
 
-  const token = localStorage.getItem('pneumoia_token')
-             || localStorage.getItem('token')
-             || localStorage.getItem('access_token');
-  const BASE  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+  try {
+    const actions = await dbGetAll('actions_pending');
+    if (!actions.length) {
+      console.log('Aucune action en attente de synchronisation');
+      return;
+    }
 
-  console.log(`🔄 Synchronisation de ${actions.length} action(s) offline...`);
+    const token = localStorage.getItem('pneumoia_token')
+               || localStorage.getItem('token')
+               || localStorage.getItem('access_token');
+    const BASE  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
-  // Map IDs locaux → IDs serveur, persisté sur toute la session de sync
-  const idMap = {};
-  // IDs bloqués suite à un échec critique (ex: CREATE_PATIENT raté)
-  const blockedLocalIds = new Set();
+    console.log(`🔄 Synchronisation de ${actions.length} action(s) offline...`);
+
+    const idMap = {};
+    const blockedLocalIds = new Set();
 
   for (const action of actions.sort((a, b) => a.timestamp - b.timestamp)) {
     try {
@@ -285,6 +296,11 @@ export async function synchroniserAvecServeur() {
     }
   }
 
-  console.log('✅ Synchronisation terminée', { idMap, blocked: [...blockedLocalIds] });
-  return idMap;
+    console.log('✅ Synchronisation terminée', { idMap, blocked: [...blockedLocalIds] });
+    return idMap;
+
+  } finally {
+    // ── Libérer le verrou dans tous les cas (succès ou erreur) ──
+    _syncEnCours = false;
+  }
 }
