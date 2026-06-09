@@ -47,6 +47,11 @@ import RepartitionGeo      from './features/administrateur/pages/RepartitionGeog
 import CourbeActivite      from './features/administrateur/pages/Courbesactives';
 import PerformancesIA      from './features/administrateur/pages/PerformanceIA';
 import Parametres          from './features/administrateur/pages/Parametres';
+import NouvellesDemandes   from './features/administrateur/pages/NouvellesDemandes';
+import ProfilMedecin       from './features/administrateur/pages/ProfilMedecin';
+import Corbeille           from './features/administrateur/pages/Corbeille';
+import FAQ                 from './features/administrateur/pages/FAQ';
+import Commentaires        from './features/administrateur/pages/Commentaires';
 
 
 function App() {
@@ -106,7 +111,7 @@ function App() {
         <Route path="/administrateur" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="dashboard"      element={<AdminDashboard />} />
-          <Route path="demandes"       element={<Navigate to="/administrateur/dashboard" replace />} />
+          <Route path="demandes"       element={<NouvellesDemandes />} />
           <Route path="validees"       element={<ValidesCeMois />} />
           <Route path="refusees"       element={<Refusees />} />
           <Route path="medecins"       element={<MedecinsActifs />} />
@@ -117,6 +122,10 @@ function App() {
           <Route path="geo"            element={<RepartitionGeo />} />
           <Route path="audit"          element={<JournalAudit />} />
           <Route path="parametres"     element={<Parametres />} />
+          <Route path="medecins/:id"   element={<ProfilMedecin />} />
+          <Route path="corbeille"      element={<Corbeille />} />
+          <Route path="faq"            element={<FAQ />} />
+          <Route path="commentaires"   element={<Commentaires />} />
         </Route>
 
       </Routes>

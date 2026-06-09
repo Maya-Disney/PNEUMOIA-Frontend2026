@@ -238,8 +238,8 @@
 /* Scrollbars fines — section admin */
 .admin-theme ::-webkit-scrollbar,
 .admin-theme::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 3px;
+  height: 3px;
 }
 .admin-theme ::-webkit-scrollbar-track,
 .admin-theme::-webkit-scrollbar-track {
