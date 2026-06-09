@@ -47,6 +47,9 @@ import PerformancesIA      from './features/administrateur/pages/PerformanceIA';
 import Parametres          from './features/administrateur/pages/Parametres';
 import NouvellesDemandes   from './features/administrateur/pages/NouvellesDemandes';
 import ProfilMedecin       from './features/administrateur/pages/ProfilMedecin';
+import Corbeille           from './features/administrateur/pages/Corbeille';
+import FAQ                 from './features/administrateur/pages/FAQ';
+import Commentaires        from './features/administrateur/pages/Commentaires';
 
 
 function App() {
@@ -109,6 +112,9 @@ function App() {
           <Route path="audit"          element={<JournalAudit />} />
           <Route path="parametres"     element={<Parametres />} />
           <Route path="medecins/:id"   element={<ProfilMedecin />} />
+          <Route path="corbeille"      element={<Corbeille />} />
+          <Route path="faq"            element={<FAQ />} />
+          <Route path="commentaires"   element={<Commentaires />} />
         </Route>
 
       </Routes>

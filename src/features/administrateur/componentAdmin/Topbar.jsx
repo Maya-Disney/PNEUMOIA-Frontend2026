@@ -1,21 +1,21 @@
 import { useState } from "react";
-import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
+import { Search, Bell, Sun, Moon, Menu, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const BRAND = "#0f766e";
-
-// Blanc cassé chaud pour la topbar
 const TOPBAR_LIGHT = "#f0f7f5";
 const TOPBAR_DARK  = "#0d1117";
 
-export default function Topbar({ dark, setDark }) {
+export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
   const [query, setQuery] = useState("");
+  const navigate = useNavigate();
 
   return (
     <header
       className="h-14 flex items-center justify-between px-4 md:px-6 shrink-0 border-b"
       style={{
-        background:   dark ? TOPBAR_DARK : TOPBAR_LIGHT,
-        borderColor:  dark ? "#1e2a28" : "#e2ebe6",
+        background:  dark ? TOPBAR_DARK : TOPBAR_LIGHT,
+        borderColor: dark ? "#1e2a28"   : "#e2ebe6",
       }}
     >
       {/* Mobile menu btn */}
@@ -80,7 +80,43 @@ export default function Topbar({ dark, setDark }) {
           })}
         </div>
 
-        {/* Notifications */}
+        {/* ── Corbeille ── */}
+        <button
+          onClick={() => navigate("/administrateur/corbeille")}
+          title="Corbeille"
+          className="relative w-9 h-9 flex items-center justify-center rounded-xl border transition-colors"
+          style={{
+            borderColor: dark ? "#21262d" : "#d4e0da",
+            color:       corbeilleCount > 0
+              ? "#dc2626"
+              : dark ? "#8b949e" : "#6b7280",
+            background: corbeilleCount > 0
+              ? dark ? "#2a1515" : "#fef2f2"
+              : "transparent",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background  = dark ? "#2a1515" : "#fef2f2";
+            e.currentTarget.style.borderColor = "#fca5a5";
+            e.currentTarget.style.color       = "#dc2626";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background  = corbeilleCount > 0 ? (dark?"#2a1515":"#fef2f2") : "transparent";
+            e.currentTarget.style.borderColor = dark ? "#21262d" : "#d4e0da";
+            e.currentTarget.style.color       = corbeilleCount > 0 ? "#dc2626" : dark ? "#8b949e" : "#6b7280";
+          }}
+        >
+          <Trash2 size={15} />
+          {corbeilleCount > 0 && (
+            <span
+              className="absolute -top-0.5 -right-0.5 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[7px] font-black"
+              style={{ border: `2px solid ${dark ? TOPBAR_DARK : TOPBAR_LIGHT}` }}
+            >
+              {corbeilleCount > 9 ? "9+" : corbeilleCount}
+            </span>
+          )}
+        </button>
+
+        {/* ── Notifications ── */}
         <button
           className="relative w-9 h-9 flex items-center justify-center rounded-xl border transition-colors"
           style={{
