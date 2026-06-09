@@ -27,7 +27,7 @@ import ParametresMedecin from './features/medecin/pages/Parametres';
 import Recherche from './features/medecin/pages/Recherche';
 import Monitoring from './features/medecin/pages/Monitoring';
 import Commantaire from './features/medecin/pages/Commantaire';
-import Corbeille        from './features/medecin/pages/Corbeille';
+import CorbeilleMedecin      from './features/medecin/pages/Corbeille';
 import PatientDossier  from './features/medecin/pages/PatientDossier';
 
 
@@ -49,7 +49,7 @@ import PerformancesIA      from './features/administrateur/pages/PerformanceIA';
 import Parametres          from './features/administrateur/pages/Parametres';
 import NouvellesDemandes   from './features/administrateur/pages/NouvellesDemandes';
 import ProfilMedecin       from './features/administrateur/pages/ProfilMedecin';
-import Corbeille           from './features/administrateur/pages/Corbeille';
+import CorbeilleAdmin          from './features/administrateur/pages/Corbeille';
 import FAQ                 from './features/administrateur/pages/FAQ';
 import Commentaires        from './features/administrateur/pages/Commentaires';
 
@@ -98,7 +98,7 @@ function App() {
             <Route path="historique" element={<Historique/>} />
             <Route path="monitoring" element={<Monitoring/>} />
             <Route path="commentaires" element={<Commantaire/>} />
-            <Route path="corbeille"        element={<Corbeille />} />
+            <Route path="corbeille"        element={<CorbeilleMedecin />} />
             <Route path="patients/:patientId" element={<PatientDossier />} />
           </Route>
         </Route>
@@ -123,7 +123,7 @@ function App() {
           <Route path="audit"          element={<JournalAudit />} />
           <Route path="parametres"     element={<Parametres />} />
           <Route path="medecins/:id"   element={<ProfilMedecin />} />
-          <Route path="corbeille"      element={<Corbeille />} />
+          <Route path="corbeille"      element={<CorbeilleAdmin />} />
           <Route path="faq"            element={<FAQ />} />
           <Route path="commentaires"   element={<Commentaires />} />
         </Route>
