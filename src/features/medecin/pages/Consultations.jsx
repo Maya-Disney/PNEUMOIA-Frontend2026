@@ -12,7 +12,7 @@ import {
   UserPlus, Stethoscope, CheckCircle, AlertCircle,
   Brain, Pill, Activity, ClipboardList, AlertTriangle, Info, Zap, Target, LineChart,
   Search, X, XCircle, Circle, User, Phone, Calendar as CalendarIcon,
-  Briefcase, Loader2, Globe, MapPin, Lock, Unlock, Users, Share2, FileText,
+  Briefcase, Loader2, Globe, MapPin, Unlock, Users, FileText,
   TrendingUp, Award, Sparkles, Eye, MessageSquare, Clock, Heart, Droplet,
   Thermometer, Wind, HeartPulse, Syringe, Microscope, Hospital, WifiOff
 } from 'lucide-react';
@@ -241,9 +241,7 @@ export default function Consultation() {
   const [consultationId, setConsultationId] = useState(null);
   const [diagnosticIaId, setDiagnosticIaId] = useState(null);
   const [isSaving, setIsSaving]             = useState(false);
-  const [medecins,       setMedecins]       = useState([]);
-  const [communautes,    setCommunautes]    = useState([]);
-  const [searchMedecin,  setSearchMedecin]  = useState('');
+
 
   const [patientLocalId,      setPatientLocalId]      = useState(null);
   const [consultationLocalId, setConsultationLocalId] = useState(null);
@@ -318,7 +316,7 @@ export default function Consultation() {
     medicaments: '', conseilsMaison: '', recommandations: '',
     arretTravail: false, dureeArret: '7', hospitalisation: false,
     motifHospitalisation: '', suivi: '7 jours', observations: '',
-    partageCommunaute: false, anonymiser: true, partageType: null, partageDestinataireNom: '',
+
     diagnosticFinal: '', diagnosticAutre: '', concordanceIA: null,
   });
 
@@ -542,13 +540,6 @@ const createAndContinue = async () => {
       motif_hospitalisation: prescription.motifHospitalisation || null,
       suivi:                 prescription.suivi,
       observations:          prescription.observations,
-      partage: {
-        actif:                !!prescription.partageType,
-        anonymiser:           prescription.anonymiser ?? true,
-        type:                 prescription.partageType  || null,
-        destinataire_id:      null,
-        envoyer_mail_patient: false,
-      },
     };
 
     try {
@@ -825,20 +816,6 @@ const createAndContinue = async () => {
       setIsAnalyzing(false);
   };
 
-  // Charger médecins et communautés à l'arrivée sur l'étape 4
-  useEffect(() => {
-    if (currentStep !== 4) return;
-    const token   = localStorage.getItem('token') || localStorage.getItem('access_token') || localStorage.getItem('pneumoia_token');
-    const BASE    = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-    const headers = { Authorization: `Bearer ${token}` };
-    Promise.all([
-      fetch(`${BASE}/medecins/liste`,  { headers }).then(r => r.ok ? r.json() : []),
-      fetch(`${BASE}/communautes`,     { headers }).then(r => r.ok ? r.json() : []),
-    ]).then(([m, c]) => {
-      setMedecins(Array.isArray(m) ? m : []);
-      setCommunautes(Array.isArray(c) ? c : []);
-    }).catch(console.error);
-  }, [currentStep]);
 
   const getRiskColor = (level) => {
     const colors = { low: 'emerald', medium: 'amber', high: 'red' };
@@ -1488,144 +1465,6 @@ const createAndContinue = async () => {
 
         <TextAreaField label="Observations du médecin" value={prescription.observations} onChange={(e) => setPrescription({...prescription, observations: e.target.value})} placeholder="Notes complémentaires, contexte particulier..." rows={2} />
 
-        {/* Partage */}
-        <div className="mt-3 pt-3 border-t border-(--ln)">
-          <div className="flex items-center gap-2 mb-3">
-            <Share2 className="w-4 h-4 text-(--t3)" />
-            <span className="text-sm font-medium text-(--t2)">Partager ce cas clinique</span>
-            <span className="text-xs text-(--t4)">(optionnel)</span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            {[
-              { key: 'plateforme', label: 'Plateforme',  desc: 'Cas clinique public', Icon: Globe },
-              { key: 'communaute', label: 'Communauté',  desc: 'Médecins inscrits',   Icon: Users },
-              { key: 'medecin',    label: 'Un médecin',  desc: 'Confrère ciblé',      Icon: User  },
-            ].map(({ key, label, desc, Icon }) => {
-              const active = prescription.partageType === key;
-              return (
-                <button key={key} type="button"
-                  onClick={() => setPrescription(p => ({
-                    ...p,
-                    partageType: active ? null : key,
-                    partageDestinataireId: null,
-                    partageDestinataireNom: '',
-                  }))}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-center transition-all ${
-                    active ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
-                           : 'border-(--ln) hover:border-blue-200 hover:bg-(--sf2)'
-                  }`}>
-                  <Icon className={`w-5 h-5 ${active ? 'text-blue-600' : 'text-(--t4)'}`} />
-                  <span className={`text-xs font-semibold ${active ? 'text-blue-700 dark:text-blue-300' : 'text-(--t2)'}`}>{label}</span>
-                  <span className={`text-[10px] leading-tight ${active ? 'text-blue-500' : 'text-(--t4)'}`}>{desc}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Sélection communauté (BDD) */}
-          {prescription.partageType === 'communaute' && (
-            <div className="mb-3">
-              <label className="block text-xs font-medium text-(--t2) mb-1">Choisir une communauté</label>
-              <select
-                value={prescription.partageDestinataireId || ''}
-                onChange={(e) => {
-                  const comm = communautes.find(c => c.id === e.target.value);
-                  setPrescription(p => ({
-                    ...p,
-                    partageDestinataireId:  e.target.value,
-                    partageDestinataireNom: comm?.nom || '',
-                  }));
-                }}
-                className="w-full px-3 py-2 text-sm border border-(--ln) rounded-lg bg-(--sf) text-(--t1)"
-              >
-                <option value="">Sélectionnez une communauté</option>
-                {communautes.map(c => (
-                  <option key={c.id} value={c.id}>{c.nom} ({c.nb_membres} membres)</option>
-                ))}
-              </select>
-              {communautes.length === 0 && (
-                <p className="text-xs text-(--t4) mt-1">Aucune communauté disponible.</p>
-              )}
-            </div>
-          )}
-
-          {/* Recherche médecin (BDD) */}
-          {prescription.partageType === 'medecin' && (
-            <div className="mb-3">
-              <label className="block text-xs font-medium text-(--t2) mb-1">Rechercher un médecin</label>
-              <input
-                type="text"
-                placeholder="Nom du médecin..."
-                value={searchMedecin}
-                onChange={(e) => setSearchMedecin(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-(--ln) rounded-lg bg-(--sf) text-(--t1) mb-1"
-              />
-              {searchMedecin.length >= 2 && (
-                <div className="border border-(--ln) rounded-lg overflow-hidden max-h-40 overflow-y-auto">
-                  {medecins
-                    .filter(m => `${m.prenom} ${m.nom}`.toLowerCase().includes(searchMedecin.toLowerCase()))
-                    .slice(0, 5)
-                    .map(m => (
-                      <button key={m.id} type="button"
-                        onClick={() => {
-                          setPrescription(p => ({
-                            ...p,
-                            partageDestinataireId:  m.id,
-                            partageDestinataireNom: `Dr. ${m.prenom} ${m.nom}`,
-                          }));
-                          setSearchMedecin(`Dr. ${m.prenom} ${m.nom}`);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-(--sf2) border-b border-(--ln) last:border-0">
-                        <span className="font-medium">Dr. {m.prenom} {m.nom}</span>
-                        <span className="text-xs text-(--t4) ml-2">{m.specialite}</span>
-                      </button>
-                    ))
-                  }
-                  {medecins.filter(m =>
-                    `${m.prenom} ${m.nom}`.toLowerCase().includes(searchMedecin.toLowerCase())
-                  ).length === 0 && (
-                    <p className="px-3 py-2 text-xs text-(--t4)">Aucun médecin trouvé</p>
-                  )}
-                </div>
-              )}
-              {prescription.partageDestinataireId && (
-                <div className="mt-1 flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 p-2 rounded-lg">
-                  <User className="w-3 h-3" />
-                  <span>Destinataire : <strong>{prescription.partageDestinataireNom}</strong></span>
-                  <button
-                    onClick={() => setPrescription(p => ({ ...p, partageDestinataireId: null, partageDestinataireNom: '' }))}
-                    className="ml-auto text-red-500 hover:text-red-700">
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {prescription.partageType && (
-            <div className="space-y-2">
-              <CheckboxField
-                label="Anonymiser les données du patient"
-                checked={prescription.anonymiser}
-                onChange={(c) => setPrescription({ ...prescription, anonymiser: c })}
-                description="Nom, date de naissance et lieu seront masqués"
-              />
-              <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 p-2 rounded-lg">
-                <Lock className="w-3 h-3 shrink-0" />
-                <span>
-                  {prescription.partageType === 'plateforme' && 'Visible publiquement sur la page Cas Cliniques'}
-                  {prescription.partageType === 'communaute' && (prescription.partageDestinataireNom
-                    ? `Partagé dans : ${prescription.partageDestinataireNom}`
-                    : 'Sélectionnez une communauté ci-dessus')}
-                  {prescription.partageType === 'medecin' && (prescription.partageDestinataireNom
-                    ? `Envoyé à : ${prescription.partageDestinataireNom}`
-                    : 'Sélectionnez un médecin ci-dessus')}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
       </FormCard>
 
       <div className="flex justify-between">
@@ -1640,7 +1479,7 @@ const createAndContinue = async () => {
 
   // Rendu principal
   return (
-    <div className="max-w-5xl mx-auto px-4 py-4" translate="no">
+    <div className="w-full py-4" translate="no">
       <StepIndicator currentStep={currentStep} steps={steps} patientInfo={{
         nom: patientInfo.nom, prenom: patientInfo.prenom, civilite: patientInfo.civilite,
         age: calculateAge(), telephone: patientInfo.telephone, adresse: patientInfo.adresse,

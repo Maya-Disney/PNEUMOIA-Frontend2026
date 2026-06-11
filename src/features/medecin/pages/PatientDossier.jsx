@@ -446,7 +446,7 @@ export default function PatientDossier() {
   );
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12">
+    <div className="w-full space-y-6 pb-12">
 
       {/* ── Breadcrumb + en-tête ───────────────────────────────────── */}
       <div>

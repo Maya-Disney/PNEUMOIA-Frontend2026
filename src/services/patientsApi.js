@@ -23,6 +23,7 @@ const apiFetch = async (endpoint, options = {}) => {
 };
 
 // ── Patients ──────────────────────────────────────────────────────
+export const createPatient          = (data)     => apiFetch('/patients', { method: 'POST', body: JSON.stringify(data) });
 export const getMesPatients         = ()         => apiFetch('/patients/mes-patients');
 export const searchPatients         = (q)        => apiFetch(`/patients/search?q=${encodeURIComponent(q)}`);
 export const getPatient             = (id)       => apiFetch(`/patients/${id}`);

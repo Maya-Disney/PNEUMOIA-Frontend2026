@@ -1,6 +1,8 @@
 // src/features/medecin/pages/Commantaire.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useProfil } from '../hooks/useAuth';
 import {
   MessageCircle, ThumbsUp, Reply, Trash2, Send,
   Search, Star, AlertCircle, BookOpen,
@@ -331,13 +333,13 @@ function OngletRequetes({ toast }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     type: 'recuperation',
-    patientNom: '', dossierId: '', dateSuppression: '',
+    patientNom: '', dateNaissance: '', dateSuppression: '',
     motif: '', autreObjet: '', autreMessage: '',
   });
   const [sending, setSending] = useState(false);
 
   const handleSubmit = async () => {
-    if (form.type === 'recuperation' && (!form.patientNom || !form.dossierId || !form.motif)) {
+    if (form.type === 'recuperation' && (!form.patientNom || !form.dateNaissance || !form.motif)) {
       toast.warning('Remplissez tous les champs obligatoires'); return;
     }
     if (form.type === 'autre' && (!form.autreObjet || !form.autreMessage)) {
@@ -349,7 +351,7 @@ function OngletRequetes({ toast }) {
       id: Date.now(),
       type: form.type,
       patientNom: form.patientNom || '—',
-      dossierId: form.dossierId || '—',
+      dateNaissance: form.dateNaissance || '—',
       dateSuppression: form.dateSuppression || '—',
       motif: form.type === 'recuperation' ? form.motif : form.autreMessage,
       objet: form.autreObjet || null,
@@ -357,7 +359,7 @@ function OngletRequetes({ toast }) {
       date: new Date().toLocaleDateString('fr-FR'),
     };
     setRequests(prev => [newReq, ...prev]);
-    setForm({ type: 'recuperation', patientNom: '', dossierId: '', dateSuppression: '', motif: '', autreObjet: '', autreMessage: '' });
+    setForm({ type: 'recuperation', patientNom: '', dateNaissance: '', dateSuppression: '', motif: '', autreObjet: '', autreMessage: '' });
     setShowForm(false);
     setSending(false);
     toast.success('Requête envoyée à l\'administrateur');
@@ -423,9 +425,9 @@ function OngletRequetes({ toast }) {
                       className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-(--t2) mb-1">ID dossier <span className="text-red-500">*</span></label>
-                    <input value={form.dossierId} onChange={e => setForm(f => ({ ...f, dossierId: e.target.value }))} placeholder="PNEU-004821"
-                      className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <label className="block text-xs font-semibold text-(--t2) mb-1">Date de naissance <span className="text-red-500">*</span></label>
+                    <input type="date" value={form.dateNaissance} onChange={e => setForm(f => ({ ...f, dateNaissance: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                 </div>
                 <div>
@@ -492,7 +494,7 @@ function OngletRequetes({ toast }) {
                       {r.type === 'recuperation' ? `Récupération — ${r.patientNom}` : (r.objet || 'Autre demande')}
                     </p>
                     {r.type === 'recuperation' && (
-                      <p className="text-xs text-(--t4) font-mono mt-0.5">{r.dossierId}</p>
+                      <p className="text-xs text-(--t4) mt-0.5">Né(e) le {r.dateNaissance || '—'}</p>
                     )}
                   </div>
                 </div>
@@ -830,7 +832,20 @@ function OngletTemoignage({ toast }) {
 // ─── Page principale ───────────────────────────────────────────────────────────
 export default function Commantaire() {
   const toast = useToast();
+  const navigate = useNavigate();
+  const { profil, loading: authLoading } = useProfil();
   const [activeTab, setActiveTab] = useState('comments');
+
+  useEffect(() => {
+    if (!authLoading && !profil) navigate('/login', { replace: true });
+  }, [profil, authLoading, navigate]);
+
+  if (authLoading) return (
+    <div className="flex items-center justify-center py-32">
+      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+  if (!profil) return null;
 
   const current = TABS.find(t => t.id === activeTab);
 

@@ -158,7 +158,6 @@ export default function Corbeille() {
                 <p className="font-bold text-sm text-(--t1) truncate">
                   {item.civilite} {item.prenom} {item.nom}
                 </p>
-                <p className="text-xs text-(--t4) mt-0.5 font-mono">ID : {item.id}</p>
                 <div className="flex flex-wrap items-center gap-2 mt-1.5">
                   <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.badge}`}>
                     {info.status === 'corbeille' && <><Clock size={9} />{info.daysLeft}j restants</>}
