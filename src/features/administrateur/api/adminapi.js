@@ -2,15 +2,17 @@
  * adminApi.js — Client HTTP pour l'API PneumoIA Admin
  *
  * Organisation :
- *   1. Config & helper request()
- *   2. Auth (login, logout, reset mot de passe)
- *   3. Demandes en attente (valider, rejeter)
- *   4. Validées ce mois
- *   5. Refusées (liste, supprimer, relancer)
- *   6. Médecins actifs / suspendus
- *   7. Actions sur les médecins (suspendre, réactiver, supprimer)
- *   8. Statistiques
- *   9. Paramètres
+ *   1.  Config & helper request()
+ *   2.  Auth (login, logout, reset mot de passe)
+ *   3.  Demandes en attente (valider, rejeter)
+ *   4.  Validées ce mois
+ *   5.  Refusées (liste, supprimer, relancer)
+ *   6.  Médecins actifs / suspendus
+ *   7.  Médecin par ID (profil complet)
+ *   8.  Actions sur les médecins (suspendre, réactiver, supprimer)
+ *   9.  FAQ — questions médecins + FAQ publiées admin
+ *   10. Statistiques
+ *   11. Paramètres
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,13 +24,12 @@ const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 /**
  * Fonction centrale pour tous les appels HTTP.
- *
- * @param {string}  method  - Méthode HTTP : GET | POST | PUT | DELETE
- * @param {string}  path    - Chemin de l'endpoint, ex: "/api/admin/demandes"
- * @param {object}  body    - Corps de la requête (null si GET/DELETE sans body)
- * @param {boolean} auth    - Si true, ajoute le Bearer token depuis localStorage
- * @returns {Promise<any>}  - Données JSON de la réponse
- * @throws {Error}          - Si la réponse n'est pas ok (4xx / 5xx)
+ * @param {string}  method  - GET | POST | PUT | PATCH | DELETE
+ * @param {string}  path    - Chemin de l'endpoint
+ * @param {object}  body    - Corps de la requête (null si pas de body)
+ * @param {boolean} auth    - Ajoute le Bearer token si true
+ * @returns {Promise<any>}
+ * @throws {Error} si la réponse est 4xx / 5xx
  */
 async function request(method, path, body = null, auth = false) {
   const headers = { "Content-Type": "application/json" };
@@ -56,9 +57,8 @@ async function request(method, path, body = null, auth = false) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Connexion admin — stocke le token JWT et les infos admin dans localStorage.
+ * Connexion admin — stocke le token JWT dans localStorage.
  * POST /api/admin/auth/login
- * @param {{ email, password, phone }} credentials
  */
 export async function adminLogin({ email, password, phone }) {
   const data = await request("POST", "/api/admin/auth/login", { email, password, phone });
@@ -70,8 +70,7 @@ export async function adminLogin({ email, password, phone }) {
 }
 
 /**
- * Déconnexion admin — supprime le token et les infos du localStorage.
- * (Pas d'appel API — invalidation côté client uniquement)
+ * Déconnexion admin — supprime le token du localStorage (pas d'appel API).
  */
 export function adminLogout() {
   localStorage.removeItem("pneumo_admin_token");
@@ -79,19 +78,16 @@ export function adminLogout() {
 }
 
 /**
- * Demande de réinitialisation du mot de passe.
- * Envoie un OTP par SMS via Twilio.
+ * Demande de réinitialisation — envoie un OTP par SMS via Twilio.
  * POST /api/admin/auth/reset-request
- * @param {{ email, phone }} body
  */
 export async function adminResetRequest({ email, phone }) {
   return request("POST", "/api/admin/auth/reset-request", { email, phone });
 }
 
 /**
- * Confirmation de réinitialisation — vérifie l'OTP et change le mot de passe.
+ * Confirmation OTP + mise à jour du mot de passe.
  * POST /api/admin/auth/reset-confirm
- * @param {{ email, otp, new_password, confirm_password }} body
  */
 export async function adminResetConfirm({ email, otp, new_password, confirm_password }) {
   return request("POST", "/api/admin/auth/reset-confirm", {
@@ -105,8 +101,7 @@ export async function adminResetConfirm({ email, otp, new_password, confirm_pass
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Récupère tous les médecins en attente de validation.
- * Inclut : données personnelles, photo de profil, documents joints.
+ * Récupère tous les médecins en attente avec documents et photo.
  * GET /api/admin/demandes
  */
 export async function getDemandes() {
@@ -114,21 +109,16 @@ export async function getDemandes() {
 }
 
 /**
- * Valide un médecin — statut passe à "valide".
- * Génère un lien d'activation envoyé par email (binôme SMTP).
+ * Valide un médecin — statut passe à "valide" + email d'activation Brevo.
  * POST /api/admin/demandes/{id}/valider
- * @param {string} medecinId
  */
 export async function validerMedecin(medecinId) {
   return request("POST", `/api/admin/demandes/${medecinId}/valider`, null, true);
 }
 
 /**
- * Refuse un médecin — statut passe à "rejete".
- * Le motif est stocké en base et envoyé par email au médecin.
+ * Refuse un médecin — statut passe à "rejete" + email Brevo avec motif.
  * POST /api/admin/demandes/{id}/rejeter
- * @param {string} medecinId
- * @param {string} motif     - Raison du refus
  */
 export async function rejeterMedecin(medecinId, motif) {
   return request("POST", `/api/admin/demandes/${medecinId}/rejeter`, { motif }, true);
@@ -140,11 +130,8 @@ export async function rejeterMedecin(medecinId, motif) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Récupère les médecins validés pour un mois et une année donnés.
- * Si mois/annee non fournis, retourne le mois en cours.
+ * Médecins validés pour un mois/année donnés (mois en cours si omis).
  * GET /api/admin/demandes/valides?mois=6&annee=2026
- * @param {number} mois   - 1 à 12
- * @param {number} annee  - ex: 2026
  */
 export async function getMedecinsValides(mois, annee) {
   const params = mois && annee ? `?mois=${mois}&annee=${annee}` : "";
@@ -157,36 +144,29 @@ export async function getMedecinsValides(mois, annee) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Récupère les dossiers refusés avec filtres optionnels.
+ * Dossiers refusés avec filtres optionnels ville / motif.
  * GET /api/admin/demandes/refusees?ville=Douala&motif=CNOM invalide
- * @param {string} ville  - Filtre par ville (optionnel)
- * @param {string} motif  - Filtre par motif de refus (optionnel)
  */
 export async function getMedecinsRefuses(ville = "", motif = "") {
-  const params = new URLSearchParams();
-  if (ville && ville !== "Toutes") params.append("ville", ville);
-  if (motif && motif !== "Tous")   params.append("motif", motif);
-  const qs = params.toString() ? `?${params}` : "";
+  const p = new URLSearchParams();
+  if (ville && ville !== "Toutes") p.append("ville", ville);
+  if (motif && motif !== "Tous")   p.append("motif", motif);
+  const qs = p.toString() ? `?${p}` : "";
   return request("GET", `/api/admin/demandes/refusees${qs}`, null, true);
 }
 
 /**
- * Supprime définitivement un dossier refusé de la base.
- * Action irréversible — le médecin devra re-soumettre une nouvelle demande.
+ * Supprime définitivement un dossier refusé.
  * DELETE /api/admin/demandes/{id}/refusees
- * @param {string} medecinId
  */
 export async function supprimerDossierRefuse(medecinId) {
   return request("DELETE", `/api/admin/demandes/${medecinId}/refusees`, null, true);
 }
 
 /**
- * Envoie un e-mail de relance au médecin refusé.
- * Le médecin peut corriger son dossier et re-soumettre.
- * Marque relance_sent=true en base — le bouton "Relancer" devient grisé.
+ * Envoie un e-mail de relance au médecin refusé via Brevo.
+ * relance_sent passe à true → bouton grisé côté frontend.
  * POST /api/admin/demandes/{id}/relancer
- * @param {string} medecinId
- * @param {string} message   - Corps de l'e-mail (modifié par l'admin)
  */
 export async function relancerMedecin(medecinId, message) {
   return request("POST", `/api/admin/demandes/${medecinId}/relancer`, { message }, true);
@@ -198,16 +178,16 @@ export async function relancerMedecin(medecinId, message) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Récupère tous les médecins avec statut "valide".
- * Inclut les stats d'activité (patients, consultations, concordance IA).
- * GET /api/admin/demandes/statut/valide
+ * Médecins validés enrichis avec leurs stats d'activité.
+ * Le statut Actif/Inactif est calculé côté frontend (règle > 14j sans connexion).
+ * GET /api/admin/medecins/actifs
  */
 export async function getMedecinsActifs() {
-  return request("GET", "/api/admin/demandes/statut/valide", null, true);
+  return request("GET", "/api/admin/medecins/actifs", null, true);
 }
 
 /**
- * Récupère tous les médecins avec statut "suspendu".
+ * Médecins avec statut "suspendu" + champs suspension (raison, durée, date).
  * GET /api/admin/demandes/statut/suspendu
  */
 export async function getMedecinsSuspendus() {
@@ -216,18 +196,27 @@ export async function getMedecinsSuspendus() {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 7. ACTIONS SUR LES MÉDECINS
+// 7. MÉDECIN PAR ID
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Suspend un médecin actif — statut passe à "suspendu".
- * Le médecin ne peut plus se connecter pendant la durée indiquée.
- * Un email de notification est envoyé (binôme SMTP).
+ * Profil complet d'un médecin avec stats + documents.
+ * Utilisé par ProfilMedecin.jsx pour hydrater la page depuis le backend.
+ * GET /api/admin/medecins/{id}
+ */
+export async function getMedecinById(medecinId) {
+  return request("GET", `/api/admin/medecins/${medecinId}`, null, true);
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. ACTIONS SUR LES MÉDECINS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Suspend un médecin — statut passe à "suspendu".
+ * Email de notification envoyé via Brevo avec raison + durée.
  * POST /api/admin/medecins/{id}/suspendre
- * @param {string} medecinId
- * @param {string} raison    - Motif de la suspension
- * @param {string} duree     - Durée : "7 jours" | "30 jours" | "Indéfinie" etc.
- * @param {string} message   - Message optionnel envoyé au médecin
  */
 export async function suspendreMedecin(medecinId, raison, duree, message) {
   return request("POST", `/api/admin/medecins/${medecinId}/suspendre`, { raison, duree, message }, true);
@@ -235,9 +224,8 @@ export async function suspendreMedecin(medecinId, raison, duree, message) {
 
 /**
  * Réactive un médecin suspendu — statut repasse à "valide".
- * Efface les champs de suspension en base.
+ * Email de notification envoyé via Brevo avec motif initial.
  * POST /api/admin/medecins/{id}/reactiver
- * @param {string} medecinId
  */
 export async function reactiverMedecin(medecinId) {
   return request("POST", `/api/admin/medecins/${medecinId}/reactiver`, null, true);
@@ -245,9 +233,8 @@ export async function reactiverMedecin(medecinId) {
 
 /**
  * Supprime définitivement un médecin et toutes ses données.
- * Action irréversible — toutes les consultations et documents associés sont supprimés.
+ * Email de notification envoyé via Brevo. Action irréversible.
  * DELETE /api/admin/medecins/{id}
- * @param {string} medecinId
  */
 export async function supprimerMedecin(medecinId) {
   return request("DELETE", `/api/admin/medecins/${medecinId}`, null, true);
@@ -255,12 +242,74 @@ export async function supprimerMedecin(medecinId) {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 8. STATISTIQUES
+// 9. FAQ
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Questions posées par les médecins ────────────────────────────────────────
+
+/**
+ * Questions des médecins avec filtres optionnels.
+ * GET /api/admin/faq/questions?statut=en_attente&categorie=IA&ville=Douala
+ */
+export async function getQuestions(statut = "", categorie = "", ville = "") {
+  const p = new URLSearchParams();
+  if (statut)                  p.append("statut",    statut);
+  if (categorie)               p.append("categorie", categorie);
+  if (ville && ville !== "Toutes") p.append("ville", ville);
+  const qs = p.toString() ? `?${p}` : "";
+  return request("GET", `/api/admin/faq/questions${qs}`, null, true);
+}
+
+/**
+ * Répond à une question de médecin.
+ * Email de réponse envoyé automatiquement via Brevo.
+ * POST /api/admin/faq/questions/{id}/repondre
+ */
+export async function repondreQuestion(questionId, reponse) {
+  return request("POST", `/api/admin/faq/questions/${questionId}/repondre`, { reponse }, true);
+}
+
+// ── FAQ publiées par l'admin ─────────────────────────────────────────────────
+
+/**
+ * Toutes les entrées FAQ (publiées + brouillons).
+ * GET /api/admin/faq
+ */
+export async function getFAQ() {
+  return request("GET", "/api/admin/faq", null, true);
+}
+
+/**
+ * Crée une nouvelle entrée FAQ.
+ * POST /api/admin/faq
+ */
+export async function creerFAQ(question, reponse, categorie, publie) {
+  return request("POST", "/api/admin/faq", { question, reponse, categorie, publie }, true);
+}
+
+/**
+ * Modifie une entrée FAQ existante.
+ * PUT /api/admin/faq/{id}
+ */
+export async function modifierFAQ(faqId, question, reponse, categorie, publie) {
+  return request("PUT", `/api/admin/faq/${faqId}`, { question, reponse, categorie, publie }, true);
+}
+
+/**
+ * Publie ou dépublie une entrée FAQ (toggle).
+ * PATCH /api/admin/faq/{id}/toggle
+ */
+export async function toggleFAQPublie(faqId) {
+  return request("PATCH", `/api/admin/faq/${faqId}/toggle`, null, true);
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 10. STATISTIQUES
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Consultations par jour sur les 30 derniers jours.
- * Utilisé par la page Courbe d'activité.
  * GET /api/admin/stats/consultations/semaine
  */
 export async function getConsultationsSemaine() {
@@ -268,9 +317,8 @@ export async function getConsultationsSemaine() {
 }
 
 /**
- * Consultations agrégées par mois pour une année donnée.
+ * Consultations par mois pour une année donnée.
  * GET /api/admin/stats/consultations/annee?year=2026
- * @param {number} year
  */
 export async function getConsultationsAnnee(year) {
   return request("GET", `/api/admin/stats/consultations/annee?year=${year}`, null, true);
@@ -279,8 +327,6 @@ export async function getConsultationsAnnee(year) {
 /**
  * Consultations totales sur une période personnalisée.
  * GET /api/admin/stats/consultations/total?from=2026-01-01&to=2026-06-30
- * @param {string} from - Date ISO de début
- * @param {string} to   - Date ISO de fin
  */
 export async function getConsultationsTotal(from, to) {
   return request("GET", `/api/admin/stats/consultations/total?from=${from}&to=${to}`, null, true);
@@ -288,7 +334,6 @@ export async function getConsultationsTotal(from, to) {
 
 /**
  * Répartition géographique des médecins par ville.
- * Utilisé par la page Répartition géo.
  * GET /api/admin/stats/repartition-geo
  */
 export async function getRepartitionGeo() {
@@ -297,7 +342,7 @@ export async function getRepartitionGeo() {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 9. PARAMÈTRES
+// 11. PARAMÈTRES
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -311,7 +356,6 @@ export async function getParametres() {
 /**
  * Met à jour les paramètres globaux de la plateforme.
  * PUT /api/admin/parametres
- * @param {object} params - Objet paramètres à mettre à jour
  */
 export async function updateParametres(params) {
   return request("PUT", "/api/admin/parametres", params, true);
