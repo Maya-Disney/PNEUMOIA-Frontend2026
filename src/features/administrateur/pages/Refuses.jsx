@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { Download, Trash2, X, Send, Mail } from "lucide-react";
+import { Download, Trash2, X, Send, Mail, MoreVertical } from "lucide-react"; // ← ajout MoreVertical
 
 const BRAND = "#0f766e";
 const NOW   = new Date();
@@ -18,36 +18,13 @@ function avatarColor(str) {
 
 const VILLES_CM = ["Yaoundé","Douala","Bafoussam","Garoua","Maroua","Ngaoundéré","Bertoua","Ebolowa","Buéa","Limbé"];
 
+// ── Un seul mock conservé ─────────────────────────────────────────────────────
 const MOCK = [
   { id:1, initials:"DT", nom:"Dr. Tabi Jonas",    specialite:"Pneumologue",
     cnom:"CM-2024-9999", hopital:"Clinique Alpha", ville:"Yaoundé",
     email:"tabi.jonas@clinique.cm", telephone:"+237 699 001 002",
     dateDemande:fmt(sub(5*24*3600000)), dateRefus:fmt(sub(4*24*3600000)),
     motif:"N° CNOM invalide ou introuvable", refusePar:"Administrateur",
-    photo_url:null, relanceSent:false },
-  { id:2, initials:"BM", nom:"Dr. Bella Martin",  specialite:"Médecine générale",
-    cnom:"CM-2023-0411", hopital:"Cabinet privé", ville:"Douala",
-    email:"bella.martin@cabinet.cm", telephone:"+237 677 200 300",
-    dateDemande:fmt(sub(9*24*3600000)), dateRefus:fmt(sub(8*24*3600000)),
-    motif:"Spécialité non couverte", refusePar:"Administrateur",
-    photo_url:null, relanceSent:true },
-  { id:3, initials:"NK", nom:"Dr. Nguele Kali",   specialite:"Pneumologue",
-    cnom:"CM-2021-0887", hopital:"CHU Garoua",    ville:"Garoua",
-    email:"nguele.kali@chu.cm", telephone:"+237 655 400 500",
-    dateDemande:fmt(sub(14*24*3600000)), dateRefus:fmt(sub(12*24*3600000)),
-    motif:"Documents manquants ou expirés", refusePar:"Administrateur",
-    photo_url:null, relanceSent:false },
-  { id:4, initials:"AM", nom:"Dr. Abena Meka",    specialite:"Pneumologue",
-    cnom:"CM-2022-1145", hopital:"Hôpital Central", ville:"Yaoundé",
-    email:"abena.meka@hc.cm", telephone:"+237 677 100 200",
-    dateDemande:fmt(sub(20*24*3600000)), dateRefus:fmt(sub(18*24*3600000)),
-    motif:"Informations incohérentes", refusePar:"Administrateur",
-    photo_url:null, relanceSent:false },
-  { id:5, initials:"PF", nom:"Dr. Paul Fotso",    specialite:"Pneumologue",
-    cnom:"CM-2023-0320", hopital:"Clinique du Littoral", ville:"Douala",
-    email:"paul.fotso@cl.cm", telephone:"+237 699 300 400",
-    dateDemande:fmt(sub(25*24*3600000)), dateRefus:fmt(sub(23*24*3600000)),
-    motif:"Dossier incomplet", refusePar:"Administrateur",
     photo_url:null, relanceSent:false },
 ];
 
@@ -157,6 +134,9 @@ export default function Refusees() {
   const [villeFiltre,   setVilleFiltre]  = useState("Toutes");
   const [motifFiltre,   setMotifFiltre]  = useState("Tous");
 
+  // ✨ État pour le menu déroulant (3 points)
+  const [openMenuId, setOpenMenuId] = useState(null);
+
   // Motifs uniques
   const motifs = ["Tous", ...new Set(rows.map(r=>r.motif))];
 
@@ -177,6 +157,19 @@ export default function Refusees() {
     const t = setTimeout(()=>setToast(null),3500);
     return ()=>clearTimeout(t);
   },[toast]);
+
+  // ✨ Fermer le menu déroulant au clic extérieur
+  useEffect(() => {
+    if (openMenuId === null) return;
+    const handleClickOutside = () => setOpenMenuId(null);
+    const timeout = setTimeout(() => {
+      document.addEventListener("click", handleClickOutside);
+    }, 0);
+    return () => {
+      clearTimeout(timeout);
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [openMenuId]);
 
   function supprimer(r) {
     setRows(p=>p.filter(x=>x.id!==r.id));
@@ -265,69 +258,110 @@ export default function Refusees() {
                 <th className={th}>Refus</th>
                 <th className={th}>Motif</th>
                 <th className={th}>Refusé par</th>
-                <th className={th} style={{width:180}}>Actions</th>
+                <th className={`${th} text-center`} style={{width: 80}}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginated.length===0
                 ? <tr><td colSpan={9} className={`${td} text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Aucun dossier</td></tr>
-                : paginated.map(r=>(
-                  <tr key={r.id} className={`transition-colors ${dark?"hover:bg-[#0d1117]/60":"hover:bg-gray-50/80"}`}>
+                : paginated.map(r => {
+                    const isMenuOpen = openMenuId === r.id;
+                    return (
+                      <tr key={r.id} className={`transition-colors ${dark?"hover:bg-[#0d1117]/60":"hover:bg-gray-50/80"}`}>
 
-                    {/* Médecin — avatar + nom cliquable pour photo */}
-                    <td className={td}>
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 cursor-pointer hover:opacity-75 transition-opacity"
-                          style={{background:avatarColor(r.nom)}} onClick={()=>setModalePhoto(r)} title="Voir photo CNI">
-                          {r.initials}
-                        </div>
-                        <div>
-                          <p className={`text-[12px] font-bold cursor-pointer hover:underline underline-offset-2 ${dark?"text-white":"text-gray-800"}`}
-                            onClick={()=>setModalePhoto(r)}>{r.nom}</p>
-                          <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.specialite}</p>
-                        </div>
-                      </div>
-                    </td>
+                        {/* Médecin */}
+                        <td className={td}>
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 cursor-pointer hover:opacity-75 transition-opacity"
+                              style={{background:avatarColor(r.nom)}} onClick={()=>setModalePhoto(r)} title="Voir photo CNI">
+                              {r.initials}
+                            </div>
+                            <div>
+                              <p className={`text-[12px] font-bold cursor-pointer hover:underline underline-offset-2 ${dark?"text-white":"text-gray-800"}`}
+                                onClick={()=>setModalePhoto(r)}>{r.nom}</p>
+                              <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.specialite}</p>
+                            </div>
+                          </div>
+                        </td>
 
-                    <td className={`${td} text-[11px] font-mono ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.cnom}</td>
-                    <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{r.hopital}</td>
-                    <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{r.ville}</td>
-                    <td className={`${td} text-[11px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.dateDemande}</td>
-                    <td className={`${td} text-[11px] font-semibold text-red-500`}>{r.dateRefus}</td>
+                        <td className={`${td} text-[11px] font-mono ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.cnom}</td>
+                        <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{r.hopital}</td>
+                        <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{r.ville}</td>
+                        <td className={`${td} text-[11px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.dateDemande}</td>
+                        <td className={`${td} text-[11px] font-semibold text-red-500`}>{r.dateRefus}</td>
 
-                    {/* Motif — texte simple sans badge */}
-                    <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-600"}`} style={{maxWidth:180}}>
-                      <span className="line-clamp-2">{r.motif}</span>
-                    </td>
+                        <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-600"}`} style={{maxWidth:180}}>
+                          <span className="line-clamp-2">{r.motif}</span>
+                        </td>
 
-                    <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{r.refusePar}</td>
+                        <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{r.refusePar}</td>
 
-                    {/* Actions */}
-                    <td className={td}>
-                      <div style={{display:"flex", alignItems:"center", gap:6}}>
-                        {/* Relancer — largeur fixe 80px */}
-                        {r.relanceSent
-                          ? <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:80,height:28,fontSize:10,fontWeight:500,borderRadius:8,border:"1px solid #e5e7eb",color:"#d1d5db",flexShrink:0}}>
-                              <Mail size={10}/> Relancé
-                            </span>
-                          : <button onClick={()=>setModaleRelance(r)}
-                              style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:80,height:28,fontSize:10,fontWeight:700,borderRadius:8,border:"1px solid #bbf7d0",background:"#f0fdf4",color:BRAND,flexShrink:0,cursor:"pointer"}}
-                              onMouseEnter={e=>{e.currentTarget.style.background=BRAND;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=BRAND;}}
-                              onMouseLeave={e=>{e.currentTarget.style.background="#f0fdf4";e.currentTarget.style.color=BRAND;e.currentTarget.style.borderColor="#bbf7d0";}}>
-                              <Send size={10}/> Relancer
+                        {/* ✨ Actions — menu déroulant 3 points */}
+                        <td className={td}>
+                          <div className="relative flex justify-center">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(isMenuOpen ? null : r.id);
+                              }}
+                              title="Actions"
+                              className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all
+                                ${isMenuOpen
+                                  ? (dark?"bg-[#21262d] border-[#30363d] text-white shadow-lg":"bg-gray-100 border-gray-300 text-gray-800 shadow-lg")
+                                  : (dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800")}`}
+                            >
+                              <MoreVertical size={16} />
                             </button>
-                        }
-                        {/* Supprimer — largeur fixe 80px */}
-                        <button onClick={()=>setTarget(r)}
-                          style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:80,height:28,fontSize:10,fontWeight:700,borderRadius:8,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",flexShrink:0,cursor:"pointer"}}
-                          onMouseEnter={e=>{e.currentTarget.style.background="#fee2e2";}}
-                          onMouseLeave={e=>{e.currentTarget.style.background="#fef2f2";}}>
-                          <Trash2 size={10}/> Supprimer
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+
+                            {isMenuOpen && (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className={`absolute right-0 top-full mt-1.5 z-30 min-w-[180px] rounded-xl border shadow-xl overflow-hidden
+                                  ${dark?"bg-[#161b22] border-[#30363d]":"bg-white border-gray-200"}`}
+                                style={{ transformOrigin: "top right" }}
+                              >
+                                {/* Relancer par e-mail */}
+                                <button
+                                  disabled={r.relanceSent}
+                                  onClick={() => {
+                                    setModaleRelance(r);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
+                                    ${r.relanceSent
+                                      ? (dark?"text-[#484f58] cursor-not-allowed":"text-gray-300 cursor-not-allowed")
+                                      : (dark?"text-[#c9d1d9] hover:bg-[#21262d]":"text-gray-700 hover:bg-gray-50")}`}
+                                >
+                                  <Send size={14} className="shrink-0" style={{ color: r.relanceSent ? undefined : BRAND }} />
+                                  <span>Relancer par e-mail</span>
+                                  {r.relanceSent && (
+                                    <span className={`ml-auto text-[9px] px-1.5 py-0.5 rounded ${dark?"bg-[#21262d] text-[#484f58]":"bg-gray-100 text-gray-400"}`}>
+                                      Déjà fait
+                                    </span>
+                                  )}
+                                </button>
+
+                                <div className={`border-t ${dark?"border-[#21262d]":"border-gray-100"}`} />
+
+                                {/* Supprimer */}
+                                <button
+                                  onClick={() => {
+                                    setTarget(r);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
+                                    ${dark?"text-red-400 hover:bg-red-900/20":"text-red-700 hover:bg-red-50"}`}
+                                >
+                                  <Trash2 size={14} className="shrink-0" />
+                                  Supprimer
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
               }
             </tbody>
           </table>

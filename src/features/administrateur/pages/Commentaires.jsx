@@ -136,20 +136,22 @@ export default function Commentaires() {
 
       {/* Bandeau nouveaux */}
       {nbNouveaux > 0 && (
-        <div className="flex items-center justify-between gap-4 px-5 py-3.5 rounded-2xl border border-orange-200 bg-orange-50 dark:border-orange-700/40 dark:bg-orange-900/20">
+        <div className={`flex items-center justify-between gap-4 px-5 py-3.5 rounded-2xl border ${dark?"border-[#21262d] bg-[#1c2128]":"border-gray-200 bg-gray-50"}`}>
           <div className="flex items-center gap-3">
-<Bell size={18} className="shrink-0 text-orange-500 dark:text-orange-400"/>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${dark?"bg-[#0f766e]/20":"bg-[#0f766e]/10"}`}>
+              <Bell size={15} className={dark?"text-[#14b8a6]":"text-[#0f766e]"}/>
+            </div>
             <div>
-              <p className="text-[12px] font-bold text-orange-700 dark:text-orange-400">
+              <p className={`text-[12px] font-bold ${dark?"text-white":"text-gray-800"}`}>
                 {nbNouveaux} nouveau{nbNouveaux>1?"x":""} commentaire{nbNouveaux>1?"s":""} depuis votre dernière visite
               </p>
-              <p className="text-[10px] text-orange-600 dark:text-orange-400 mt-0.5">
+              <p className={`text-[10px] mt-0.5 ${dark?"text-[#8b949e]":"text-gray-500"}`}>
                 Vérifiez leur contenu — supprimez les commentaires déplaisants si nécessaire.
               </p>
             </div>
           </div>
           <button onClick={marquerVus}
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-xl border border-orange-300 text-orange-700 dark:text-orange-400 hover:bg-orange-100 shrink-0 transition-colors">
+            className={`text-[11px] font-semibold px-3 py-1.5 rounded-xl border transition-colors shrink-0 ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800"}`}>
             Marquer vus
           </button>
         </div>

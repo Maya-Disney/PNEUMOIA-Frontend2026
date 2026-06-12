@@ -3,7 +3,7 @@ import { Search, Bell, Sun, Moon, Menu, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const BRAND = "#0f766e";
-const TOPBAR_LIGHT = "#f0f7f5";
+const TOPBAR_LIGHT = "#ffffff";   // Fond topbar — blanc
 const TOPBAR_DARK  = "#0d1117";
 
 export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
@@ -15,7 +15,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
       className="h-14 flex items-center justify-between px-4 md:px-6 shrink-0 border-b"
       style={{
         background:  dark ? TOPBAR_DARK : TOPBAR_LIGHT,
-        borderColor: dark ? "#1e2a28"   : "#e2ebe6",
+        borderColor: dark ? "#1e2a28"   : "#e5e7eb",
       }}
     >
       {/* Mobile menu btn */}
@@ -31,8 +31,8 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
       <div
         className="flex items-center gap-2 h-9 px-3 rounded-xl border w-full max-w-xs"
         style={{
-          background:  dark ? "#161b22" : "#f0f4f2",
-          borderColor: dark ? "#21262d" : "#d4e0da",
+          background:  dark ? "#161b22" : "#f9fafb",
+          borderColor: dark ? "#21262d" : "#e5e7eb",
         }}
       >
         <Search size={14} style={{ color: dark ? "#484f58" : "#9ca3af", flexShrink: 0 }} />
@@ -42,7 +42,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
           placeholder="Rechercher un médecin…"
           style={{
             flex: 1, background: "transparent", border: "none", outline: "none",
-            fontSize: 13, color: dark ? "#e6edf3" : "#1f2937",
+            fontSize: 14, color: dark ? "#e6edf3" : "#1f2937",
           }}
         />
       </div>
@@ -53,8 +53,8 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
         <div
           className="flex gap-0.5 p-1 rounded-xl border"
           style={{
-            background:  dark ? "#161b22" : "#edf2ef",
-            borderColor: dark ? "#21262d" : "#d4e0da",
+            background:  dark ? "#161b22" : "#f9fafb",
+            borderColor: dark ? "#21262d" : "#e5e7eb",
           }}
         >
           {[
@@ -66,7 +66,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
               <button
                 key={label}
                 onClick={() => setDark(mode)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-bold transition-all"
                 style={{
                   background: isActive ? (dark ? BRAND : "#ffffff") : "transparent",
                   color:      isActive ? (dark ? "#ffffff" : "#0f766e") : (dark ? "#484f58" : "#6b7280"),
@@ -86,7 +86,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
           title="Corbeille"
           className="relative w-9 h-9 flex items-center justify-center rounded-xl border transition-colors"
           style={{
-            borderColor: dark ? "#21262d" : "#d4e0da",
+            borderColor: dark ? "#21262d" : "#e5e7eb",
             color:       corbeilleCount > 0
               ? "#dc2626"
               : dark ? "#8b949e" : "#6b7280",
@@ -101,7 +101,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background  = corbeilleCount > 0 ? (dark?"#2a1515":"#fef2f2") : "transparent";
-            e.currentTarget.style.borderColor = dark ? "#21262d" : "#d4e0da";
+            e.currentTarget.style.borderColor = dark ? "#21262d" : "#e5e7eb";
             e.currentTarget.style.color       = corbeilleCount > 0 ? "#dc2626" : dark ? "#8b949e" : "#6b7280";
           }}
         >
@@ -120,11 +120,11 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
         <button
           className="relative w-9 h-9 flex items-center justify-center rounded-xl border transition-colors"
           style={{
-            borderColor: dark ? "#21262d" : "#d4e0da",
+            borderColor: dark ? "#21262d" : "#e5e7eb",
             color:       dark ? "#8b949e" : "#6b7280",
             background:  "transparent",
           }}
-          onMouseEnter={e => e.currentTarget.style.background = dark ? "#161b22" : "#edf2ef"}
+          onMouseEnter={e => e.currentTarget.style.background = dark ? "#161b22" : "#f9fafb"}
           onMouseLeave={e => e.currentTarget.style.background = "transparent"}
         >
           <Bell size={16} />
@@ -138,7 +138,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
 
         {/* Avatar */}
         <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-black"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[12px] font-black"
           style={{ background: BRAND }}
         >
           AD

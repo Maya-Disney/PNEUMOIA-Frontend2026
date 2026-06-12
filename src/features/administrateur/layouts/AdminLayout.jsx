@@ -1,4 +1,5 @@
 import { Outlet } from "react-router-dom";
+import '../admin.css';
 import { AdminThemeProvider, useAdminTheme } from "../context/useAdminTheme";
 import Sidebar from "../componentAdmin/Sidebar";
 import Topbar from "../componentAdmin/Topbar";

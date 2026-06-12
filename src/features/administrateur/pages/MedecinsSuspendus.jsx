@@ -12,7 +12,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Trash2, X, AlertTriangle, RotateCcw } from "lucide-react";
+import { Trash2, X, AlertTriangle, RotateCcw, MoreVertical } from "lucide-react"; // ← ajout MoreVertical
 import { reactiverMedecin, supprimerMedecin, getMedecinsSuspendus } from "../api/adminApi";
 
 const BRAND = "#0f766e";
@@ -22,7 +22,7 @@ const pad   = (n)  => String(n).padStart(2, "0");
 function fmtDT(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DONNÉES MOCK
+// DONNÉES MOCK — Un seul mock conservé
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MOCK = [
@@ -33,14 +33,6 @@ const MOCK = [
     raison: "Signalement d'un confrère — comportement non conforme à la déontologie",
     duree: "30 jours", dureeType: "limitee",
     suspenduLe: sub(24*3600000), suspenduPar: "Super Admin",
-  },
-  {
-    id: 2, initials: "TD", nom: "Dr. Tamba Diallo",
-    specialite: "Pneumologue", hopital: "Hôpital Laquintinie",
-    cnom: "CM-2021-0789", email: "tamba@laquintinie.cm",
-    raison: "Vérification d'identité requise — incohérence dans les documents soumis",
-    duree: "Indéfinie", dureeType: "indefinie",
-    suspenduLe: sub(5*24*3600000), suspenduPar: "Super Admin",
   },
 ];
 
@@ -111,14 +103,17 @@ export default function MedecinsSuspendus() {
   // ── États ──────────────────────────────────────────────────────────────────
   const [suspendus,      setSuspendus]      = useState(MOCK);
   const [loadingData,    setLoadingData]    = useState(true);
-  const [modaleReactiver,setModaleReactiver]= useState(null); // Modal confirmation réactivation
-  const [modaleSuppr,    setModaleSuppr]    = useState(null); // Modal confirmation suppression
-  const [modalePhoto,    setModalePhoto]    = useState(null); // Modal photo CNI
-  const [msgReactiv,     setMsgReactiv]     = useState("");   // Message personnalisé réactivation
+  const [modaleReactiver,setModaleReactiver]= useState(null);
+  const [modaleSuppr,    setModaleSuppr]    = useState(null);
+  const [modalePhoto,    setModalePhoto]    = useState(null);
+  const [msgReactiv,     setMsgReactiv]     = useState("");
   const [loading,        setLoading]        = useState(false);
   const [toast,          setToast]          = useState(null);
   const [page,           setPage]           = useState(1);
   const [perPage,        setPerPage]        = useState(10);
+
+  // ✨ État pour le menu déroulant (3 points)
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   const totalPages = Math.max(1, Math.ceil(suspendus.length/perPage));
   const paginated  = suspendus.slice((page-1)*perPage, page*perPage);
@@ -146,9 +141,8 @@ export default function MedecinsSuspendus() {
             suspenduPar: m.suspension_par || "Administrateur",
           })));
         }
-        // Si data vide → garde les mocks
       })
-      .catch(() => {}) // Erreur → garde les mocks
+      .catch(() => {})
       .finally(() => setLoadingData(false));
   }, []);
 
@@ -158,6 +152,19 @@ export default function MedecinsSuspendus() {
     const t = setTimeout(()=>setToast(null), 4000);
     return ()=>clearTimeout(t);
   }, [toast]);
+
+  // ✨ Fermer le menu déroulant au clic extérieur
+  useEffect(() => {
+    if (openMenuId === null) return;
+    const handleClickOutside = () => setOpenMenuId(null);
+    const timeout = setTimeout(() => {
+      document.addEventListener("click", handleClickOutside);
+    }, 0);
+    return () => {
+      clearTimeout(timeout);
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [openMenuId]);
 
   // Fermer modales avec Escape
   useEffect(() => {
@@ -173,8 +180,6 @@ export default function MedecinsSuspendus() {
   }, []);
 
   // ── Réactiver un médecin ────────────────────────────────────────────────────
-  // Appelle le backend → statut repasse à "valide"
-  // Email envoyé au médecin via Brevo avec le message personnalisé
   const handleReactiver = useCallback(async () => {
     if (!modaleReactiver) return;
     setLoading(true);
@@ -194,7 +199,6 @@ export default function MedecinsSuspendus() {
   }, [modaleReactiver]);
 
   // ── Supprimer un médecin ────────────────────────────────────────────────────
-  // Suppression définitive + email de notification au médecin
   const handleSupprimer = useCallback(async () => {
     if (!modaleSuppr) return;
     setLoading(true);
@@ -236,9 +240,10 @@ export default function MedecinsSuspendus() {
           <table className="w-full border-collapse" style={{minWidth:700}}>
             <thead>
               <tr>
-                {["Médecin","CNOM","Raison de la suspension","Durée","Suspendu le","Suspendu par","Actions"].map(h=>(
+                {["Médecin","CNOM","Raison de la suspension","Durée","Suspendu le","Suspendu par"].map(h=>(
                   <th key={h} className={th}>{h}</th>
                 ))}
+                <th className={`${th} text-center`} style={{width: 80}}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -246,59 +251,103 @@ export default function MedecinsSuspendus() {
                 ? <tr><td colSpan={7} className={`${td} text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Chargement…</td></tr>
                 : paginated.length===0
                 ? <tr><td colSpan={7} className={`${td} text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Aucun compte suspendu</td></tr>
-                : paginated.map(m=>(
-                  <tr key={m.id} className={`transition-colors ${dark?"hover:bg-[#0d1117]/60":"hover:bg-gray-50/80"}`}>
+                : paginated.map(m => {
+                    const isMenuOpen = openMenuId === m.id;
+                    return (
+                      <tr key={m.id} className={`transition-colors ${dark?"hover:bg-[#0d1117]/60":"hover:bg-gray-50/80"}`}>
 
-                    {/* Médecin — clic → photo CNI */}
-                    <td className={td}>
-                      <div className="flex items-center gap-2.5 cursor-pointer group" onClick={()=>setModalePhoto(m)}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 group-hover:opacity-75 transition-opacity ${dark?"bg-[#21262d] text-[#8b949e]":"bg-gray-100 text-gray-600"}`}>
-                          {m.initials}
-                        </div>
-                        <div>
-                          <p className={`text-[12px] font-bold group-hover:underline underline-offset-2 ${dark?"text-white":"text-gray-800"}`}>{m.nom}</p>
-                          <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.specialite} · {m.hopital}</p>
-                        </div>
-                      </div>
-                    </td>
+                        {/* Médecin — clic → photo CNI */}
+                        <td className={td}>
+                          <div className="flex items-center gap-2.5 cursor-pointer group" onClick={()=>setModalePhoto(m)}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 group-hover:opacity-75 transition-opacity ${dark?"bg-[#21262d] text-[#8b949e]":"bg-gray-100 text-gray-600"}`}>
+                              {m.initials}
+                            </div>
+                            <div>
+                              <p className={`text-[12px] font-bold group-hover:underline underline-offset-2 ${dark?"text-white":"text-gray-800"}`}>{m.nom}</p>
+                              <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.specialite} · {m.hopital}</p>
+                            </div>
+                          </div>
+                        </td>
 
-                    <td className={`${td} text-[11px] font-mono ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.cnom}</td>
+                        <td className={`${td} text-[11px] font-mono ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.cnom}</td>
 
-                    {/* Raison en orange */}
-                    <td className={`${td} text-[11px] font-medium text-orange-500 dark:text-orange-400 max-w-xs`}>
-                      <span className="line-clamp-2">{m.raison}</span>
-                    </td>
+                        {/* Raison en orange */}
+                        <td className={`${td} text-[11px] font-medium text-orange-500 dark:text-orange-400 max-w-xs`}>
+                          <span className="line-clamp-2">{m.raison}</span>
+                        </td>
 
-                    {/* Badge durée */}
-                    <td className={td}>
-                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${m.dureeType==="indefinie"?"bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400":"bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400"}`}>
-                        {m.duree}
-                      </span>
-                    </td>
+                        {/* Badge durée */}
+                        <td className={td}>
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${m.dureeType==="indefinie"?"bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400":"bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400"}`}>
+                            {m.duree}
+                          </span>
+                        </td>
 
-                    <td className={`${td} text-[11px] whitespace-nowrap ${dark?"text-[#484f58]":"text-gray-400"}`}>
-                      {fmtDT(m.suspenduLe)}
-                    </td>
+                        <td className={`${td} text-[11px] whitespace-nowrap ${dark?"text-[#484f58]":"text-gray-400"}`}>
+                          {fmtDT(m.suspenduLe)}
+                        </td>
 
-                    <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{m.suspenduPar}</td>
+                        <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{m.suspenduPar}</td>
 
-                    {/* Actions : Réactiver + Supprimer */}
-                    <td className={td}>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={()=>{setModaleReactiver(m);setMsgReactiv("");}}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-xl border transition-colors border-teal-200 dark:border-teal-700/40 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20">
-                          <RotateCcw size={11}/> Réactiver
-                        </button>
-                        <button
-                          onClick={()=>setModaleSuppr(m)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-xl border transition-colors border-red-200 dark:border-red-700/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
-                          <Trash2 size={11}/> Supprimer
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        {/* ✨ Actions — menu déroulant 3 points */}
+                        <td className={td}>
+                          <div className="relative flex justify-center">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(isMenuOpen ? null : m.id);
+                              }}
+                              title="Actions"
+                              className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all
+                                ${isMenuOpen
+                                  ? (dark?"bg-[#21262d] border-[#30363d] text-white shadow-lg":"bg-gray-100 border-gray-300 text-gray-800 shadow-lg")
+                                  : (dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800")}`}
+                            >
+                              <MoreVertical size={16} />
+                            </button>
+
+                            {isMenuOpen && (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className={`absolute right-0 top-full mt-1.5 z-30 min-w-[180px] rounded-xl border shadow-xl overflow-hidden
+                                  ${dark?"bg-[#161b22] border-[#30363d]":"bg-white border-gray-200"}`}
+                                style={{ transformOrigin: "top right" }}
+                              >
+                                {/* Réactiver */}
+                                <button
+                                  onClick={() => {
+                                    setModaleReactiver(m);
+                                    setMsgReactiv("");
+                                    setOpenMenuId(null);
+                                  }}
+                                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
+                                    ${dark?"text-teal-400 hover:bg-teal-900/20":"text-teal-700 hover:bg-teal-50"}`}
+                                >
+                                  <RotateCcw size={14} className="shrink-0" />
+                                  Réactiver le compte
+                                </button>
+
+                                <div className={`border-t ${dark?"border-[#21262d]":"border-gray-100"}`} />
+
+                                {/* Supprimer */}
+                                <button
+                                  onClick={() => {
+                                    setModaleSuppr(m);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
+                                    ${dark?"text-red-400 hover:bg-red-900/20":"text-red-700 hover:bg-red-50"}`}
+                                >
+                                  <Trash2 size={14} className="shrink-0" />
+                                  Supprimer
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
               }
             </tbody>
           </table>
@@ -336,7 +385,6 @@ export default function MedecinsSuspendus() {
       {modalePhoto && <ModalePhoto m={modalePhoto} dark={dark} onClose={()=>setModalePhoto(null)}/>}
 
       {/* ── Modal Réactivation ── */}
-      {/* L'admin peut ajouter un message personnalisé envoyé par email */}
       {modaleReactiver && (
         <Modal dark={dark} onClose={()=>setModaleReactiver(null)}
           title="Réactiver le compte" sub={modaleReactiver.nom}
@@ -352,7 +400,6 @@ export default function MedecinsSuspendus() {
             </button>
           </>}>
           <div className="flex flex-col gap-3">
-            {/* Bandeau vert confirmation */}
             <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[11px] ${dark?"bg-teal-900/20 border-teal-700/40 text-teal-300":"bg-teal-50 border-teal-200 text-teal-700"}`}>
               <RotateCcw size={13} className="shrink-0 mt-0.5"/>
               <span>
@@ -361,7 +408,6 @@ export default function MedecinsSuspendus() {
               </span>
             </div>
 
-            {/* Récap suspension */}
             <div className={`rounded-xl border px-4 py-3 text-[11px] ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
               {[
                 {l:"Médecin",    v:modaleReactiver.nom},
@@ -377,7 +423,6 @@ export default function MedecinsSuspendus() {
               ))}
             </div>
 
-            {/* Message personnalisé optionnel */}
             <div>
               <label className={`block text-[11px] font-bold mb-1.5 ${dark?"text-[#8b949e]":"text-gray-600"}`}>
                 Message au médecin <span className={`font-normal ${dark?"text-[#484f58]":"text-gray-400"}`}>(optionnel)</span>

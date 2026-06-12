@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { Download, X, FileText, User } from "lucide-react";
+import { Download, X, FileText, User, MoreVertical } from "lucide-react"; // ← ajout MoreVertical
 import { getMedecinsValides } from "../api/adminapi";
 
 const BRAND = "#0f766e";
@@ -30,11 +30,6 @@ function formatValidation(d) {
   const same = now.getDate()===d.getDate() && now.getMonth()===d.getMonth() && now.getFullYear()===d.getFullYear();
   if (same) return `Auj. ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   return `${d.getDate()} ${MOIS_COURT[d.getMonth()]}`;
-}
-function titreMois() {
-  const n = new Date();
-  const m = MOIS_LONG[n.getMonth()];
-  return `${m.charAt(0).toUpperCase() + m.slice(1)} ${n.getFullYear()}`;
 }
 
 const NOW = new Date();
@@ -176,7 +171,7 @@ function ModalePhoto({ doc: m, onClose, dark }) {
 function ModaleDossier({ doc: m, onClose, dark }) {
   function handleVoir(d) {
     if (d.url) window.open(d.url, "_blank");
-    else alert("Document disponible après connexion backend.\nEndpoint : GET /api/admin/demandes/" + m.id + "/documents");
+    else alert("Document disponible après connexion backend.");
   }
   function handleDl(d) {
     if (d.url) {
@@ -196,7 +191,6 @@ function ModaleDossier({ doc: m, onClose, dark }) {
       }>
       <div className="flex flex-col gap-3">
 
-        {/* Bandeau validé */}
         <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${dark ? "bg-teal-900/20 border-teal-700/40 text-teal-300" : "bg-teal-50 border-teal-200 text-teal-700"}`}>
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="shrink-0">
             <polyline points="20 6 9 17 4 12"/>
@@ -206,7 +200,6 @@ function ModaleDossier({ doc: m, onClose, dark }) {
           </p>
         </div>
 
-        {/* Infos médecin */}
         <div className={`rounded-xl border overflow-hidden ${dark ? "bg-[#0d1117] border-[#21262d]" : "bg-gray-50 border-gray-100"}`}>
           {[
             {l:"Médecin",         v:m.name},
@@ -223,7 +216,6 @@ function ModaleDossier({ doc: m, onClose, dark }) {
           ))}
         </div>
 
-        {/* Documents — 6 pièces consultables */}
         <div className="flex items-center justify-between">
           <p className={`text-[10px] font-bold uppercase tracking-wider ${dark ? "text-[#484f58]" : "text-gray-400"}`}>
             Pièces justificatives
@@ -236,19 +228,11 @@ function ModaleDossier({ doc: m, onClose, dark }) {
             const cfg = DOC_CFG[d.status] || DOC_CFG.missing;
             return (
               <div key={i} className={`flex items-center gap-3 px-4 py-3 border-b last:border-0 ${dark ? "border-[#21262d]" : "border-gray-100"}`}>
-
-                {/* Numéro */}
                 <span className={`text-[10px] font-bold w-5 shrink-0 ${dark ? "text-[#484f58]" : "text-gray-300"}`}>{i+1}</span>
-
-                {/* Nom document */}
                 <span className={`text-[11px] font-medium flex-1 ${dark ? "text-[#8b949e]" : "text-gray-600"}`}>{d.label}</span>
-
-                {/* Badge statut */}
                 <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${cfg.cls}`}>
                   {cfg.label}
                 </span>
-
-                {/* Boutons Voir + Télécharger */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button onClick={() => handleVoir(d)} title="Voir le document"
                     className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-lg border transition-colors
@@ -292,7 +276,6 @@ function ModaleProfil({ doc: m, onClose, onSuspendre, onSupprimer, dark }) {
         </>
       }>
       <div className="flex flex-col gap-4">
-        {/* Identité */}
         <div className={`flex items-center justify-between gap-4 p-4 rounded-xl border ${dark ? "bg-[#0d1117] border-[#21262d]" : "bg-gray-50 border-gray-100"}`}>
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-base font-black shrink-0" style={{background:m.avatarBg}}>{m.initials}</div>
@@ -313,7 +296,6 @@ function ModaleProfil({ doc: m, onClose, onSuspendre, onSupprimer, dark }) {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-2">
           {[{v:m.patients,l:"Patients"},{v:m.consultations.toLocaleString("fr-FR"),l:"Consultations"},{v:`${m.concordanceIA}%`,l:"Concordance IA",teal:true}].map(({v,l,teal})=>(
             <div key={l} className={`rounded-xl border p-3 text-center ${dark ? "bg-[#0d1117] border-[#21262d]" : "bg-gray-50 border-gray-100"}`}>
@@ -323,7 +305,6 @@ function ModaleProfil({ doc: m, onClose, onSuspendre, onSupprimer, dark }) {
           ))}
         </div>
 
-        {/* Infos + Activité */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${dark ? "text-[#484f58]" : "text-gray-300"}`}>Informations</p>
@@ -415,7 +396,6 @@ function ModaleSuppression({ medecin: m, onClose, onConfirm, dark }) {
 export default function ValideesCeMois() {
   const { dark } = useOutletContext() || {};
 
-  // ── états ────────────────────────────────────────────────────────────────────
   const [rows,       setRows]       = useState(MOCK);
   const [loading,    setLoading]    = useState(true);
   const [moisSelec,  setMoisSelec]  = useState(new Date().getMonth() + 1);
@@ -428,6 +408,9 @@ export default function ValideesCeMois() {
   const [modaleSusp,    setModaleSusp]    = useState(null);
   const [modaleSuppr,   setModaleSuppr]   = useState(null);
   const [toast,         setToast]         = useState(null);
+
+  // ✨ État pour le menu déroulant (3 points)
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -460,11 +443,11 @@ export default function ValideesCeMois() {
             activiteRecente: [],
           })));
         }
-        // sinon garde les mocks
       })
-      .catch(() => {}) // garde les mocks si erreur
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [moisSelec, anneeSelec]);
+
   const totalPages = Math.max(1, Math.ceil(rows.length / perPage));
   const paginated  = rows.slice((page-1)*perPage, page*perPage);
   const from = rows.length===0 ? 0 : (page-1)*perPage+1;
@@ -475,6 +458,19 @@ export default function ValideesCeMois() {
     const t = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(t);
   }, [toast]);
+
+  // ✨ Fermer le menu déroulant au clic extérieur
+  useEffect(() => {
+    if (openMenuId === null) return;
+    const handleClickOutside = () => setOpenMenuId(null);
+    const timeout = setTimeout(() => {
+      document.addEventListener("click", handleClickOutside);
+    }, 0);
+    return () => {
+      clearTimeout(timeout);
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [openMenuId]);
 
   function handleSuspension({ raison, duree }) {
     setToast({ msg: `${modaleSusp.name} suspendu — ${duree}`, type: "warn" });
@@ -504,7 +500,7 @@ export default function ValideesCeMois() {
   return (
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
 
-      {/* ── Header : titre + export ── */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className={`text-xl md:text-2xl font-black tracking-tight ${dark ? "text-white" : "text-gray-900"}`}>
@@ -522,7 +518,7 @@ export default function ValideesCeMois() {
         </button>
       </div>
 
-      {/* ── Filtres mois/année — au-dessus du tableau avec marge ── */}
+      {/* Filtres mois/année */}
       <div style={{ marginTop: 8, marginBottom: 4, display:"flex", alignItems:"center", gap:10 }}>
         <span className={`text-[11px] font-semibold ${dark?"text-[#484f58]":"text-gray-400"}`}>
           Période :
@@ -559,7 +555,7 @@ export default function ValideesCeMois() {
                 <th className={th}>Date demande</th>
                 <th className={th}>Date validation</th>
                 <th className={th}>Validé par</th>
-                <th className={`${th} text-center`}>Actions</th>
+                <th className={`${th} text-center`} style={{ width: 80 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -567,43 +563,124 @@ export default function ValideesCeMois() {
                 <tr><td colSpan={8} className={`text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Chargement…</td></tr>
               ) : paginated.length === 0 ? (
                 <tr><td colSpan={8} className={`text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Aucune validation ce mois</td></tr>
-              ) : paginated.map(doc => (
-                <tr key={doc.id} className={`transition-colors ${dark ? "hover:bg-[#0d1117]/60" : "hover:bg-gray-50/80"}`}>
-                  <td className={td}>
-                    <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => setModalePhoto(doc)}>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-black shrink-0 group-hover:opacity-75 transition-opacity"
-                        style={{ background: doc.avatarBg }}>
-                        {doc.initials}
+              ) : paginated.map(doc => {
+                const isMenuOpen = openMenuId === doc.id;
+                return (
+                  <tr key={doc.id} className={`transition-colors ${dark ? "hover:bg-[#0d1117]/60" : "hover:bg-gray-50/80"}`}>
+                    <td className={td}>
+                      <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => setModalePhoto(doc)}>
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-black shrink-0 group-hover:opacity-75 transition-opacity"
+                          style={{ background: doc.avatarBg }}>
+                          {doc.initials}
+                        </div>
+                        <div>
+                          <p className={`text-[12px] font-bold group-hover:underline underline-offset-2 ${dark ? "text-white" : "text-gray-800"}`}>{doc.name}</p>
+                          <p className={`text-[10px] ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{doc.specialite}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className={`text-[12px] font-bold group-hover:underline underline-offset-2 ${dark ? "text-white" : "text-gray-800"}`}>{doc.name}</p>
-                        <p className={`text-[10px] ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{doc.specialite}</p>
+                    </td>
+                    <td className={`${td} text-[11px] font-mono ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{doc.cnom}</td>
+                    <td className={`${td} text-[11px] ${dark ? "text-[#8b949e]" : "text-gray-500"}`}>{doc.hopital}</td>
+                    <td className={`${td} text-[11px] ${dark ? "text-[#8b949e]" : "text-gray-500"}`}>{doc.ville}</td>
+                    <td className={`${td} text-[11px] ${dark ? "text-[#484f58]" : "text-gray-400"} whitespace-nowrap`}>{formatCourt(doc.dateDemande)}</td>
+                    <td className={`${td} text-[11px] font-semibold whitespace-nowrap`} style={{ color: BRAND }}>{formatValidation(doc.dateValidation)}</td>
+                    <td className={`${td} text-[11px] ${dark ? "text-[#8b949e]" : "text-gray-500"}`}>{doc.validePar}</td>
+
+                    {/* ✨ Actions — menu déroulant 3 points */}
+                    <td className={td}>
+                      <div className="relative flex justify-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(isMenuOpen ? null : doc.id);
+                          }}
+                          title="Actions"
+                          className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all
+                            ${isMenuOpen
+                              ? (dark?"bg-[#21262d] border-[#30363d] text-white shadow-lg":"bg-gray-100 border-gray-300 text-gray-800 shadow-lg")
+                              : (dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800")}`}
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+
+                        {isMenuOpen && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className={`absolute right-0 top-full mt-1.5 z-30 min-w-[180px] rounded-xl border shadow-xl overflow-hidden
+                              ${dark?"bg-[#161b22] border-[#30363d]":"bg-white border-gray-200"}`}
+                            style={{ transformOrigin: "top right" }}
+                          >
+                            {/* Voir le dossier */}
+                            <button
+                              onClick={() => {
+                                setModaleDossier(doc);
+                                setOpenMenuId(null);
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
+                                ${dark?"text-[#c9d1d9] hover:bg-[#21262d]":"text-gray-700 hover:bg-gray-50"}`}
+                            >
+                              <FileText size={14} className="shrink-0" style={{ color: BRAND }} />
+                              Voir le dossier
+                            </button>
+
+                            {/* Voir le profil */}
+                            <button
+                              onClick={() => {
+                                setModaleProfil(doc);
+                                setOpenMenuId(null);
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
+                                ${dark?"text-[#c9d1d9] hover:bg-[#21262d]":"text-gray-700 hover:bg-gray-50"}`}
+                            >
+                              <User size={14} className="shrink-0" style={{ color: "#6366f1" }} />
+                              Voir le profil
+                            </button>
+
+                            <div className={`border-t ${dark?"border-[#21262d]":"border-gray-100"}`} />
+
+                            {/* Suspendre */}
+                            <button
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                setModaleSusp(doc);
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
+                                ${dark?"text-orange-400 hover:bg-orange-900/20":"text-orange-700 hover:bg-orange-50"}`}
+                            >
+                              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="shrink-0">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                              </svg>
+                              Suspendre
+                            </button>
+
+                            {/* Supprimer */}
+                            <button
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                setModaleSuppr(doc);
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
+                                ${dark?"text-red-400 hover:bg-red-900/20":"text-red-700 hover:bg-red-50"}`}
+                            >
+                              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="shrink-0">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                              </svg>
+                              Supprimer
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </td>
-                  <td className={`${td} text-[11px] font-mono ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{doc.cnom}</td>
-                  <td className={`${td} text-[11px] ${dark ? "text-[#8b949e]" : "text-gray-500"}`}>{doc.hopital}</td>
-                  <td className={`${td} text-[11px] ${dark ? "text-[#8b949e]" : "text-gray-500"}`}>{doc.ville}</td>
-                  <td className={`${td} text-[11px] ${dark ? "text-[#484f58]" : "text-gray-400"} whitespace-nowrap`}>{formatCourt(doc.dateDemande)}</td>
-                  <td className={`${td} text-[11px] font-semibold whitespace-nowrap`} style={{ color: BRAND }}>{formatValidation(doc.dateValidation)}</td>
-                  <td className={`${td} text-[11px] ${dark ? "text-[#8b949e]" : "text-gray-500"}`}>{doc.validePar}</td>
-                  <td className={`${td} text-center`}>
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button onClick={() => setModaleDossier(doc)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border transition-colors ${dark ? "border-teal-700/40 text-teal-400 hover:bg-teal-900/20" : "border-teal-200 text-teal-700 hover:bg-teal-50"}`}>
-                        <FileText size={10} /> Dossier
-                      </button>
-                      <button onClick={() => setModaleProfil(doc)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border transition-colors ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-[#21262d]" : "border-gray-200 text-gray-600 hover:bg-gray-100"}`}>
-                        <User size={10} /> Profil
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
         <div className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t text-[11px] ${dark?"border-[#21262d] text-[#484f58]":"border-gray-50 text-gray-400"}`}>
           <span>Affichage {from} à {to} sur {rows.length} inscription{rows.length>1?"s":""}</span>
           <div className="flex items-center gap-2">

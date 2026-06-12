@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react"; // ← ajout useRef
 import { getDemandes, validerMedecin, rejeterMedecin } from "../api/adminApi";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { Download, Eye, CheckCircle, XCircle, FileText } from "lucide-react";
+import { Download, Eye, CheckCircle, XCircle, FileText, MoreVertical } from "lucide-react"; // ← ajout MoreVertical
 
 const BRAND = "#0f766e";
 // ── Helpers date ───────────────────────────────────────────────────────────────
@@ -83,7 +83,6 @@ const DOC_CFG = {
 const MOTIFS = ["— Choisir un motif —","N° CNOM invalide ou introuvable","Spécialité non couverte","Documents manquants ou expirés","Informations incohérentes","Dossier incomplet","Autre"];
 
 function docState(doc) {
-  // "ok" uniquement si tous les documents ont été vérifiés par l'admin
   if (doc.documents.every(d => d.status==="verified")) return "ok";
   if (doc.documents.some(d => d.status==="verified")) return "partial";
   return "wait";
@@ -109,12 +108,12 @@ function mapMedecin(m) {
     cnom:        m.numero_rpps || "—",
     photo_url:   m.photo_url || null,
     submittedAt: new Date(m.created_at),
-    status:      m.statut || "en_attente",   // ← backend retourne "en_attente"
+    status:      m.statut || "en_attente",
     avatarBg:    avatarColor(`${m.prenom}${m.nom}`),
     documents:   (m.documents || []).map(d => ({
       label:  d.label,
       url:    d.url,
-      status: "pending",   // l'admin part de zéro à chaque ouverture
+      status: "pending",
     })),
   };
 }
@@ -169,10 +168,7 @@ function ModaleProfil({ doc: m, onClose, dark }) {
 
 // ── Modal dossier avec vérification interactive ────────────────────────────────
 function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
-  // État local des documents — l'admin coche chaque document qu'il a vérifié
-  // À l'ouverture : tous les documents sont "à vérifier" — l'admin part de zéro
   const [docs,    setDocs]   = useState(m.documents.map(d => ({...d, status: "pending"})));
-  // Trace quels documents ont été ouverts (Voir ou Télécharger)
   const [opened,  setOpened] = useState({});
 
   const verified = docs.filter(d => d.status==="verified").length;
@@ -184,7 +180,6 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
   }
 
   function toggleDoc(i) {
-    // Bloqué si le document n'a pas encore été ouvert
     if (!opened[i]) return;
     setDocs(prev => {
       const next = [...prev];
@@ -194,7 +189,6 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
   }
 
   function handleClose() {
-    // Propager les changements au parent pour mettre à jour le compteur
     onUpdateDocs(m.id, docs);
     onClose();
   }
@@ -210,7 +204,6 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
       }>
       <div className="flex flex-col gap-3">
 
-        {/* Bandeau statut */}
         <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[11px] font-medium
           ${allOk
             ? (dark?"bg-teal-900/20 border-teal-700/40 text-teal-300":"bg-teal-50 border-teal-200 text-teal-700")
@@ -220,7 +213,6 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
             : `${verified}/${total} documents vérifiés — cliquez sur chaque document pour le marquer`}
         </div>
 
-        {/* Infos médecin */}
         <div className={`rounded-xl border overflow-hidden ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
           {[{l:"Médecin",v:m.name},{l:"Spécialité",v:m.specialite},{l:"CNOM",v:m.cnom,mono:true},{l:"Établissement",v:m.hopital},{l:"E-mail",v:m.email},{l:"Téléphone",v:m.telephone},{l:"Soumis",v:formatFull(m.submittedAt)}].map(({l,v,mono})=>(
             <div key={l} className={`flex items-center justify-between px-4 py-2.5 border-b last:border-0 ${dark?"border-[#21262d]":"border-gray-100"}`}>
@@ -230,7 +222,6 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
           ))}
         </div>
 
-        {/* Documents — cliquables */}
         <div className="flex items-center justify-between">
           <p className={`text-[10px] font-bold uppercase tracking-wider ${dark?"text-[#484f58]":"text-gray-300"}`}>
             Pièces justificatives
@@ -243,17 +234,14 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
         <div className={`rounded-xl border overflow-hidden ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
           {docs.map((d, i) => {
             const isVerified = d.status === "verified";
-            const isMissing  = false; // L'admin décide, pas le système
             const cfg = DOC_CFG[d.status] || DOC_CFG.missing;
-
-            // URL mock — en prod: d.url fourni par le backend
             const fileUrl = d.url || null;
 
             function handleView(e) {
               e.stopPropagation();
               markOpened(i);
               if (fileUrl) window.open(fileUrl, "_blank");
-              else alert("Document non disponible — sera accessible après connexion du backend.\nEndpoint : GET /api/admin/demandes/{id}/documents/{index}");
+              else alert("Document non disponible — sera accessible après connexion du backend.");
             }
             function handleDownload(e) {
               e.stopPropagation();
@@ -264,14 +252,13 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
                 a.download = d.label;
                 a.click();
               } else {
-                alert("Téléchargement disponible après connexion du backend.\nEndpoint : GET /api/admin/demandes/{id}/documents/{index}");
+                alert("Téléchargement disponible après connexion du backend.");
               }
             }
 
             return (
               <div key={i} className={`flex items-center gap-3 px-4 py-3 border-b last:border-0 ${dark?"border-[#21262d]":"border-gray-100"}`}>
 
-                {/* Checkbox — cliquable seulement après ouverture du document */}
                 <button onClick={() => toggleDoc(i)}
                   title={!opened[i] ? "Ouvrez d'abord le document pour pouvoir le valider" : isVerified ? "Décocher" : "Marquer comme vérifié"}
                   className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all
@@ -288,7 +275,6 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
                   )}
                 </button>
 
-                {/* Nom du document + indicateur si pas encore ouvert */}
                 <div className="flex-1 min-w-0">
                   <span className={`text-[11px] font-medium ${dark?"text-[#8b949e]":"text-gray-600"}`}>{d.label}</span>
                   {!opened[i] && !isVerified && (
@@ -296,31 +282,27 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
                   )}
                 </div>
 
-                {/* Boutons Voir + Télécharger */}
-                {!isMissing && (
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button onClick={handleView}
-                      title="Voir le document"
-                      className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-lg border transition-colors
-                        ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
-                      <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                      </svg>
-                      Voir
-                    </button>
-                    <button onClick={handleDownload}
-                      title="Télécharger le document"
-                      className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-lg border transition-colors
-                        ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
-                      <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                      </svg>
-                      Télécharger
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button onClick={handleView}
+                    title="Voir le document"
+                    className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-lg border transition-colors
+                      ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
+                    <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Voir
+                  </button>
+                  <button onClick={handleDownload}
+                    title="Télécharger le document"
+                    className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-lg border transition-colors
+                      ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
+                    <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Télécharger
+                  </button>
+                </div>
 
-                {/* Badge statut */}
                 <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${cfg.cls}`}>
                   {cfg.label}
                 </span>
@@ -439,11 +421,28 @@ export default function NouvellesDemandes() {
   const [activationInfo, setActivationInfo] = useState(null);
   const [toast,          setToast]          = useState(null);
 
+  // ✨ État pour le menu déroulant (3 points) — id du médecin dont le menu est ouvert
+  const [openMenuId, setOpenMenuId] = useState(null);
+
   // Horloge
   useEffect(() => { const t = setInterval(()=>setClock(new Date()),1000); return ()=>clearInterval(t); }, []);
 
   // Toast auto-dismiss
   useEffect(() => { if (!toast) return; const t=setTimeout(()=>setToast(null),3500); return ()=>clearTimeout(t); }, [toast]);
+
+  // ✨ Fermer le menu déroulant au clic extérieur
+  useEffect(() => {
+    if (openMenuId === null) return;
+    const handleClickOutside = () => setOpenMenuId(null);
+    // délai pour éviter de fermer le menu immédiatement après le clic qui l'a ouvert
+    const timeout = setTimeout(() => {
+      document.addEventListener("click", handleClickOutside);
+    }, 0);
+    return () => {
+      clearTimeout(timeout);
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [openMenuId]);
 
   // Chargement API avec fallback mock
   useEffect(() => {
@@ -454,7 +453,7 @@ export default function NouvellesDemandes() {
       .finally(() => setLoading(false));
   }, []);
 
-  const pending = useMemo(() => demandes, [demandes]); // affiche tous les statuts
+  const pending = useMemo(() => demandes, [demandes]);
 
   const filtered = useMemo(() => {
     let items = pending.filter(d =>
@@ -588,7 +587,7 @@ export default function NouvellesDemandes() {
                 <th className={th}>Dossier</th>
                 <th className={th} onClick={()=>handleSort("submittedAt")}>Soumis <SortIcon field="submittedAt"/></th>
                 <th className={`${th} text-center`}>Statut</th>
-                <th className={th} style={{minWidth:250}}>Actions</th>
+                <th className={`${th} text-center`} style={{width: 80}}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -599,11 +598,14 @@ export default function NouvellesDemandes() {
               ) : paginated.map((doc, i) => {
                 const ds  = docState(doc);
                 const num = (page-1)*perPage+i+1;
+                const canAct = ds === "ok";
+                const isMenuOpen = openMenuId === doc.id;
+
                 return (
                   <tr key={doc.id} className={`transition-colors ${dark?"hover:bg-[#0d1117]/60":"hover:bg-gray-50/80"}`}>
                     <td className={`${td} text-center text-[10px] ${dark?"text-[#484f58]":"text-gray-300"}`}>{num}</td>
 
-                    {/* Médecin — clic avatar → photo CNI */}
+                    {/* Médecin */}
                     <td className={td}>
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-black shrink-0 cursor-pointer hover:opacity-75 transition-opacity"
@@ -644,7 +646,6 @@ export default function NouvellesDemandes() {
                       <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{elapsedStr(doc.submittedAt)}</p>
                     </td>
 
-
                     <td className={`${td} text-center`}>
                       {{
                         "en_attente": (
@@ -668,30 +669,81 @@ export default function NouvellesDemandes() {
                         </span>
                       )}
                     </td>
+
+                    {/* ✨ Actions — menu déroulant 3 points */}
                     <td className={td}>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <button onClick={()=>setModaleDossier(doc)}
-                          style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:76,height:28,fontSize:10,fontWeight:700,borderRadius:8,cursor:"pointer",flexShrink:0,border:"1px solid #e5e7eb",background:"#fff",color:"#6b7280"}}>
-                          <Eye size={10}/> Dossier
+                      <div className="relative flex justify-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(isMenuOpen ? null : doc.id);
+                          }}
+                          title="Actions"
+                          className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all
+                            ${isMenuOpen
+                              ? (dark?"bg-[#21262d] border-[#30363d] text-white shadow-lg":"bg-gray-100 border-gray-300 text-gray-800 shadow-lg")
+                              : (dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800")}`}
+                        >
+                          <MoreVertical size={16} />
                         </button>
-                        {ds==="ok"
-                          ? <button onClick={()=>setModaleValider(doc)}
-                              style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:76,height:28,fontSize:10,fontWeight:700,borderRadius:8,cursor:"pointer",flexShrink:0,border:"1px solid #6ee7b7",background:"#ecfdf5",color:"#065f46"}}>
-                              <CheckCircle size={10}/> Valider
+
+                        {isMenuOpen && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className={`absolute right-0 top-full mt-1.5 z-30 min-w-[180px] rounded-xl border shadow-xl overflow-hidden
+                              ${dark?"bg-[#161b22] border-[#30363d]":"bg-white border-gray-200"}`}
+                            style={{ transformOrigin: "top right" }}
+                          >
+                            {/* Dossier */}
+                            <button
+                              onClick={() => {
+                                setModaleDossier(doc);
+                                setOpenMenuId(null);
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
+                                ${dark?"text-[#c9d1d9] hover:bg-[#21262d]":"text-gray-700 hover:bg-gray-50"}`}
+                            >
+                              <Eye size={14} className="shrink-0" style={{ color: BRAND }} />
+                              Voir le dossier
                             </button>
-                          : <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:76,height:28,fontSize:10,borderRadius:8,flexShrink:0,border:"1px solid #e5e7eb",color:"#d1d5db"}}>
-                              Valider
-                            </span>
-                        }
-                        {ds==="ok"
-                          ? <button onClick={()=>setModaleRefuser(doc)}
-                              style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:76,height:28,fontSize:10,fontWeight:700,borderRadius:8,cursor:"pointer",flexShrink:0,border:"1px solid #fca5a5",background:"#fef2f2",color:"#991b1b"}}>
-                              <XCircle size={10}/> Refuser
+
+                            <div className={`border-t ${dark?"border-[#21262d]":"border-gray-100"}`} />
+
+                            {/* Valider */}
+                            <button
+                              disabled={!canAct}
+                              onClick={() => {
+                                setModaleValider(doc);
+                                setOpenMenuId(null);
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
+                                ${canAct
+                                  ? (dark?"text-emerald-300 hover:bg-emerald-900/20":"text-emerald-700 hover:bg-emerald-50")
+                                  : (dark?"text-[#484f58] cursor-not-allowed":"text-gray-300 cursor-not-allowed")}`}
+                            >
+                              <CheckCircle size={14} className="shrink-0" />
+                              <span>Valider</span>
+                              {!canAct && <span className={`ml-auto text-[9px] px-1.5 py-0.5 rounded ${dark?"bg-[#21262d] text-[#484f58]":"bg-gray-100 text-gray-400"}`}>Incomplet</span>}
                             </button>
-                          : <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:76,height:28,fontSize:10,borderRadius:8,flexShrink:0,border:"1px solid #e5e7eb",color:"#d1d5db"}}>
-                              Refuser
-                            </span>
-                        }
+
+                            {/* Refuser */}
+                            <button
+                              disabled={!canAct}
+                              onClick={() => {
+                                setModaleRefuser(doc);
+                                setOpenMenuId(null);
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
+                                ${canAct
+                                  ? (dark?"text-red-400 hover:bg-red-900/20":"text-red-700 hover:bg-red-50")
+                                  : (dark?"text-[#484f58] cursor-not-allowed":"text-gray-300 cursor-not-allowed")}`}
+                            >
+                              <XCircle size={14} className="shrink-0" />
+                              <span>Refuser</span>
+                              {!canAct && <span className={`ml-auto text-[9px] px-1.5 py-0.5 rounded ${dark?"bg-[#21262d] text-[#484f58]":"bg-gray-100 text-gray-400"}`}>Incomplet</span>}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
