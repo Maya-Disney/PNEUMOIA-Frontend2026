@@ -14,16 +14,8 @@ import {
   demanderAcces,
   mesDemandesEnvoyees,
   rechercheParCode,
+  rechercherPatient,
 } from '../services/api';
-
-// ── Patients mockés (indépendants du médecin connecté) ──────────────────────
-const DEFAULT_PATIENTS = [
-  { id:1, name:'Tamo Bernard',    age:47, pathology:'Pneumonie bactérienne', lastVisit:'2026-04-08', status:'actif',     avatar:'TB' },
-  { id:2, name:'Fouda Marie',     age:52, pathology:'BPCO stade 3',          lastVisit:'2026-04-08', status:'actif',     avatar:'FM' },
-  { id:3, name:'Nguema Paul',     age:63, pathology:'Asthme sévère',         lastVisit:'2026-04-07', status:'actif',     avatar:'NP' },
-  { id:4, name:'Mboma Éric',      age:35, pathology:'Bronchite aiguë',       lastVisit:'2026-04-07', status:'en_attente',avatar:'MÉ' },
-  { id:5, name:'Kamga Jean',      age:71, pathology:'Tuberculose',           lastVisit:'2026-04-06', status:'critique',  avatar:'KJ' },
-];
 
 const SUGGESTIONS = ['Pneumonie', 'BPCO', 'Asthme', 'Tuberculose', 'Bronchite'];
 
@@ -33,8 +25,16 @@ const STATUS_STYLE = {
   critique:   'bg-red-100    text-red-700    dark:bg-red-900/30    dark:text-red-400',
   completed:  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
   cancelled:  'bg-red-100    text-red-700    dark:bg-red-900/30    dark:text-red-400',
+  en_cours:   'bg-blue-100   text-blue-700   dark:bg-blue-900/30   dark:text-blue-400',
+  brouillon:  'bg-slate-100  text-slate-600  dark:bg-slate-800     dark:text-slate-400',
 };
-const STATUS_LABEL = { actif:'Actif', en_attente:'En attente', critique:'Critique', completed:'Terminée', cancelled:'Annulée' };
+const STATUS_LABEL = {
+  actif:'Actif', en_attente:'En attente', critique:'Critique',
+  completed:'Terminée', cancelled:'Annulée',
+  en_cours:'En cours', brouillon:'Brouillon',
+};
+const getStatusStyle = (s) => STATUS_STYLE[s] || 'bg-slate-100 text-slate-600';
+const getStatusLabel = (s) => STATUS_LABEL[s] || s;
 
 const ACCES_STYLE = {
   en_attente: { bg:'bg-amber-50 dark:bg-amber-900/20',  border:'border-amber-200 dark:border-amber-800',  dot:'bg-amber-400',  label:'En attente',   text:'text-amber-700 dark:text-amber-400'  },
@@ -121,38 +121,40 @@ export default function Recherche() {
     }
   };
 
-  // ── Recherche dans données propres (mocks) ──
+  // ── Initialisation depuis l'URL ──
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('q') || '';
     if (q) { setQuery(q); doSearch(q); }
     inputRef.current?.focus();
   }, []);
 
-  const nomMedecin = profil ? `${profil.civilite || 'Dr'}. ${profil.prenom} ${profil.nom}` : 'Dr.';
+  // ── Recherche dynamique avec debounce 400ms ──
+  useEffect(() => {
+    if (!query.trim()) { setResults(null); return; }
+    const timer = setTimeout(() => doSearch(query), 400);
+    return () => clearTimeout(timer);
+  }, [query]);
 
-  const DEFAULT_CONSULTATIONS = [
-    { id:1, patient:'Tamo Bernard', date:'2026-04-08', time:'14:30', status:'completed', pathology:'Pneumonie', doctor: nomMedecin },
-    { id:2, patient:'Fouda Marie',  date:'2026-04-08', time:'11:20', status:'completed', pathology:'BPCO',      doctor: nomMedecin },
-  ];
-  const DEFAULT_CAS = [
-    { id:1, title:'BPCO stade avancé', author: nomMedecin, date:'2026-04-01', comments:12, views:89, pathology:'BPCO' },
-  ];
-
-  const doSearch = (q) => {
+  const doSearch = async (q) => {
     if (!q.trim()) return;
     setLoading(true); setResults(null);
-    const lo = q.toLowerCase();
-    setTimeout(() => {
-      const pts = DEFAULT_PATIENTS;
-      const cns = DEFAULT_CONSULTATIONS;
-      const cas = DEFAULT_CAS;
-      setResults({
-        patients:      pts.filter(p => p.name.toLowerCase().includes(lo) || p.pathology.toLowerCase().includes(lo)),
-        consultations: cns.filter(c => c.patient.toLowerCase().includes(lo) || c.pathology.toLowerCase().includes(lo)),
-        cas:           cas.filter(c => c.title.toLowerCase().includes(lo) || c.pathology.toLowerCase().includes(lo)),
-      });
+    try {
+      const raw = await rechercherPatient(q.trim());
+      const patients = (Array.isArray(raw) ? raw : []).map(p => ({
+        id:        p.id,
+        name:      `${p.civilite ? p.civilite + ' ' : ''}${p.prenom} ${p.nom}`,
+        age:       p.age,
+        pathology: p.derniere_pathologie || '—',
+        status:    p.statut || 'actif',
+        lastVisit: p.date_derniere_visite || null,
+        avatar:    `${p.prenom?.[0] || ''}${p.nom?.[0] || ''}`.toUpperCase(),
+      }));
+      setResults({ patients, consultations: [], cas: [] });
+    } catch {
+      setResults({ patients: [], consultations: [], cas: [] });
+    } finally {
       setLoading(false);
-    }, 350);
+    }
   };
 
   const filtered = results ? {
@@ -181,7 +183,7 @@ export default function Recherche() {
   const nbEnAttente  = demandes.filter(d => d.statut === 'en_attente').length;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
 
       {/* ── En-tête ───────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -348,15 +350,17 @@ export default function Recherche() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-(--t1) group-hover:text-blue-600 transition-colors">{p.name}</h3>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLE[p.status]}`}>
-                              {STATUS_LABEL[p.status]}
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${getStatusStyle(p.status)}`}>
+                              {getStatusLabel(p.status)}
                             </span>
                           </div>
                           <p className="text-sm text-(--t3) mt-0.5">{p.age} ans • {p.pathology}</p>
-                          <div className="flex items-center gap-1 mt-1 text-xs text-(--t4)">
-                            <Calendar className="w-3 h-3" />
-                            Dernière visite : {fmtDate(p.lastVisit)}
-                          </div>
+                          {p.lastVisit && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-(--t4)">
+                              <Calendar className="w-3 h-3" />
+                              Dernière consultation : {fmtDate(p.lastVisit)}
+                            </div>
+                          )}
                         </div>
                         <ChevronRight className="w-5 h-5 text-(--t4) group-hover:text-blue-500 transition-colors shrink-0" />
                       </Link>
@@ -369,24 +373,27 @@ export default function Recherche() {
                 <div className="space-y-3">
                   {filtered.consultations.length > 0 ? filtered.consultations.map((c, i) => (
                     <motion.div key={c.id} initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} transition={{delay: i * 0.04}}>
-                      <div className="flex items-center gap-4 p-4 bg-(--sf) border border-(--ln) rounded-2xl">
+                      <Link
+                        to={c.patient_id ? `/medecin/patients/${c.patient_id}` : '#'}
+                        className="flex items-center gap-4 p-4 bg-(--sf) border border-(--ln) rounded-2xl hover:border-blue-300 hover:shadow-md transition-all group">
                         <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
                           <Stethoscope className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-(--t1)">{c.patient}</h3>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLE[c.status]}`}>
-                              {STATUS_LABEL[c.status]}
+                            <h3 className="font-semibold text-(--t1) group-hover:text-blue-600 transition-colors">{c.patient}</h3>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${getStatusStyle(c.status)}`}>
+                              {getStatusLabel(c.status)}
                             </span>
                           </div>
                           <p className="text-sm text-(--t3) mt-0.5">{c.pathology}</p>
                           <div className="flex items-center gap-3 mt-1 text-xs text-(--t4)">
-                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(c.date)} · {c.time}</span>
+                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(c.date)}{c.time ? ` · ${c.time}` : ''}</span>
                             <span className="flex items-center gap-1"><Activity className="w-3 h-3" />{c.doctor}</span>
                           </div>
                         </div>
-                      </div>
+                        <ChevronRight className="w-5 h-5 text-(--t4) group-hover:text-blue-500 transition-colors shrink-0" />
+                      </Link>
                     </motion.div>
                   )) : <EmptyState icon={Stethoscope} label="Aucune consultation correspondante" />}
                 </div>

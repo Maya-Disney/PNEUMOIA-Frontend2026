@@ -26,7 +26,7 @@ export const creerPatient = (data) =>
   apiFetch('/patients', { method: 'POST', body: JSON.stringify(data) });
 
 export const rechercherPatient = (q) =>
-  apiFetch(`/patients/search?q=${encodeURIComponent(q)}`);
+  apiFetch(`/patients/search?q=${encodeURIComponent(q.trim())}`);
 
 export const demanderAcces = (data) =>
   apiFetch('/patients/access-requests', { method: 'POST', body: JSON.stringify(data) });

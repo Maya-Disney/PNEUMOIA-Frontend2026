@@ -29,6 +29,7 @@ import Monitoring from './features/medecin/pages/Monitoring';
 import Commantaire from './features/medecin/pages/Commantaire';
 import CorbeilleMedecin      from './features/medecin/pages/Corbeille';
 import PatientDossier  from './features/medecin/pages/PatientDossier';
+import NouveauPatient  from './features/medecin/pages/NouveauPatient';
 
 
 import ActivationPage from './features/activation/ActivationPage';
@@ -99,6 +100,7 @@ function App() {
             <Route path="monitoring" element={<Monitoring/>} />
             <Route path="commentaires" element={<Commantaire/>} />
             <Route path="corbeille"        element={<CorbeilleMedecin />} />
+            <Route path="patients/nouveau" element={<NouveauPatient />} />
             <Route path="patients/:patientId" element={<PatientDossier />} />
           </Route>
         </Route>

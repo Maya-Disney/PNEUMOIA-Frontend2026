@@ -16,9 +16,15 @@ import {
   Calendar as CalendarIcon  
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { Line } from 'react-chartjs-2';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from 'recharts';
+  Chart as ChartJS,
+  CategoryScale, LinearScale,
+  PointElement, LineElement,
+  Filler, Tooltip as ChartTooltip, Legend as ChartLegend,
+} from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, ChartTooltip, ChartLegend);
 import { useProfil } from '../hooks/useAuth';
 
 export default function Dashboard() {
@@ -251,88 +257,71 @@ export default function Dashboard() {
     return colors[type] || colors.info;
   };
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-(--sf) rounded-lg shadow-lg border border-(--ln) p-3">
-          <p className="text-xs font-semibold text-(--t1)">{label}</p>
-          {payload.map((p, i) => (
-            <p key={i} className="text-xs text-(--t2) mt-1">
-              {p.name}: <span className="font-bold text-blue-600">{p.value}</span>
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="space-y-8">
-      {/* En-tête - version bleue */}
-      <div className="relative overflow-hidden bg-linear-to-br from-blue-600 to-blue-800 rounded-2xl p-8 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/30 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl" />
-        
+      {/* En-tête — carte blanche avec accents bleus */}
+      <div className="relative overflow-hidden bg-[var(--sf)] border border-[var(--ln)] rounded-2xl p-8 shadow-sm">
+        {/* Bande de couleur en haut */}
+        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#0066CC] via-blue-400 to-blue-300 rounded-t-2xl" />
+        {/* Blob décoratif subtil */}
+        <div className="absolute top-0 right-0 w-72 h-44 bg-blue-50 dark:bg-blue-950/20 rounded-full blur-3xl opacity-60 pointer-events-none" />
+
         <div className="relative">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-5">
               {/* Photo de profil */}
               <div className="relative shrink-0">
-                {/* Halo ambiant */}
-                <div className="absolute inset-0 rounded-full bg-white/25 blur-lg scale-125 pointer-events-none" />
-
-                {/* Anneau décoratif externe */}
-                <div className="absolute -inset-1.5 rounded-full border border-white/20 pointer-events-none" />
-
-                {/* Anneau principal */}
-                <div className="relative w-20 h-20 rounded-full p-[2.5px] bg-linear-to-br from-white/70 via-blue-200/50 to-white/20 shadow-2xl">
-                  <div className="w-full h-full rounded-full overflow-hidden bg-linear-to-br from-blue-500/60 to-blue-800/80 flex items-center justify-center">
+                <div className="relative w-20 h-20 rounded-full p-[2.5px] bg-gradient-to-br from-[#0066CC] to-blue-400 shadow-lg">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-[var(--sf2)] flex items-center justify-center">
                     {profil?.photo_url
                       ? <img src={profil.photo_url} alt="Profil" className="w-full h-full object-cover" />
-                      : <span className="text-xl font-black text-white tracking-tight select-none">
+                      : <span className="text-xl font-black text-[#0066CC] tracking-tight select-none">
                           {profil?.prenom?.[0]}{profil?.nom?.[0]}
                         </span>
                     }
                   </div>
                 </div>
-
                 {/* Indicateur de présence */}
-                <div className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-emerald-400 border-[2.5px] border-blue-800 shadow-lg">
+                <div className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-emerald-400 border-[2.5px] border-[var(--sf)] shadow-md">
                   <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-50" />
                 </div>
               </div>
+
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-1 h-8 bg-blue-300 rounded-full"></div>
-                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200">Tableau de bord</span>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-1 h-6 bg-[#0066CC] rounded-full" />
+                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0066CC]">
+                    Tableau de bord
+                  </span>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white">
-                  Bienvenue, <span className="text-blue-200">
+                <h1 className="text-3xl md:text-4xl font-bold text-[var(--t1)]">
+                  Bienvenue,{' '}
+                  <span className="text-[#0066CC]">
                     {profil ? `${profil.civilite || 'Dr'}. ${profil.prenom} ${profil.nom}` : 'Dr.'}
                   </span>
                 </h1>
-                <div className="flex items-center gap-2 mt-3">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                  <p className="text-blue-100">
-                    {profil?.specialite && <span className="font-medium">{profil.specialite} · </span>}
+                <div className="flex items-center gap-2 mt-2.5">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <p className="text-[var(--t3)] text-sm">
+                    {profil?.specialite && <span className="font-medium text-[var(--t2)]">{profil.specialite} · </span>}
                     {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </p>
                 </div>
               </div>
             </div>
-            
+
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={() => navigate('/medecin/historique')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-sm font-medium text-white hover:bg-white/20 transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--sf2)] border border-[var(--ln)] rounded-xl text-sm font-medium text-[var(--t2)] hover:bg-[var(--sf3)] transition-all"
               >
                 <CalendarIcon className="w-4 h-4" />
                 Cette semaine
               </button>
-              <button 
+              <button
                 onClick={() => navigate('/medecin/consultation')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white text-blue-600 rounded-xl text-sm font-medium hover:bg-blue-50 transition-all shadow-lg"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#0066CC] text-white rounded-xl text-sm font-medium hover:bg-[#0052A3] transition-all shadow-md"
               >
                 <PlusCircle className="w-4 h-4" />
                 Nouvelle consultation
@@ -431,41 +420,69 @@ export default function Dashboard() {
               </div>
             </div>
             
-            <ResponsiveContainer key={period} width="100%" height={280}>
-              <AreaChart data={dashboardData.chartData}>
-                <defs>
-                  <linearGradient id="colorConsultations" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorPatients" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="day" stroke="#94a3b8" fontSize={12} />
-                <YAxis stroke="#94a3b8" fontSize={12} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                <Area 
-                  type="monotone" 
-                  dataKey="consultations" 
-                  name="Consultations"
-                  stroke="#3b82f6" 
-                  fill="url(#colorConsultations)"
-                  strokeWidth={2}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="patients" 
-                  name="Nouveaux patients"
-                  stroke="#10b981" 
-                  fill="url(#colorPatients)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div key={period} style={{ height: 280 }}>
+              <Line
+                data={{
+                  labels: dashboardData.chartData.map(d => d.day),
+                  datasets: [
+                    {
+                      label: 'Consultations',
+                      data: dashboardData.chartData.map(d => d.consultations),
+                      borderColor: '#0066CC',
+                      backgroundColor: 'rgba(0,102,204,0.12)',
+                      fill: true,
+                      tension: 0.4,
+                      pointRadius: 4,
+                      pointHoverRadius: 6,
+                      pointBackgroundColor: '#0066CC',
+                      borderWidth: 2.5,
+                    },
+                    {
+                      label: 'Nouveaux patients',
+                      data: dashboardData.chartData.map(d => d.patients),
+                      borderColor: '#10b981',
+                      backgroundColor: 'rgba(16,185,129,0.08)',
+                      fill: true,
+                      tension: 0.4,
+                      pointRadius: 4,
+                      pointHoverRadius: 6,
+                      pointBackgroundColor: '#10b981',
+                      borderWidth: 2.5,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  interaction: { mode: 'index', intersect: false },
+                  plugins: {
+                    legend: {
+                      position: 'bottom',
+                      labels: { font: { size: 12 }, usePointStyle: true, padding: 16 },
+                    },
+                    tooltip: {
+                      backgroundColor: '#fff',
+                      titleColor: '#0f172a',
+                      bodyColor: '#475569',
+                      borderColor: '#e2e8f0',
+                      borderWidth: 1,
+                      padding: 10,
+                      boxPadding: 4,
+                    },
+                  },
+                  scales: {
+                    x: {
+                      grid: { color: 'rgba(226,232,240,0.6)', drawBorder: false },
+                      ticks: { font: { size: 12 }, color: '#94a3b8' },
+                    },
+                    y: {
+                      grid: { color: 'rgba(226,232,240,0.6)', drawBorder: false },
+                      ticks: { font: { size: 12 }, color: '#94a3b8' },
+                    },
+                  },
+                }}
+              />
+            </div>
           </div>
 
           {/* Consultations récentes */}
@@ -578,26 +595,56 @@ export default function Dashboard() {
         {/* Colonne droite (1/3) */}
         <div className="space-y-8">
 
-          {/* Classement - tout en bleu */}
-          <div 
+          {/* Classement — dark navy + or */}
+          <div
             onClick={() => navigate('/medecin/classement')}
-            className="relative overflow-hidden bg-linear-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-md cursor-pointer hover:shadow-lg transition-all"
+            className="relative overflow-hidden rounded-2xl p-6 text-white shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 group"
+            style={{ background: 'linear-gradient(135deg, #0F2644 0%, #1A3A5C 60%, #0D1F36 100%)' }}
           >
+            {/* Halo doré en haut à droite */}
+            <div className="absolute -top-6 -right-6 w-28 h-28 bg-amber-400/15 rounded-full blur-2xl pointer-events-none" />
+            {/* Cercle décoratif */}
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl pointer-events-none" />
+
             <div className="relative text-center">
-              <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-4">
-                <Crown className="w-8 h-8 text-yellow-300" />
+              {/* Couronne */}
+              <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-amber-400/25 to-yellow-600/15 border border-amber-400/25 flex items-center justify-center mx-auto mb-4 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                <Crown className="w-8 h-8 text-amber-400 drop-shadow-sm" />
               </div>
-              <h3 className="text-3xl font-bold">{dashboardData.ranking.position}e / {dashboardData.ranking.total}</h3>
-              <p className="text-sm text-blue-100 mt-1">Médecins</p>
-              <div className="flex justify-center gap-1 mt-3">
+
+              {/* Rang */}
+              <div className="flex items-baseline justify-center gap-1 mb-1">
+                <span className="text-4xl font-black text-white tabular-nums">
+                  {dashboardData.ranking.position}e
+                </span>
+                <span className="text-lg text-white/50 font-medium">/ {dashboardData.ranking.total}</span>
+              </div>
+              <p className="text-sm text-blue-200/70 font-medium">Classement médecins</p>
+
+              {/* Score */}
+              <div className="mt-3 mb-3 px-4 py-1.5 bg-white/8 rounded-full inline-flex items-center gap-1.5 border border-white/10">
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-sm font-bold text-amber-300">{dashboardData.ranking.score}%</span>
+                <span className="text-xs text-white/50">score IA</span>
+              </div>
+
+              {/* Étoiles */}
+              <div className="flex justify-center gap-1.5 mb-3">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`w-4 h-4 ${i < 4 ? 'text-yellow-300 fill-yellow-300' : 'text-white/30'}`} />
+                  <Star
+                    key={i}
+                    className={`w-4 h-4 ${i < 4 ? 'text-amber-400 fill-amber-400' : 'text-white/20 fill-transparent'}`}
+                  />
                 ))}
               </div>
-              <p className="text-xs text-blue-100 mt-3">
-                <Trophy className="w-3 h-3 inline mr-1" />
-                Top contributeur • {dashboardData.ranking.cases} cas partagés
-              </p>
+
+              {/* Footer */}
+              <div className="border-t border-white/10 pt-3">
+                <p className="text-xs text-white/50 flex items-center justify-center gap-1">
+                  <Trophy className="w-3.5 h-3.5 text-amber-400/70" />
+                  Top contributeur · {dashboardData.ranking.cases} cas partagés
+                </p>
+              </div>
             </div>
           </div>
           

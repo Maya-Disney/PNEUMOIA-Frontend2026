@@ -330,7 +330,7 @@ export default function CasCliniques() {
 
   return (
     <div className="min-h-screen bg-(--bg)">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="w-full py-8">
 
         {/* HEADER */}
         <div className="mb-8">

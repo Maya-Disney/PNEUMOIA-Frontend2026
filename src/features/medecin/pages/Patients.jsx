@@ -16,205 +16,6 @@ import {
 } from "lucide-react";
 import { motion } from 'framer-motion';
 
-// ─── DATA ──────────────────────────────────────────────────────────────
-const PATIENTS = {
-  1: {
-    name: "TAMO Bernard", init: "TB", age: "47 ans", sex: "Masculin",
-    id: "PNEU-004821", dob: "15/03/1977", city: "Douala", tel: "+237 699 123 456",
-    created: "12/01/2025", shared: false, status: "actif",
-    diag: "Pneumonie bactérienne", diagSince: "Diagnostiqué le 09/03/2026", iaPct: 85,
-    antecedents: ["Tabagisme sevré 2020", "Hypertension artérielle", "Chirurgie appendice 2015"],
-    allergies: ["Aucune allergie connue"],
-    treatments: [
-      { name: "Amoxicilline", dose: "1g × 3/j — 7 jours" },
-      { name: "Paracétamol", dose: "1g si fièvre > 38.5°C" },
-      { name: "Amlodipine", dose: "5mg/j — HTA" }
-    ],
-    vitals: { spo2: 94, fr: 22, temp: 38.7, pa: "125/82", fc: 98, poids: "78 kg" },
-    docs: [
-      { name: "Radio thorax — 09/03/2026", date: "Auj." },
-      { name: "NFS + CRP — 09/03/2026", date: "Auj." },
-      { name: "Consultation 15/10/2025", date: "Oct. 25" }
-    ],
-    notes: "Patient coopératif. Toux productive depuis 48h. Réévaluation J+2.",
-    iaDiags: [
-      { date: "09/03/2026", diag: "Pneumonie bactérienne", pct: 85, conc: "Concordant" },
-      { date: "15/10/2025", diag: "Bronchite aiguë", pct: 78, conc: "Concordant" },
-      { date: "02/05/2025", diag: "Bilan normal", pct: 62, conc: "Concordant" }
-    ],
-    iaDiffs: [
-      { diag: "Tuberculose", pct: 28 },
-      { diag: "Pneumopathie virale", pct: 15 },
-      { diag: "Epanchement pleural", pct: 8 }
-    ],
-    iaCriteria: [
-      { label: "Fièvre > 38.5°C", ok: true }, { label: "Opacité alvéolaire radio", ok: true },
-      { label: "Crépitants", ok: true }, { label: "SpO₂ < 95%", ok: true },
-      { label: "Durée 1–3j", ok: true }, { label: "Hémoptysie", ok: false }
-    ],
-    tl: [
-      { date: "09/03/2026 · Dr. Tagne", title: "Pneumonie bactérienne", note: "Amoxicilline 1g × 3/j. Suivi J+7.", ia: 85, color: "#1D6FEB", conc: "Concordant" },
-      { date: "15/10/2025", title: "Bronchite aiguë", note: "Guérison J+10.", ia: 78, color: "#059669", conc: "Concordant" },
-      { date: "02/05/2025", title: "Bilan normal", note: "Aucune pathologie.", ia: 62, color: "#94A3B8", conc: "Concordant" }
-    ]
-  },
-  2: {
-    name: "FOUDA Marie", init: "FM", age: "52 ans", sex: "Féminin",
-    id: "PNEU-001234", dob: "12/07/1972", city: "Douala", tel: "+237 677 234 567",
-    created: "03/06/2024", shared: true, status: "actif",
-    diag: "BPCO stade II", diagSince: "Suivi depuis mars 2024", iaPct: 83,
-    antecedents: ["Tabagisme actif 25 PA", "Asthme enfance", "Rhinite chronique"],
-    allergies: ["Aspirine (urticaire)", "AINS"],
-    treatments: [
-      { name: "Salbutamol inh.", dose: "2 bouffées si dyspnée" },
-      { name: "Tiotropium inh.", dose: "18µg/j — fond" },
-      { name: "N-acétylcystéine", dose: "600mg/j" }
-    ],
-    vitals: { spo2: 92, fr: 24, temp: 37.1, pa: "138/86", fc: 88, poids: "63 kg" },
-    docs: [
-      { name: "EFR — 15/02/2026", date: "Fév. 26" },
-      { name: "Scanner thorax 01/2026", date: "Jan. 26" },
-      { name: "Gazéométrie Nov.25", date: "Nov. 25" }
-    ],
-    notes: "BPCO stable. SpO₂ légèrement basse. Sevrage tabagique recommandé.",
-    iaDiags: [
-      { date: "10/03/2026", diag: "BPCO stade II", pct: 83, conc: "Concordant" },
-      { date: "15/12/2025", diag: "BPCO exacerbation", pct: 79, conc: "Concordant" }
-    ],
-    iaDiffs: [
-      { diag: "Asthme sévère", pct: 22 },
-      { diag: "Insuffisance cardiaque", pct: 12 },
-      { diag: "Bronchite chronique", pct: 9 }
-    ],
-    iaCriteria: [
-      { label: "VEMS/CVF < 0.70", ok: true }, { label: "Tabagisme > 20 PA", ok: true },
-      { label: "Dyspnée chronique", ok: true }, { label: "Obstruction persist.", ok: true },
-      { label: "SpO₂ < 94%", ok: true }, { label: "Hypercapnie", ok: false }
-    ],
-    tl: [
-      { date: "10/03/2026", title: "BPCO bilan trim.", note: "Stable. SpO₂ 92%.", ia: 83, color: "#1D6FEB", conc: "Concordant" },
-      { date: "15/12/2025", title: "BPCO exacerbation", note: "Cortico 5j.", ia: 79, color: "#D97706", conc: "Concordant" },
-      { date: "03/06/2024", title: "1ère consultation", note: "Diagnostic BPCO.", ia: 77, color: "#94A3B8", conc: "Concordant" }
-    ]
-  },
-  3: {
-    name: "KAMGA Jean", init: "KJ", age: "71 ans", sex: "Masculin",
-    id: "PNEU-009876", dob: "04/11/1953", city: "Yaoundé", tel: "+237 655 345 678",
-    created: "15/11/2025", shared: false, status: "urgent",
-    diag: "Tuberculose pulmonaire", diagSince: "Diagnostiqué le 15/11/2025", iaPct: 82,
-    antecedents: ["Diabète type 2", "Immunodépression cortico", "Contact TB confirmé"],
-    allergies: ["Streptomycine (ototoxicité)"],
-    treatments: [
-      { name: "Rifampicine", dose: "600mg/j RHZE phase intensive" },
-      { name: "Isoniazide", dose: "300mg/j" },
-      { name: "Pyrazinamide", dose: "2000mg/j" },
-      { name: "Metformine", dose: "1000mg × 2/j" }
-    ],
-    vitals: { spo2: 89, fr: 26, temp: 37.8, pa: "142/91", fc: 104, poids: "61 kg" },
-    docs: [
-      { name: "BK crachat positif", date: "Nov. 25" },
-      { name: "Radio thorax initiale", date: "Nov. 25" },
-      { name: "Antibiogramme", date: "Nov. 25" }
-    ],
-    notes: "SUIVI DÉPASSÉ depuis 28/02/2026. Phase intensive TB. Bilan hépatique obligatoire.",
-    iaDiags: [
-      { date: "15/11/2025", diag: "Tuberculose pulmonaire", pct: 82, conc: "Concordant" },
-      { date: "28/02/2026", diag: "TB suivi phase intensive", pct: 79, conc: "Concordant" }
-    ],
-    iaDiffs: [
-      { diag: "Pneumonie bactérienne", pct: 18 },
-      { diag: "Cancer bronchique", pct: 14 },
-      { diag: "Aspergillome", pct: 7 }
-    ],
-    iaCriteria: [
-      { label: "BK crachat positif", ok: true }, { label: "Opacités bilatérales", ok: true },
-      { label: "Contact TB connu", ok: true }, { label: "Immunodépression", ok: true },
-      { label: "Perte poids > 5kg", ok: true }, { label: "Culture BAAR+", ok: true }
-    ],
-    tl: [
-      { date: "28/02/2026", title: "TB suivi J+105", note: "BK négatif. Bonne tolérance.", ia: 79, color: "#059669", conc: "Concordant" },
-      { date: "15/11/2025", title: "TB diagnostic", note: "BK+ confirmé. RHZE démarré.", ia: 82, color: "#DC2626", conc: "Concordant" }
-    ]
-  },
-  4: {
-    name: "NGUEMA Paul", init: "NP", age: "63 ans", sex: "Masculin",
-    id: "PNEU-002891", dob: "22/08/1961", city: "Douala", tel: "+237 699 456 789",
-    created: "08/09/2023", shared: true, status: "actif",
-    diag: "Asthme sévère persistant", diagSince: "Suivi depuis sept. 2023", iaPct: 91,
-    antecedents: ["Asthme depuis enfance", "Rhinosinusite chronique", "Dermatite atopique", "RGO"],
-    allergies: ["Acariens (allergique)", "Aspirine CI", "Bêtabloqu. CI"],
-    treatments: [
-      { name: "Fluticasone/Salmétérol", dose: "500/50µg × 2/j CSI+LABA" },
-      { name: "Montélukast", dose: "10mg/j" },
-      { name: "Salbutamol spray", dose: "1–2 bouffées si crise" }
-    ],
-    vitals: { spo2: 96, fr: 16, temp: 36.8, pa: "118/74", fc: 74, poids: "82 kg" },
-    docs: [
-      { name: "EFR 05/03/2026", date: "Mars 26" },
-      { name: "Test allergie 2024", date: "2024" },
-      { name: "Radio thorax contrôle", date: "Fév. 26" }
-    ],
-    notes: "Asthme bien contrôlé. VEMS 78%. Pas de crise. Suivi J+90.",
-    iaDiags: [
-      { date: "05/03/2026", diag: "Asthme sévère contrôlé", pct: 91, conc: "Concordant" },
-      { date: "12/11/2025", diag: "Asthme partiel", pct: 88, conc: "Concordant" }
-    ],
-    iaDiffs: [
-      { diag: "BPCO", pct: 12 },
-      { diag: "Trachéobronchite", pct: 6 },
-      { diag: "Hyperinflation", pct: 4 }
-    ],
-    iaCriteria: [
-      { label: "Obstruction réversible", ok: true }, { label: "Variabilité VEMS > 12%", ok: true },
-      { label: "Symptômes nocturnes", ok: true }, { label: "Terrain atopique", ok: true },
-      { label: "Réponse cortico inh.", ok: true }, { label: "Éosinophilie", ok: false }
-    ],
-    tl: [
-      { date: "05/03/2026", title: "Asthme contrôlé", note: "VEMS 78%. Pas de crise.", ia: 91, color: "#059669", conc: "Concordant" },
-      { date: "12/11/2025", title: "Asthme partiel", note: "CSI majoré.", ia: 88, color: "#D97706", conc: "Concordant" },
-      { date: "18/06/2025", title: "Exacerbation mod.", note: "Hospit. 48h. Cortico IV.", ia: 85, color: "#DC2626", conc: "Concordant" }
-    ]
-  },
-  5: {
-    name: "MBOMA Éric", init: "ME", age: "55 ans", sex: "Masculin",
-    id: "PNEU-003412", dob: "30/05/1969", city: "Bafoussam", tel: "+237 677 567 890",
-    created: "20/04/2025", shared: true, status: "attente",
-    diag: "BPCO stade III", diagSince: "Diagnostiqué le 20/04/2025", iaPct: 81,
-    antecedents: ["Tabagisme 35 PA en cours", "Silicose professionnelle", "HTA traitée"],
-    allergies: ["Codéine (nausées)"],
-    treatments: [
-      { name: "Indacatérol/Glycopyrronium", dose: "110/50µg/j LABA+LAMA" },
-      { name: "Amlodipine", dose: "10mg/j HTA" },
-      { name: "N-acétylcystéine", dose: "600mg/j" }
-    ],
-    vitals: { spo2: 88, fr: 28, temp: 37.2, pa: "148/95", fc: 102, poids: "70 kg" },
-    docs: [
-      { name: "EFR VEMS 38%", date: "Avr. 25" },
-      { name: "TDM thorax haute rés.", date: "Mai 25" },
-      { name: "Bilan préop en attente", date: "—" }
-    ],
-    notes: "BPCO très sévère. SpO₂ 88%. OLT en discussion. Résultats TDM en attente.",
-    iaDiags: [
-      { date: "22/02/2026", diag: "BPCO stade III sévère", pct: 81, conc: "Concordant" },
-      { date: "10/10/2025", diag: "BPCO exacerbation", pct: 77, conc: "Concordant" }
-    ],
-    iaDiffs: [
-      { diag: "Silicose évoluée", pct: 31 },
-      { diag: "Emphysème bulleux", pct: 22 },
-      { diag: "Cancer bronchique", pct: 11 }
-    ],
-    iaCriteria: [
-      { label: "VEMS < 50%", ok: true }, { label: "Obstruction sévère", ok: true },
-      { label: "Tabagisme > 30 PA", ok: true }, { label: "SpO₂ < 90%", ok: true },
-      { label: "Exposition silice", ok: true }, { label: "Polyglobulie", ok: false }
-    ],
-    tl: [
-      { date: "22/02/2026", title: "BPCO aggravation", note: "VEMS 38%. OLT discussion.", ia: 81, color: "#DC2626", conc: "Concordant" },
-      { date: "10/10/2025", title: "BPCO exacerbation", note: "Hospit. 3j.", ia: 77, color: "#D97706", conc: "Concordant" }
-    ]
-  }
-};
-
 const STATUS_CONFIG = {
   actif:   { label: "Actif",      color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/10", dot: "bg-emerald-500", border: "border-emerald-200 dark:border-emerald-500/30", ring: "bg-emerald-500", darkBg: "dark:bg-emerald-950", darkBorder: "dark:border-emerald-700" },
   urgent:  { label: "Urgent",     color: "text-red-600 dark:text-red-400",         bg: "bg-red-50 dark:bg-red-500/10",         dot: "bg-red-500",     border: "border-red-200 dark:border-red-500/30",         ring: "bg-red-500",     darkBg: "dark:bg-red-950",     darkBorder: "dark:border-red-700" },
@@ -1400,9 +1201,20 @@ function AccessTab({ p }) {
   const proprietaire = acces.find(a => a.role === 'proprietaire' || a.est_proprietaire);
   const autresAcces  = acces.filter(a => a !== proprietaire);
 
+  const totalAcces = (proprietaire ? 1 : 0) + autresAcces.length;
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4">
-      <p className="text-xs font-black uppercase tracking-widest text-(--t4) mb-3">Médecins ayant accès</p>
+
+      {/* En-tête avec compteur */}
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-black uppercase tracking-widest text-(--t4)">Accès au dossier</p>
+        {!loading && (
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-(--sf2) border border-(--ln) text-(--t3)">
+            {totalAcces} médecin{totalAcces > 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-8">
@@ -1413,35 +1225,47 @@ function AccessTab({ p }) {
           {/* Propriétaire */}
           {proprietaire ? (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3 p-3.5 bg-blue-50 border border-blue-200 rounded-xl mb-2 shadow-sm dark:bg-blue-500/10 dark:border-blue-500/20">
+              className="flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-200 rounded-xl mb-2 shadow-sm dark:bg-blue-500/10 dark:border-blue-500/20">
               <Avatar
                 initials={`${proprietaire.prenom?.[0] || ''}${proprietaire.nom?.[0] || ''}`}
                 size="sm" color="bg-blue-600"
               />
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-(--t1)">
-                  Dr. {proprietaire.prenom} {proprietaire.nom}
-                  {proprietaire.est_moi && <span className="text-(--t3) font-normal ml-1">(vous)</span>}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-bold text-(--t1)">
+                    Dr. {proprietaire.prenom} {proprietaire.nom}
+                  </span>
+                  {proprietaire.est_moi && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300">
+                      Vous
+                    </span>
+                  )}
                 </div>
-                <div className="text-xs text-(--t3)">
-                  Propriétaire{proprietaire.specialite ? ` · ${proprietaire.specialite}` : ''}
-                  {proprietaire.ville ? `, ${proprietaire.ville}` : ''}
+                <div className="text-xs text-(--t3) mt-0.5 space-y-0.5">
+                  {proprietaire.specialite && <span className="block">{proprietaire.specialite}</span>}
+                  {proprietaire.etablissement && <span className="block">{proprietaire.etablissement}</span>}
+                  {proprietaire.ville && <span className="block">{proprietaire.ville}</span>}
+                  <span className="block font-medium text-blue-600 dark:text-blue-400">
+                    Accès complet · Propriétaire du dossier
+                  </span>
                 </div>
               </div>
               <Badge variant="blue">Propriétaire</Badge>
             </motion.div>
           ) : (
-            /* Fallback si l'API ne retourne pas les accès — afficher le médecin depuis la consultation */
             p.medecin_referent && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 p-3.5 bg-blue-50 border border-blue-200 rounded-xl mb-2 shadow-sm dark:bg-blue-500/10 dark:border-blue-500/20">
+                className="flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-200 rounded-xl mb-2 shadow-sm dark:bg-blue-500/10 dark:border-blue-500/20">
                 <Avatar
                   initials={p.medecin_referent.split(' ').map(w => w[0]).join('').slice(0, 2)}
                   size="sm" color="bg-blue-600"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold text-(--t1)">{p.medecin_referent}</div>
-                  <div className="text-xs text-(--t3)">Propriétaire · Médecin traitant</div>
+                  <div className="text-xs text-(--t3) mt-0.5">
+                    <span className="block">Médecin traitant</span>
+                    <span className="block font-medium text-blue-600 dark:text-blue-400">Accès complet · Propriétaire du dossier</span>
+                  </div>
                 </div>
                 <Badge variant="blue">Propriétaire</Badge>
               </motion.div>
@@ -1449,29 +1273,40 @@ function AccessTab({ p }) {
           )}
 
           {/* Autres médecins avec accès */}
-          {autresAcces.map((a, i) => (
-            <motion.div key={a.medecin_id || i}
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-3 p-3.5 bg-(--sf2) border border-(--ln) rounded-xl mb-2">
-              <Avatar
-                initials={`${a.prenom?.[0] || ''}${a.nom?.[0] || ''}`}
-                size="sm" color="bg-slate-400"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-(--t1)">Dr. {a.prenom} {a.nom}</div>
-                <div className="text-xs text-(--t3)">
-                  Accès depuis le {a.depuis ? new Date(a.depuis).toLocaleDateString('fr-FR') : '—'}
-                  {a.specialite ? ` · ${a.specialite}` : ''}
-                </div>
-              </div>
-              <motion.button whileHover={{ scale: 1.05 }}
-                onClick={() => handleRevoquer(a.medecin_id)}
-                disabled={revoking === a.medecin_id}
-                className="text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-all disabled:opacity-50">
-                {revoking === a.medecin_id ? '...' : 'Révoquer'}
-              </motion.button>
-            </motion.div>
-          ))}
+          {autresAcces.length > 0 && (
+            <div className="mt-3 mb-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-(--t4) mb-2">Accès partagés</p>
+              {autresAcces.map((a, i) => (
+                <motion.div key={a.medecin_id || i}
+                  initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-start gap-3 p-3.5 bg-(--sf2) border border-(--ln) rounded-xl mb-2">
+                  <Avatar
+                    initials={`${a.prenom?.[0] || ''}${a.nom?.[0] || ''}`}
+                    size="sm" color="bg-slate-400"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-(--t1)">Dr. {a.prenom} {a.nom}</div>
+                    <div className="text-xs text-(--t3) mt-0.5 space-y-0.5">
+                      {a.specialite && <span className="block">{a.specialite}</span>}
+                      {a.etablissement && <span className="block">{a.etablissement}</span>}
+                      <span className="block">
+                        Accès depuis le {a.depuis ? new Date(a.depuis).toLocaleDateString('fr-FR') : '—'}
+                      </span>
+                      <span className="block font-medium text-(--t2)">
+                        {a.niveau_acces === 'lecture' ? 'Lecture seule' : 'Lecture & consultation'}
+                      </span>
+                    </div>
+                  </div>
+                  <motion.button whileHover={{ scale: 1.05 }}
+                    onClick={() => handleRevoquer(a.medecin_id)}
+                    disabled={revoking === a.medecin_id}
+                    className="text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-all disabled:opacity-50 shrink-0">
+                    {revoking === a.medecin_id ? '...' : 'Révoquer'}
+                  </motion.button>
+                </motion.div>
+              ))}
+            </div>
+          )}
 
           {!proprietaire && autresAcces.length === 0 && (
             <p className="text-xs text-(--t4) italic text-center py-4">Aucun accès enregistré</p>
@@ -1479,14 +1314,6 @@ function AccessTab({ p }) {
         </>
       )}
 
-      {/* Ajouter un accès */}
-      <div className="border-t border-(--ln) mt-4 pt-4">
-        <p className="text-xs font-black uppercase tracking-widest text-(--t4) mb-3">Ajouter un accès</p>
-        <motion.button whileHover={{ scale: 1.02 }}
-          className="w-full flex items-center justify-center gap-2 py-3 bg-(--sf) border-2 border-dashed border-(--ln2) rounded-xl text-sm font-bold text-(--t3) hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all">
-          <Plus size={16} />Envoyer une demande de partage
-        </motion.button>
-      </div>
     </motion.div>
   );
 }
@@ -1652,12 +1479,12 @@ function DetailPanel({ patient, onClose, onStatusChange, onStatutCliniqueChange,
             className="bg-(--sf) rounded-2xl w-full max-w-lg shadow-2xl border border-(--ln) flex flex-col max-h-[90vh]">
 
             {/* En-tête */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-(--ln)">
+            <div className="flex items-center justify-between px-6 py-4 rounded-t-2xl" style={{ background: '#0066CC' }}>
               <div>
-                <h2 className="font-bold text-base text-(--t1)">Modifier le dossier patient</h2>
-                <p className="text-xs text-(--t4) mt-0.5">Tous les champs de l'identité du patient</p>
+                <h2 className="font-bold text-base text-white">Modifier le dossier patient</h2>
+                <p className="text-xs text-white/70 mt-0.5">Tous les champs de l'identité du patient</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="text-(--t4) hover:text-(--t1)"><X size={18} /></button>
+              <button onClick={() => setShowModal(false)} className="text-white/70 hover:text-white transition-colors"><X size={18} /></button>
             </div>
 
             {/* Corps scrollable */}
@@ -2252,8 +2079,8 @@ export default function PatientsPage() {
             >
               <div className="flex items-center gap-1.5 bg-(--sf) border border-(--ln) rounded-xl p-1.5 shadow-sm">
                 {[
-                  { id: "all", label: "Tous", count: 134 },
-                  { id: "urgent", label: "Urgents", count: 3 },
+                  { id: "all",    label: "Tous",     count: Object.keys(patients).length },
+                  { id: "urgent", label: "Urgents",  count: Object.values(patients).filter(p => p.status === 'urgent').length || undefined },
                   { id: "shared", label: "Partagés" },
                 ].map(f => (
                   <motion.button
@@ -2273,7 +2100,7 @@ export default function PatientsPage() {
                 <motion.button whileHover={{ scale: 1.05 }} className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-(--t2) bg-(--sf) border border-(--ln) rounded-lg hover:bg-(--sf2) transition-all shadow-sm">
                   <Download size={14} />Exporter CSV
                 </motion.button>
-                <motion.a whileHover={{ scale: 1.05 }} href="#" className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-blue-600 border border-blue-700 rounded-lg hover:bg-blue-700 transition-all shadow-md">
+                <motion.a whileHover={{ scale: 1.05 }} href="/medecin/patients/nouveau" className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-blue-600 border border-blue-700 rounded-lg hover:bg-blue-700 transition-all shadow-md">
                   <Plus size={14} />Nouveau patient
                 </motion.a>
               </div>

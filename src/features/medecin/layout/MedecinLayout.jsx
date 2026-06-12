@@ -38,7 +38,7 @@ export default function MedecinLayout() {
   // Calculer la marge gauche
   const getMarginLeft = () => {
     if (!isDesktop) return '0px';
-    return isCollapsed ? '100px' : '260px';
+    return isCollapsed ? '86px' : '260px';
   };
 
   return (
@@ -60,7 +60,7 @@ export default function MedecinLayout() {
           pageTitle={getPageTitle()}
         />
         
-        <main className="p-6 md:p-8 overflow-y-auto no-scrollbar" style={{ maxHeight: 'calc(100vh - 80px)' }}>
+        <main className="px-8 py-6 overflow-y-auto no-scrollbar" style={{ maxHeight: 'calc(100vh - 64px)' }}>
           <Outlet />
         </main>
       </div>

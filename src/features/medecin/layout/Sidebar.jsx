@@ -1,12 +1,13 @@
 // src/features/medecin/layout/Sidebar.jsx
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Stethoscope, Users, Share2,
   FolderOpen, MessageCircle, Bell, Search,
-  User, Settings, LogOut, History, Menu, X,
-  ChevronLeft, Activity, MessageSquare
+  User, Settings, History, X,
+  ChevronLeft, Activity, MessageSquare,
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import logo from '../../../assets/images/logo.png';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -16,293 +17,222 @@ async function fetchPartageBadge() {
   const headers = { Authorization: `Bearer ${token}` };
   let total = 0;
   try {
-    const res = await fetch(`${API_URL}/patients/access-requests/recues`, { headers });
-    if (res.ok) {
-      const d = await res.json();
-      total += Array.isArray(d) ? d.length : 0;
-    }
+    const r = await fetch(`${API_URL}/patients/access-requests/recues`, { headers });
+    if (r.ok) { const d = await r.json(); total += Array.isArray(d) ? d.length : 0; }
   } catch {}
   try {
-    const res = await fetch(`${API_URL}/patients/mes-partages`, { headers });
-    if (res.ok) {
-      const d = await res.json();
-      total += Array.isArray(d) ? d.length : 0;
-    }
+    const r = await fetch(`${API_URL}/patients/mes-partages`, { headers });
+    if (r.ok) { const d = await r.json(); total += Array.isArray(d) ? d.length : 0; }
   } catch {}
   return total;
 }
-import logo from '../../../assets/images/logo.png';
+
+const NAV_MAIN = [
+  { path: '/medecin/dashboard',    icon: LayoutDashboard, label: 'Tableau de bord' },
+  { path: '/medecin/consultation', icon: Stethoscope,     label: 'Consultation'    },
+  { path: '/medecin/patients',     icon: Users,           label: 'Patients'        },
+  { path: '/medecin/partage',      icon: Share2,          label: 'Partage'         },
+];
+const NAV_COMMUNITY = [
+  { path: '/medecin/cas-cliniques', icon: FolderOpen,    label: 'Cas cliniques' },
+  { path: '/medecin/messagerie',    icon: MessageCircle, label: 'Messagerie',   badge: 2 },
+  { path: '/medecin/commentaires',  icon: MessageSquare, label: 'Commentaires' },
+  { path: '/medecin/monitoring',    icon: Activity,      label: 'Monitoring'   },
+];
+const NAV_ACCOUNT = [
+  { path: '/medecin/historique',    icon: History,  label: 'Historique'     },
+  { path: '/medecin/notifications', icon: Bell,     label: 'Notifications', badge: 5 },
+  { path: '/medecin/recherche',     icon: Search,   label: 'Recherche'      },
+  { path: '/medecin/profil',        icon: User,     label: 'Mon profil'     },
+  { path: '/medecin/parametres',    icon: Settings, label: 'Paramètres'     },
+];
+
+const GROUPS = [
+  { label: 'Menu principal', items: NAV_MAIN      },
+  { label: 'Communauté',     items: NAV_COMMUNITY },
+  { label: 'Mon compte',     items: NAV_ACCOUNT   },
+];
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen, onCollapsedChange }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
-  const [partageBadge, setPartageBadge] = useState(0);
-  const location = useLocation();
-  const isDashboardActive = location.pathname === '/medecin' || location.pathname === '/medecin/';
+  const [isDesktop,   setIsDesktop]   = useState(window.innerWidth >= 1024);
+  const [badge,       setBadge]       = useState(0);
 
-  // Charger le badge dynamique des demandes reçues
   useEffect(() => {
-    fetchPartageBadge().then(setPartageBadge);
-    const interval = setInterval(() => fetchPartageBadge().then(setPartageBadge), 60000);
-    return () => clearInterval(interval);
+    fetchPartageBadge().then(setBadge);
+    const t = setInterval(() => fetchPartageBadge().then(setBadge), 60_000);
+    return () => clearInterval(t);
   }, []);
-  
-  // Détecter la taille de l'écran
+
   useEffect(() => {
-    const handleResize = () => {
+    const onResize = () => {
       const desktop = window.innerWidth >= 1024;
       setIsDesktop(desktop);
-      
-      // Réinitialiser le collapse sur mobile
-      if (!desktop) {
-        setIsCollapsed(false);
-      }
+      if (!desktop) setIsCollapsed(false);
     };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  useEffect(() => {
-    if (onCollapsedChange) {
-      onCollapsedChange(isCollapsed);
-    }
-  }, [isCollapsed, onCollapsedChange]);
+  useEffect(() => { onCollapsedChange?.(isCollapsed); }, [isCollapsed, onCollapsedChange]);
 
-  // Sur desktop, la sidebar est toujours visible (fixed)
-  // Sur mobile, elle est en overlay
-  const sidebarWidth = isDesktop 
-    ? (isCollapsed ? 'w-[100px]' : 'w-[260px]')
-    : 'w-[230px]';
+  const sidebarWidth = isDesktop
+    ? (isCollapsed ? 'w-[68px]' : 'w-[260px]')
+    : 'w-[260px]';
 
-  const navItems = [
-    { path: '/medecin/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
-    { path: '/medecin/consultation', icon: Stethoscope, label: 'Consultation' },
-    { path: '/medecin/patients', icon: Users, label: 'Patients' },
-    { path: '/medecin/partage', icon: Share2, label: 'Partage', badge: partageBadge || null },
-  ];
+  const expanded = !isCollapsed || !isDesktop;
 
-  const communityItems = [
-    { path: '/medecin/cas-cliniques', icon: FolderOpen, label: 'Cas cliniques' },
-    { path: '/medecin/messagerie', icon: MessageCircle, label: 'Messagerie', badge: 2 },
-    { path: '/medecin/commentaires', icon: MessageSquare, label: 'Commentaires' },
-    { path: '/medecin/monitoring', icon: Activity, label: 'Monitoring' },
-  ];
+  /* ─── Classe nav item ─────────────────────────────────────────── */
+  const itemCls = (active) => [
+    'relative flex items-center gap-3 rounded-xl text-[13.5px] font-semibold',
+    'transition-all duration-200 border-l-[3px]',
+    expanded ? 'px-3 py-2.5' : 'justify-center px-0 py-3 mx-auto w-11 h-11',
+    active
+      ? 'border-white text-white'
+      : 'border-transparent text-white/70 hover:text-white',
+  ].join(' ');
 
-  const accountItems = [
-    { path: '/medecin/historique', icon: History, label: 'Historique' },
-    { path: '/medecin/notifications', icon: Bell, label: 'Notifications', badge: 5 },
-    { path: '/medecin/recherche', icon: Search, label: 'Recherche' },
-    { path: '/medecin/profil', icon: User, label: 'Mon profil' },
-    { path: '/medecin/parametres', icon: Settings, label: 'Paramètres' },
-  ];
-
+  /* ─── Contenu interne ─────────────────────────────────────────── */
   const SidebarContent = () => (
-    <div className="flex flex-col h-full relative transition-all duration-500 bg-(--sf) text-(--t1)">
-      {/* Bouton collapse - visible uniquement sur desktop */}
+    <div className="flex flex-col h-full">
+
+      {/* Bouton collapse desktop */}
       {isDesktop && (
-        <button 
+        <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-12 z-50 bg-(--sf) border border-(--ln) rounded-l-full p-2 shadow-sm hover:bg-(--sf2) transition-all group"
+          className="absolute -right-3 top-15 z-50 w-6 h-6 bg-white rounded-full border border-slate-200 shadow-md flex items-center justify-center hover:bg-slate-50 transition-colors"
         >
-          <ChevronLeft 
-            className={`h-4 w-4 text-slate-400 dark:text-slate-300 group-hover:text-blue-600 transition-transform duration-500 ${isCollapsed ? 'rotate-180' : ''}`} 
+          <ChevronLeft
+            size={13}
+            className={`text-slate-400 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
           />
         </button>
       )}
 
       {/* Bouton fermeture mobile */}
       {!isDesktop && sidebarOpen && (
-        <button 
+        <button
           onClick={() => setSidebarOpen(false)}
-          className="absolute right-4 top-4 z-50 bg-(--sf) border border-(--ln) rounded-full p-2 shadow-sm hover:bg-(--sf2) transition-all group"
+          className="absolute right-3 top-3 z-50 w-8 h-8 rounded-full flex items-center justify-center"
+          style={{ background: 'rgba(255,255,255,0.12)' }}
         >
-          <X className="h-4 w-4 text-slate-400 dark:text-slate-300" />
+          <X size={15} className="text-white/80" />
         </button>
       )}
 
-      {/* Logo */}
-      <div className={`p-8 pb-4 ${!isDesktop && sidebarOpen ? 'pt-16' : ''}`}>
-        <div className="flex items-center gap-3 whitespace-nowrap">
-          <div className="w-12 h-12 bg-linear-to-br from-blue-500 to-indigo-600 rounded-[18px] flex items-center justify-center shadow-2xl shrink-0">
-            <img src={logo} alt="PneumoIA" className="w-10 h-10 object-contain filter brightness-0 invert" />
-          </div>
-          {(!isCollapsed || !isDesktop) && (
-            <div className="transition-all duration-300">
-              <h1 className="text-xl font-black tracking-tighter leading-none">PneumoIA</h1>
-              <p className="text-[8px] font-black text-blue-600 uppercase tracking-[0.4em] mt-1">Médecin</p>
-            </div>
-          )}
+      {/* ── Logo / Brand ──────────────────────────────────────────── */}
+      <div
+        className={`flex items-center gap-3 px-4 py-5 ${!isDesktop && sidebarOpen ? 'pt-14' : ''} ${!expanded ? 'justify-center px-2' : ''}`}
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}
+      >
+        <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-black/20">
+          <img src={logo} alt="PneumoIA" className="w-9 h-9 object-contain" />
         </div>
+        {expanded && (
+          <div>
+            <h1 className="text-[16px] font-black text-white leading-tight tracking-tight">
+              PneumoIA
+            </h1>
+            <p className="text-[9px] font-bold uppercase tracking-[0.28em] mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              Espace Médecin
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Navigation - scrollable sans scrollbar visible */}
-        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1"
-        style={{
-            msOverflowStyle: 'none',
-            scrollbarWidth: 'none',
-            WebkitOverflowScrolling: 'touch'
-        }}>
-        {/* Section principale */}
-        <div className="space-y-1">
-          {(!isCollapsed || !isDesktop) && (
-            <p className="px-4 text-[10px] font-black text-(--t4) uppercase tracking-widest mb-2 mt-2">
-              Menu principal
-            </p>
-          )}
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={() => !isDesktop && setSidebarOpen(false)}
-                className={({ isActive }) => {
-                  const active = isActive || (item.path === '/medecin/dashboard' && isDashboardActive);
-                  return `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border-l-4 ${isCollapsed && isDesktop ? 'justify-center' : ''} ${active ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-transparent' : 'border-transparent text-(--t3) hover:text-(--t1)'}`
-                }}
-              >
-                 {({ isActive }) => {
-                  const active = isActive || (item.path === '/medecin/dashboard' && isDashboardActive);
-                  return (
-                    <>
-                      <Icon className={`h-5 w-5 shrink-0 ${active ? 'text-blue-500 dark:text-blue-400' : 'text-blue-400 dark:text-blue-500'}`} />
-                      {(!isCollapsed || !isDesktop) && (
-                        <>
-                          <span className="flex-1 text-left">{item.label}</span>
-                          {item.badge && (
-                            <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md">
-                              {item.badge}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </>
-                  );
-                }}
-              </NavLink>
-            );
-          })}
-        </div>
+      {/* ── Navigation ─────────────────────────────────────────────── */}
+      <nav className="flex-1 overflow-y-auto px-3 py-2 sb-scroll">
+        {GROUPS.map(({ label, items }) => (
+          <div key={label} className="mt-5 first:mt-2">
 
-        {/* Communauté */}
-        <div className="space-y-1">
-          {(!isCollapsed || !isDesktop) && (
-            <p className="px-4 text-[10px] font-black text-(--t4) uppercase tracking-widest mb-2 mt-2">
-              Communauté
-            </p>
-          )}
-          {communityItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={() => !isDesktop && setSidebarOpen(false)}
-                className={({ isActive }) => `
-                  flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border-l-4
-                  ${isCollapsed && isDesktop ? 'justify-center' : ''}
-                  ${isActive 
-                    ? 'border-blue-500 text-blue-600 bg-transparent dark:text-blue-300' 
-                    : 'border-transparent text-(--t3) hover:text-(--t1)'
-                  }
-                `}
+            {/* Label de section */}
+            {expanded && (
+              <p
+                className="px-2 mb-2 text-[10px] font-bold uppercase tracking-[0.22em]"
+                style={{ color: 'rgba(255,255,255,0.55)' }}
               >
-                {({ isActive }) => (
-                  <>
-                    <Icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-blue-500 dark:text-blue-400' : 'text-blue-400 dark:text-blue-500'}`} />
-                    {(!isCollapsed || !isDesktop) && (
+                {label}
+              </p>
+            )}
+            {!expanded && (
+              <div className="h-px mx-2 mb-2" style={{ background: 'rgba(255,255,255,0.15)' }} />
+            )}
+
+            {/* Items */}
+            <div className="space-y-0.5">
+              {items.map((item) => {
+                const Icon = item.icon;
+                const itemBadge = item.path === '/medecin/partage' ? badge || null : item.badge;
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    title={!expanded ? item.label : undefined}
+                    onClick={() => !isDesktop && setSidebarOpen(false)}
+                    className={({ isActive }) => itemCls(isActive)}
+                  >
+                    {({ isActive }) => (
                       <>
-                        <span className="flex-1 text-left">{item.label}</span>
-                        {item.badge && (
-                          <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md">
-                            {item.badge}
-                          </span>
+                        <Icon
+                          size={18}
+                          strokeWidth={3}
+                          style={{ color: '#fff', flexShrink: 0 }}
+                        />
+
+                        {expanded && (
+                          <>
+                            <span className="flex-1 truncate">{item.label}</span>
+                            {itemBadge && (
+                              <span className="min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center bg-red-500 text-white">
+                                {itemBadge}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {!expanded && itemBadge && (
+                          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full ring-1 ring-white/20" />
                         )}
                       </>
                     )}
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
-        </div>
-
-        {/* Mon compte */}
-        <div className="space-y-1">
-          {(!isCollapsed || !isDesktop) && (
-            <p className="px-4 text-[10px] font-black text-(--t4) uppercase tracking-widest mb-2 mt-2">
-              Mon compte
-            </p>
-          )}
-          {accountItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={() => !isDesktop && setSidebarOpen(false)}
-                className={({ isActive }) => {
-                  const active = isActive;
-                  return `flex items-center gap-1 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border-l-4 ${isCollapsed && isDesktop ? 'justify-center' : ''} ${active ? 'border-blue-500 text-blue-600 bg-transparent dark:text-blue-300' : 'border-transparent text-(--t3) hover:text-(--t1)'}`
-                }}
-              >
-                {({ isActive }) => {
-                  const active = isActive;
-                  return (
-                    <>
-                      <Icon className={`h-5 w-5 shrink-0 ${active ? 'text-blue-500 dark:text-blue-400' : 'text-blue-400 dark:text-blue-500'}`} />
-                      {(!isCollapsed || !isDesktop) && (
-                        <>
-                          <span className="flex-1 text-left">{item.label}</span>
-                          {item.badge && (
-                            <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full shadow-md">
-                              {item.badge}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </>
-                  );
-                }}
-              </NavLink>
-            );
-          })}
-        </div>
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
+      {/* ── Pied ───────────────────────────────────────────────────── */}
+      {expanded && (
+        <div className="px-5 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+          <p className="text-[10px] font-medium select-none" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            PneumoIA v2.0 · 2026
+          </p>
+        </div>
+      )}
     </div>
   );
 
+  /* ─── Rendu ───────────────────────────────────────────────────── */
   return (
     <>
-      {/* Overlay pour mobile */}
       {!isDesktop && sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden transition-opacity duration-300"
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar desktop - fixed */}
-      <aside 
-        className={`
-          hidden lg:flex lg:flex-col fixed inset-y-0 left-0 z-30
-          bg-(--sf) border-r border-(--ln) shadow-xl
-          transition-all duration-500 ${sidebarWidth}
-        `}
+      <aside
+        className={`hidden lg:flex lg:flex-col fixed inset-y-0 left-0 z-30 transition-all duration-300 ${sidebarWidth}`}
+        style={{ background: 'var(--sb-bg)', boxShadow: '2px 0 24px var(--sb-glow)' }}
       >
         <SidebarContent />
       </aside>
 
-      {/* Sidebar mobile - coulissante */}
-      <aside 
-        className={`
-          fixed top-0 left-0 z-50 h-full bg-(--sf) border-r border-(--ln) shadow-2xl
-          transition-transform duration-300 ease-in-out lg:hidden
-          ${sidebarWidth}
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}
+      <aside
+        className={`fixed top-0 left-0 z-50 h-full transition-transform duration-300 ease-in-out lg:hidden ${sidebarWidth} ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{ background: 'var(--sb-bg)', boxShadow: '4px 0 24px rgba(0,0,0,0.4)' }}
       >
         <SidebarContent />
       </aside>

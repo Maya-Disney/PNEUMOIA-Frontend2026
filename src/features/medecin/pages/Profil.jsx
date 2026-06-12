@@ -230,7 +230,7 @@ export default function Profile() {
 
   if (profilLoading) {
     return (
-      <div className="max-w-5xl mx-auto flex items-center justify-center h-64">
+      <div className="w-full flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3 text-(--t3)">
           <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm">Chargement du profil…</p>
@@ -246,7 +246,7 @@ export default function Profile() {
       ? 'Vous n\'êtes pas connecté.'
       : 'Impossible de contacter le serveur. Vérifiez que le backend est démarré sur http://localhost:8000';
     return (
-      <div className="max-w-5xl mx-auto flex items-center justify-center h-64">
+      <div className="w-full flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-4 text-center max-w-sm">
           <div className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
             <AlertCircle className="w-7 h-7 text-red-500" />
@@ -265,7 +265,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* En-tête */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
