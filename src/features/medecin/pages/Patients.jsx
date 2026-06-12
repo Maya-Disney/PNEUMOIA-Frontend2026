@@ -1387,11 +1387,22 @@ function DetailPanel({ patient, onClose, onStatusChange, onStatutCliniqueChange,
         transition={{ delay: 0.1 }}
         className="px-5 py-3 border-b border-(--ln) flex items-center gap-2 shrink-0 bg-blue-50/50 dark:bg-blue-500/10"
       >
-        <motion.a whileHover={{ scale: 1.05 }}
-          href="/medecin/consultation"
-          className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
-          <Stethoscope size={13} />Consulter
-        </motion.a>
+        {/* Pas de consultation du tout → médecin démarre une neuve */}
+        {patient?.pas_de_consultation && (
+          <motion.a whileHover={{ scale: 1.05 }}
+            href={`/medecin/consultation?patient_id=${patient.id}`}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+            <Stethoscope size={13} />Consulter
+          </motion.a>
+        )}
+        {/* Consultation aide incomplète (pas d'IA) → médecin continue */}
+        {!patient?.pas_de_consultation && patient?.consultation_incomplete_id && (
+          <motion.a whileHover={{ scale: 1.05 }}
+            href={`/medecin/consultation?patient_id=${patient.id}&consultation_id=${patient.consultation_incomplete_id}`}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+            <Stethoscope size={13} />Continuer
+          </motion.a>
+        )}
         <motion.button whileHover={{ scale: 1.05 }}
           onClick={() => setShowModal(true)}
           className="inline-flex items-center gap-1.5 px-3 py-2 bg-(--sf) border border-(--ln) text-(--t2) text-xs font-bold rounded-lg hover:bg-(--sf2) transition-colors">
@@ -1866,20 +1877,41 @@ export default function PatientsPage() {
         if (!consultations.length) {
           setPatients(prev => ({
             ...prev,
-            [selected]: { ...prev[selected], diag: 'Aucune consultation', iaPct: 0 },
+            [selected]: {
+              ...prev[selected],
+              diag: 'Aucune consultation',
+              iaPct: 0,
+              consultation_incomplete_id: null,
+              pas_de_consultation: true,
+            },
           }));
           return;
         }
 
-        const derniere = consultations[0];
-        const diagPrincipal = derniere.diagnostic?.maladies?.[0];
-        const symptomes     = derniere.symptomes || {};
-        const presc         = derniere.prescriptions || {};
+        // Consultation de référence pour afficher les infos : la plus récente avec diagnostic
+        // (ou la plus récente tout court si aucune avec diagnostic)
+        const derniereComplete   = consultations.find(c => c.diagnostic);
+        const derniere           = derniereComplete || consultations[0];
+        const diagPrincipal      = derniere.diagnostic?.maladies?.[0];
+        const symptomes          = derniere.symptomes || {};
+        const presc              = derniere.prescriptions || {};
+
+        // Bouton "Continuer" : il y a une consultation en_attente sans diagnostic
+        // ET elle est plus récente que la dernière consultation complète (évite les doublons fantômes)
+        const consultationIncomplete = consultations.find(
+          c => !c.diagnostic && c.statut !== 'terminee'
+        );
+        const incompleteEstRecente = consultationIncomplete && (
+          !derniereComplete ||
+          new Date(consultationIncomplete.created_at) > new Date(derniereComplete.created_at)
+        );
+        const consultationIncompleteId = incompleteEstRecente ? consultationIncomplete.id : null;
 
         setPatients(prev => ({
           ...prev,
           [selected]: {
             ...prev[selected],
+            pas_de_consultation: false,
             diag:      diagPrincipal?.nom    || 'Pas de diagnostic',
             diagSince: `Consulté le ${new Date(derniere.created_at).toLocaleDateString('fr-FR')} à ${new Date(derniere.created_at).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}`,
             iaPct:     diagPrincipal?.pct    || 0,
@@ -1892,6 +1924,7 @@ export default function PatientsPage() {
             statut_avis:         derniere.statut,
             statut_clinique:     derniere.statut_clinique || derniere.diagnostic?.etat_patient || null,
             derniere_consultation_id: derniere.id,
+            consultation_incomplete_id: consultationIncompleteId,
             vitals: {
               spo2:  symptomes.saturation_o2           ?? null,
               fr:    symptomes.frequence_respiratoire  ?? null,

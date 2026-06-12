@@ -2,7 +2,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Stethoscope, Users, Share2,
-  FolderOpen, MessageCircle, Bell, Search,
+  FolderOpen, Users2, Bell, Search,
   User, Settings, History, X,
   ChevronLeft, Activity, MessageSquare,
 } from 'lucide-react';
@@ -35,9 +35,9 @@ const NAV_MAIN = [
 ];
 const NAV_COMMUNITY = [
   { path: '/medecin/cas-cliniques', icon: FolderOpen,    label: 'Cas cliniques' },
-  { path: '/medecin/messagerie',    icon: MessageCircle, label: 'Messagerie',   badge: 2 },
-  { path: '/medecin/commentaires',  icon: MessageSquare, label: 'Commentaires' },
-  { path: '/medecin/monitoring',    icon: Activity,      label: 'Monitoring'   },
+  { path: '/medecin/mon-equipe',    icon: Users2,        label: 'Mon équipe'    },
+  { path: '/medecin/commentaires',  icon: MessageSquare, label: 'Commentaires'  },
+  { path: '/medecin/monitoring',    icon: Activity,      label: 'Monitoring'    },
 ];
 const NAV_ACCOUNT = [
   { path: '/medecin/historique',    icon: History,  label: 'Historique'     },

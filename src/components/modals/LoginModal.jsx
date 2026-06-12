@@ -125,11 +125,13 @@ export default function LoginModal({ isOpen, onClose }) {
 
   // Steps : 'login' | 'otp' | 'forgot_email' | 'forgot_otp' | 'forgot_pwd'
   const [step,        setStep]        = useState('login');
+  const [role,        setRole]        = useState('medecin'); // 'medecin' | 'aide'
   const [email,       setEmail]       = useState('');
   const [password,    setPassword]    = useState('');
   const [showPwd,     setShowPwd]     = useState(false);
   const [otp,         setOtp]         = useState('');
   const [medecinId,   setMedecinId]   = useState('');
+  const [aideId,      setAideId]      = useState('');
   const [loading,     setLoading]     = useState(false);
   const [error,       setError]       = useState('');
   const [otpTrigger,  setOtpTrigger]  = useState(0);
@@ -147,8 +149,8 @@ export default function LoginModal({ isOpen, onClose }) {
 
   useEffect(() => {
     if (!isOpen) return;
-    setStep('login'); setEmail(''); setPassword(''); setShowPwd(false);
-    setOtp(''); setMedecinId(''); setLoading(false); setError('');
+    setStep('login'); setRole('medecin'); setEmail(''); setPassword(''); setShowPwd(false);
+    setOtp(''); setMedecinId(''); setAideId(''); setLoading(false); setError('');
     setResetEmail(''); setResetOtp(''); setResetMedecinId('');
     setResetToken(''); setResetAttempts(0);
     setNewPwd(''); setConfirmPwd(''); setShowNewPwd(false); setShowConfirmPwd(false);
@@ -165,24 +167,54 @@ export default function LoginModal({ isOpen, onClose }) {
   }, [resetOtp]);
 
   const reset = useCallback(() => {
-    setStep('login'); setEmail(''); setPassword(''); setShowPwd(false);
-    setOtp(''); setMedecinId(''); setLoading(false); setError('');
+    setStep('login'); setRole('medecin'); setEmail(''); setPassword(''); setShowPwd(false);
+    setOtp(''); setMedecinId(''); setAideId(''); setLoading(false); setError('');
   }, []);
 
-  /* ── Login étape 1 ─────────────────────────────────── */
+  /* ── Login étape 1 — auto-détection du rôle ────────── */
   const handleLogin = async (e) => {
     e.preventDefault(); setError(''); setLoading(true);
     try {
-      const res  = await fetch(`${API_URL}/auth/login`, {
+      // 1. Essayer médecin en premier
+      const resMedecin = await fetch(`${API_URL}/auth/login`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        signal: AbortSignal.timeout(20000),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Identifiants incorrects');
-      setMedecinId(data.medecin_id); setOtp('');
+
+      if (resMedecin.ok) {
+        const data = await resMedecin.json();
+        setRole('medecin'); setMedecinId(data.medecin_id); setOtp('');
+        setOtpTrigger(n => n + 1); setStep('otp');
+        toast.info('Code OTP envoyé à votre email. Valable 5 minutes.', { title: 'Code envoyé ✉️' });
+        return;
+      }
+
+      // 403 = compte médecin trouvé mais non actif → afficher l'erreur directement
+      if (resMedecin.status === 403) {
+        const data = await resMedecin.json();
+        throw new Error(data.detail || 'Compte non activé');
+      }
+
+      // 401 = email non trouvé chez les médecins → essayer aide soignant
+      const resAide = await fetch(`${API_URL}/aides/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        signal: AbortSignal.timeout(20000),
+      });
+      const dataAide = await resAide.json();
+      if (!resAide.ok) throw new Error(dataAide.detail || 'Identifiants incorrects');
+
+      setRole('aide'); setAideId(dataAide.aide_id); setOtp('');
       setOtpTrigger(n => n + 1); setStep('otp');
       toast.info('Code OTP envoyé à votre email. Valable 5 minutes.', { title: 'Code envoyé ✉️' });
-    } catch (err) { setError(err.message); }
+
+    } catch (err) {
+      if (err.name === 'TimeoutError' || err.name === 'AbortError')
+        setError('Le serveur ne répond pas. Réessayez dans quelques secondes.');
+      else
+        setError(err.message);
+    }
     finally { setLoading(false); }
   };
 
@@ -191,17 +223,34 @@ export default function LoginModal({ isOpen, onClose }) {
     e?.preventDefault(); if (otp.length < 6) return;
     setError(''); setLoading(true);
     try {
-      const res  = await fetch(`${API_URL}/auth/verify-otp`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ medecin_id: medecinId, code: otp }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Code OTP incorrect');
-      localStorage.setItem('token', data.access_token);
-      localStorage.setItem('token_type', 'bearer');
-      localStorage.setItem('role', 'medecin');
-      toast.success('Connexion réussie !', { title: 'Bienvenue 👋' });
-      reset(); onClose(); navigate('/medecin/dashboard');
+      if (role === 'aide') {
+        const res  = await fetch(`${API_URL}/aides/verify-otp`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ aide_id: aideId, code: otp }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Code OTP incorrect');
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('token_type', 'bearer');
+        localStorage.setItem('role', 'aide_soignant');
+        localStorage.setItem('aide_id', data.aide.id);
+        localStorage.setItem('aide_nom', `${data.aide.prenom} ${data.aide.nom}`);
+        localStorage.setItem('aide_permissions', JSON.stringify(data.permissions));
+        toast.success('Connexion réussie !', { title: 'Bienvenue 👋' });
+        reset(); onClose(); navigate('/aide/dashboard');
+      } else {
+        const res  = await fetch(`${API_URL}/auth/verify-otp`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ medecin_id: medecinId, code: otp }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Code OTP incorrect');
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('token_type', 'bearer');
+        localStorage.setItem('role', 'medecin');
+        toast.success('Connexion réussie !', { title: 'Bienvenue 👋' });
+        reset(); onClose(); navigate('/medecin/dashboard');
+      }
     } catch (err) { setError(err.message); setOtp(''); }
     finally { setLoading(false); }
   };
@@ -209,13 +258,15 @@ export default function LoginModal({ isOpen, onClose }) {
   const handleResend = async () => {
     setError(''); setOtp(''); setLoading(true);
     try {
-      const res  = await fetch(`${API_URL}/auth/login`, {
+      const endpoint = role === 'aide' ? `${API_URL}/aides/login` : `${API_URL}/auth/login`;
+      const res  = await fetch(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail);
-      setMedecinId(data.medecin_id); setOtpTrigger(n => n + 1);
+      if (role === 'aide') setAideId(data.aide_id); else setMedecinId(data.medecin_id);
+      setOtpTrigger(n => n + 1);
       toast.info('Nouveau code envoyé !');
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -352,7 +403,7 @@ export default function LoginModal({ isOpen, onClose }) {
                 {step === 'login' && (
                   <>
                     <h2 className="text-xl font-bold text-white">Connexion</h2>
-                    <p className="text-blue-100 text-sm mt-1">Accéder à votre espace médecin</p>
+                    <p className="text-blue-100 text-sm mt-1">Accéder à votre espace PneumoIA</p>
                   </>
                 )}
                 {step === 'otp' && (
@@ -410,6 +461,7 @@ export default function LoginModal({ isOpen, onClose }) {
                     <motion.form key="login-form"
                       initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }}
                       onSubmit={handleLogin} className="space-y-4">
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email professionnel</label>
                         <div className="relative">

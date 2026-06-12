@@ -14,9 +14,9 @@ import {
   Search, X, XCircle, Circle, User, Phone, Calendar as CalendarIcon,
   Briefcase, Loader2, Globe, MapPin, Unlock, Users, FileText,
   TrendingUp, Award, Sparkles, Eye, MessageSquare, Clock, Heart, Droplet,
-  Thermometer, Wind, HeartPulse, Syringe, Microscope, Hospital, WifiOff
+  Thermometer, Wind, HeartPulse, Syringe, Microscope, Hospital, WifiOff, Lock
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sauvegarderAction, isNetworkError, genLocalId, synchroniserAvecServeur } from '../../../services/offlineManager';
 
@@ -55,7 +55,7 @@ const Toast = ({ message, type, onClose }) => {
 const StepIndicator = ({ currentStep, steps, patientInfo }) => (
   <div className="mb-8">
     {patientInfo.nom && (
-      <div className="mb-6 p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 dark:from-blue-500/10 dark:to-blue-500/5 dark:border-blue-500/20">
+      <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
@@ -229,7 +229,16 @@ const apiFetch = async (endpoint, options = {}) => {
 
 
 export default function Consultation() {
-  const navigate = useNavigate();
+  const navigate        = useNavigate();
+  const [searchParams]  = useSearchParams();
+
+  const isAide    = localStorage.getItem('role') === 'aide_soignant';
+  const aidePerms = (() => { try { return JSON.parse(localStorage.getItem('aide_permissions') || '{}'); } catch { return {}; } })();
+  const maxStep   = isAide
+    ? (aidePerms.peut_voir_diagnostic ? 4 : aidePerms.peut_saisir_symptomes ? 3 : 1)
+    : 4;
+  const aideRetour = '/aide/patients';
+
   const [currentStep, setCurrentStep] = useState(1);
   const [toast, setToast]             = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -325,9 +334,209 @@ export default function Consultation() {
     { number: 2, label: 'Antécédents' },
     { number: 3, label: 'Symptômes' },
     { number: 4, label: 'Diagnostic & Traitement' }
-  ];
+  ].filter(s => s.number <= maxStep);
 
   const addToast = (message, type) => setToast({ message, type });
+
+  // Reprendre une consultation existante via ?consultation_id=XXX (médecin continue après aide)
+  useEffect(() => {
+    const cid = searchParams.get('consultation_id');
+    const pid = searchParams.get('patient_id');
+    if (!cid || isAide) return;
+    (async () => {
+      try {
+        const c = await apiFetch(`/consultations/${cid}`);
+        if (!c) return;
+        setConsultationId(c.id);
+        if (pid) setPatientId(pid);
+
+        // Charger infos patient
+        if (c.patient) {
+          const p = c.patient;
+          setPatientInfo(prev => ({
+            ...prev,
+            civilite:           p.civilite      || '',
+            nom:                p.nom           || '',
+            prenom:             p.prenom        || '',
+            dateNaissance:      p.date_naissance || '',
+            groupeSanguin:      p.groupe_sanguin || '',
+            telephone:          p.telephone     || '',
+            email:              p.email         || '',
+            adresse:            p.adresse       || '',
+            profession:         p.profession    || '',
+            religion:           p.religion      || '',
+            personneAContacter: p.personne_a_contacter || '',
+            telephoneUrgence:   p.telephone_urgence    || '',
+          }));
+        }
+
+        // Charger antécédents s'ils existent
+        const ant = c.antecedents || {};
+        if (Object.keys(ant).length > 0) {
+          setAntecedents(prev => ({
+            ...prev,
+            diabete:              ant.diabete              || false,
+            hypertension:         ant.hypertension         || false,
+            asthme:               ant.asthme               || false,
+            bpco:                 ant.bpco                 || false,
+            tuberculose:          ant.tuberculose           || false,
+            vih:                  ant.vih                  || false,
+            typhoide:             ant.typhoide             || false,
+            paludisme:            ant.paludisme            || false,
+            covid19:              ant.covid19              || false,
+            hepatiteB:            ant.hepatite_b           || false,
+            hepatiteC:            ant.hepatite_c           || false,
+            cancerPoumon:         ant.cancer_poumon        || false,
+            traitementEnCours:    ant.traitement_en_cours  || '',
+            allergieMedicaments:  ant.allergie_medicaments || '',
+            tabagisme:            ant.tabagisme            || 'non-fumeur',
+            cigarettesParJour:    ant.cigarettes_par_jour  || 0,
+            dureeTabagisme:       ant.duree_tabagisme      || 0,
+            alcool:               ant.alcool               || false,
+            professionRisque:     ant.profession_risque    || false,
+            expositionProfessionnelle: ant.exposition_professionnelle || '',
+          }));
+        }
+
+        // Charger symptômes s'ils existent
+        const sym = c.symptomes || {};
+        if (Object.keys(sym).length > 0) {
+          setConsultation(prev => ({
+            ...prev,
+            motif:                sym.motif                || '',
+            debutSymptomes:       sym.debut_symptomes      || '',
+            evolution:            sym.evolution            || '',
+            traitementDejaPris:   sym.traitement_deja_pris || '',
+            temperature:          sym.temperature          != null ? String(sym.temperature) : '',
+            saturationO2:         sym.saturation_o2        != null ? String(sym.saturation_o2) : '',
+            frequenceCardiaque:   sym.frequence_cardiaque  != null ? String(sym.frequence_cardiaque) : '',
+            frequenceRespiratoire:sym.frequence_respiratoire != null ? String(sym.frequence_respiratoire) : '',
+            tensionSystolique:    sym.tension_systolique   != null ? String(sym.tension_systolique) : '',
+            tensionDiastolique:   sym.tension_diastolique  != null ? String(sym.tension_diastolique) : '',
+            fvc:                  sym.fvc                  != null ? String(sym.fvc) : '',
+            fec1:                 sym.fec1                 != null ? String(sym.fec1) : '',
+            peakFlow:             sym.peak_flow            != null ? String(sym.peak_flow) : '',
+            fievre:               sym.fievre               || false,
+            fievreTemperature:    sym.fievre_temperature   != null ? String(sym.fievre_temperature) : '',
+            fievreDuree:          sym.fievre_duree         || '',
+            toux:                 sym.toux                 || false,
+            touxType:             sym.toux_type            || 'seche',
+            touxSang:             sym.toux_sang            || false,
+            dyspnee:              sym.dyspnee              || false,
+            dyspneeStade:         sym.dyspnee_stade        || 1,
+            dyspneeRepos:         sym.dyspnee_repos        || false,
+            dyspneeEffort:        sym.dyspnee_effort       || false,
+            douleurThoracique:    sym.douleur_thoracique   || false,
+            douleurType:          sym.douleur_type         || 'angineux',
+            wheezing:             sym.wheezing             || false,
+            hemoptysie:           sym.hemoptysie           || false,
+            fatigue:              sym.fatigue              || false,
+            pertePoids:           sym.perte_poids          || false,
+            sueursNocturnes:      sym.sueurs_nocturnes     || false,
+            courbatures:          sym.courbatures          || false,
+            mauxDeTete:           sym.maux_de_tete         || false,
+            rhinorrhee:           sym.rhinorrhee           || false,
+            crepitants:           sym.crepitants           || false,
+            sibilants:            sym.sibilants            || false,
+            scanner:              sym.scanner              || false,
+            abg_po2_anormal:      sym.abg_po2_anormal      || false,
+            abg_co2_anormal:      sym.abg_co2_anormal      || false,
+            abg_ph_anormal:       sym.abg_ph_anormal       || false,
+          }));
+        }
+
+        // Déterminer l'étape de reprise
+        const hasSymptomes   = Object.keys(sym).length > 0;
+        const hasAntecedents = Object.keys(ant).length > 0;
+        const stepToGo = hasSymptomes ? 3 : hasAntecedents ? 3 : 2;
+        setCurrentStep(stepToGo);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        // Consultation introuvable ou accès refusé — démarrer normalement
+        const pid2 = searchParams.get('patient_id');
+        if (pid2) setPatientId(pid2);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Pré-charger un patient existant depuis ?patient_id=XXX (aide soignant)
+  useEffect(() => {
+    const pid = searchParams.get('patient_id');
+    if (!pid || !isAide) return;
+    (async () => {
+      try {
+        const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+        const token = localStorage.getItem('pneumoia_token') || localStorage.getItem('access_token') || localStorage.getItem('token');
+        const res = await fetch(`${BASE}/aides/patients/${pid}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const p = await res.json();
+        setPatientId(p.id);
+        setPatientInfo(prev => ({
+          ...prev,
+          civilite: p.civilite || '',
+          nom: p.nom || '',
+          prenom: p.prenom || '',
+          dateNaissance: p.date_naissance || '',
+          groupeSanguin: p.groupe_sanguin || '',
+          telephone: p.telephone || '',
+          email: p.email || '',
+          adresse: p.adresse || '',
+          profession: p.profession || '',
+          religion: p.religion || '',
+          personneAContacter: p.personne_a_contacter || '',
+          telephoneUrgence: p.telephone_urgence || '',
+        }));
+        if (maxStep > 1) {
+          // Créer la consultation côté serveur
+          const BASE2 = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+          const consultPath = isAide ? '/aides/consultations' : '/consultations';
+          const cRes = await fetch(`${BASE2}${consultPath}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ patient_id: p.id }),
+          });
+          if (cRes.ok) {
+            const cons = await cRes.json();
+            setConsultationId(cons.id);
+          }
+          setCurrentStep(2);
+        }
+      } catch { /* silently ignore */ }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Pré-charger un patient existant depuis ?patient_id=XXX (médecin, sans consultation_id)
+  useEffect(() => {
+    const pid = searchParams.get('patient_id');
+    const cid = searchParams.get('consultation_id');
+    if (!pid || isAide || cid) return; // géré ailleurs si cid existe ou si c'est une aide
+    (async () => {
+      try {
+        const p = await apiFetch(`/patients/${pid}`);
+        setPatientId(p.id);
+        setPatientInfo(prev => ({
+          ...prev,
+          civilite:           p.civilite      || '',
+          nom:                p.nom           || '',
+          prenom:             p.prenom        || '',
+          dateNaissance:      p.date_naissance || '',
+          groupeSanguin:      p.groupe_sanguin || '',
+          telephone:          p.telephone     || '',
+          email:              p.email         || '',
+          adresse:            p.adresse       || '',
+          profession:         p.profession    || '',
+          religion:           p.religion      || '',
+          personneAContacter: p.personne_a_contacter || '',
+          telephoneUrgence:   p.telephone_urgence    || '',
+        }));
+      } catch { /* silently ignore */ }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isTemoinJehovah = patientInfo.religion === 'temoin_jehovah';
 
@@ -396,13 +605,22 @@ const createAndContinue = async () => {
     }
 
     // ── CAS 2 : Nouveau patient → POST + création consultation ──
-    const patient = await apiFetch('/patients', {
+    const patientEndpoint = isAide ? '/aides/patients' : '/patients';
+    const patient = await apiFetch(patientEndpoint, {
       method: 'POST',
       body: JSON.stringify(patientData),
     });
     setPatientId(patient.id);
 
-    const cons = await apiFetch('/consultations', {
+    if (isAide && maxStep === 1) {
+      addToast(`Patient ${patient.prenom} ${patient.nom} créé`, 'success');
+      setTimeout(() => navigate(aideRetour), 1500);
+      setIsSaving(false);
+      return;
+    }
+
+    const consultEndpoint = isAide ? '/aides/consultations' : '/consultations';
+    const cons = await apiFetch(consultEndpoint, {
       method: 'POST',
       body: JSON.stringify({ patient_id: patient.id }),
     });
@@ -449,10 +667,40 @@ const createAndContinue = async () => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setIsSaving(false);
 };
-  const selectAndContinue = (patientData) => {
-    setPatientInfo({ ...patientInfo, ...patientData });
+  const selectAndContinue = async (patientData) => {
+    // Mapper les champs snake_case → camelCase si nécessaire
+    setPatientId(patientData.id || null);
+    setPatientInfo({
+      civilite:           patientData.civilite            || patientData.civilite        || '',
+      nom:                patientData.nom                 || '',
+      prenom:             patientData.prenom              || '',
+      dateNaissance:      patientData.dateNaissance       || patientData.date_naissance  || '',
+      groupeSanguin:      patientData.groupeSanguin       || patientData.groupe_sanguin  || '',
+      telephone:          patientData.telephone           || '',
+      email:              patientData.email               || '',
+      adresse:            patientData.adresse             || '',
+      profession:         patientData.profession          || '',
+      religion:           patientData.religion            || '',
+      personneAContacter: patientData.personneAContacter  || patientData.personne_a_contacter || '',
+      telephoneUrgence:   patientData.telephoneUrgence    || patientData.telephone_urgence    || '',
+    });
     setShowSearch(false);
     addToast(`Patient ${patientData.nom} ${patientData.prenom} sélectionné`, 'success');
+    if (isAide && maxStep === 1) {
+      navigate(aideRetour);
+      return;
+    }
+    // Créer la consultation pour ce patient existant
+    if (patientData.id) {
+      try {
+        const consultEndpoint = isAide ? '/aides/consultations' : '/consultations';
+        const cons = await apiFetch(consultEndpoint, {
+          method: 'POST',
+          body: JSON.stringify({ patient_id: patientData.id }),
+        });
+        setConsultationId(cons.id);
+      } catch { /* patient sera créé/lié au step 1 */ }
+    }
     setCurrentStep(2);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -485,7 +733,8 @@ const createAndContinue = async () => {
 
     try {
       if (modeOffline) throw new Error('offline');
-      await apiFetch(`/consultations/${consultationId}/antecedents`, {
+      const antPath = isAide ? `/aides/consultations/${consultationId}/antecedents` : `/consultations/${consultationId}/antecedents`;
+      await apiFetch(antPath, {
         method: 'PATCH',
         body: JSON.stringify(antecedentsData),
       });
@@ -515,6 +764,13 @@ const createAndContinue = async () => {
   };
 
   const handleFinish = async () => {
+    // L'aide soignant ne peut pas donner d'avis médical — juste terminer et retourner
+    if (isAide) {
+      addToast('Consultation enregistrée avec succès !', 'success');
+      setTimeout(() => navigate(aideRetour), 1500);
+      return;
+    }
+
     setIsSaving(true);
 
     const diagnosticRetenu = prescription.diagnosticFinal === 'autre'
@@ -556,7 +812,7 @@ const createAndContinue = async () => {
       }
 
       addToast('Consultation enregistrée avec succès !', 'success');
-      setTimeout(() => navigate('/medecin/dashboard'), 2000);
+      setTimeout(() => navigate(isAide ? aideRetour : '/medecin/dashboard'), 2000);
     } catch (err) {
       if (isNetworkError(err) || err.message === 'offline') {
         setModeOffline(true);
@@ -585,7 +841,7 @@ const createAndContinue = async () => {
         }
 
         addToast('Consultation sauvegardée localement — sera synchronisée à la reconnexion', 'warning');
-        setTimeout(() => navigate('/medecin/dashboard'), 2000);
+        setTimeout(() => navigate(isAide ? aideRetour : '/medecin/dashboard'), 2000);
       } else {
         addToast(err.message, 'error');
       }
@@ -594,22 +850,73 @@ const createAndContinue = async () => {
     }
   };
 
-  // Recherche patient
-  const handleSearchPatient = () => {
+  // Recherche patient — appel API réel
+  const handleSearchPatient = async () => {
     if (searchTerm.length < 2) {
       addToast('Veuillez entrer au moins 2 caractères', 'warning');
       return;
     }
-    const mockResults = [
-      { id: 1, nom: 'Tagne',  prenom: 'Jean',  dateNaissance: '1975-03-15', telephone: '+237 6XX XXX XXX', adresse: 'Douala',  profession: 'Enseignant' },
-      { id: 2, nom: 'FOUDA',  prenom: 'Marie', dateNaissance: '1972-08-22', telephone: '+237 6XX XXX XXX', adresse: 'Yaoundé', profession: 'Infirmière' }
-    ].filter(p => p.nom.toLowerCase().includes(searchTerm.toLowerCase()) || p.prenom.toLowerCase().includes(searchTerm.toLowerCase()));
-    setSearchResults(mockResults);
-    if (mockResults.length === 0) addToast('Aucun patient trouvé', 'info');
+    try {
+      const endpoint = isAide
+        ? `/aides/patients`
+        : `/patients/search?q=${encodeURIComponent(searchTerm)}`;
+      const results = await apiFetch(endpoint);
+      const list = Array.isArray(results) ? results : [];
+      const filtered = isAide
+        ? list.filter(p =>
+            p.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.telephone?.includes(searchTerm)
+          )
+        : list;
+      setSearchResults(filtered.map(p => ({
+        id:            p.id,
+        nom:           p.nom,
+        prenom:        p.prenom,
+        dateNaissance: p.date_naissance,
+        telephone:     p.telephone,
+        adresse:       p.adresse,
+        profession:    p.profession,
+        religion:      p.religion,
+        groupeSanguin: p.groupe_sanguin,
+        personneAContacter: p.personne_a_contacter,
+        telephoneUrgence:   p.telephone_urgence,
+      })));
+      if (!filtered.length) addToast('Aucun patient trouvé', 'info');
+    } catch (err) {
+      addToast(err.message, 'error');
+    }
   };
 
   // ==================== IA - DIAGNOSTIC BASÉ SUR LE DATASET ====================
   const runAIAnalysis = async () => {
+    // ── Validation des champs obligatoires ──
+    const missingFields = [];
+    if (!consultation.saturationO2 || consultation.saturationO2 === '')
+      missingFields.push('Saturation O₂ (SpO₂)');
+    if (!consultation.frequenceCardiaque || consultation.frequenceCardiaque === '')
+      missingFields.push('Fréquence cardiaque (FC)');
+    if (!consultation.tensionSystolique || consultation.tensionSystolique === '')
+      missingFields.push('Tension artérielle systolique');
+    if (!consultation.tensionDiastolique || consultation.tensionDiastolique === '')
+      missingFields.push('Tension artérielle diastolique');
+
+    const hasSymptome = consultation.toux || consultation.dyspnee ||
+      consultation.douleurThoracique || consultation.wheezing ||
+      consultation.hemoptysie || consultation.fatigue ||
+      consultation.fievre || consultation.motif;
+
+    if (!hasSymptome)
+      missingFields.push('Au moins un symptôme ou motif de consultation');
+
+    if (missingFields.length > 0) {
+      addToast(
+        `Champs requis manquants : ${missingFields.join(', ')}`,
+        'error'
+      );
+      return;
+    }
+
     const spo2     = parseFloat(consultation.saturationO2) || 97;
     const fvc      = consultation.fvc      && consultation.fvc !== ''      ? parseFloat(consultation.fvc)      : null;
     const fec1     = consultation.fec1     && consultation.fec1 !== ''     ? parseFloat(consultation.fec1)     : null;
@@ -667,7 +974,8 @@ const createAndContinue = async () => {
 
     try {
       if (modeOffline) throw new Error('offline');
-      await apiFetch(`/consultations/${consultationId}/symptomes`, {
+      const sympPath = isAide ? `/aides/consultations/${consultationId}/symptomes` : `/consultations/${consultationId}/symptomes`;
+      await apiFetch(sympPath, {
         method: 'PATCH',
         body: JSON.stringify(symptomesData),
       });
@@ -681,6 +989,14 @@ const createAndContinue = async () => {
         });
       }
       // On continue vers le diagnostic dans tous les cas
+    }
+
+    // ── Aide soignant sans droit voir_diagnostic : enregistrer les symptômes et partir ──
+    if (isAide && !aidePerms.peut_voir_diagnostic) {
+      addToast('Symptômes enregistrés avec succès', 'success');
+      setIsAnalyzing(false);
+      setTimeout(() => navigate(aideRetour), 1500);
+      return;
     }
 
     // ── Étape B : diagnostic avec bascule offline ─────────────
@@ -1042,11 +1358,11 @@ const createAndContinue = async () => {
       <FormCard title="Signes vitaux" icon={<HeartPulse className="w-4 h-4" />}>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <InputField label="Température (°C)" type="number" step="0.1" value={consultation.temperature} onChange={(e) => setConsultation({...consultation, temperature: e.target.value})} icon={Thermometer} />
-          <InputField label="SpO₂ (%)" type="number" min="0" max="100" value={consultation.saturationO2} onChange={(e) => setConsultation({...consultation, saturationO2: e.target.value})} icon={Droplet} />
-          <InputField label="FC (bpm)" type="number" value={consultation.frequenceCardiaque} onChange={(e) => setConsultation({...consultation, frequenceCardiaque: e.target.value})} icon={Heart} />
-          <InputField label="FR (/min)" type="number" value={consultation.frequenceRespiratoire} onChange={(e) => setConsultation({...consultation, frequenceRespiratoire: e.target.value})} icon={Wind} />
-          <InputField label="TA systolique" type="number" value={consultation.tensionSystolique} onChange={(e) => setConsultation({...consultation, tensionSystolique: e.target.value})} icon={Activity} />
-          <InputField label="TA diastolique" type="number" value={consultation.tensionDiastolique} onChange={(e) => setConsultation({...consultation, tensionDiastolique: e.target.value})} icon={Activity} />
+          <InputField label="SpO₂ (%)" required type="number" min="0" max="100" value={consultation.saturationO2} onChange={(e) => setConsultation({...consultation, saturationO2: e.target.value})} icon={Droplet} />
+          <InputField label="FC (bpm)" required type="number" value={consultation.frequenceCardiaque} onChange={(e) => setConsultation({...consultation, frequenceCardiaque: e.target.value})} icon={Heart} />
+<InputField label="FR (/min)" type="number" value={consultation.frequenceRespiratoire} onChange={(e) => setConsultation({...consultation, frequenceRespiratoire: e.target.value})} icon={Wind} />
+          <InputField label="TA systolique" required type="number" value={consultation.tensionSystolique} onChange={(e) => setConsultation({...consultation, tensionSystolique: e.target.value})} icon={Activity} />
+          <InputField label="TA diastolique" required type="number" value={consultation.tensionDiastolique} onChange={(e) => setConsultation({...consultation, tensionDiastolique: e.target.value})} icon={Activity} />
         </div>
       </FormCard>
 
@@ -1139,10 +1455,39 @@ const createAndContinue = async () => {
 
       <div className="flex justify-between">
         <button onClick={handlePrev} className="px-5 py-2.5 border rounded-lg text-sm">← Retour</button>
-        <button onClick={runAIAnalysis} disabled={isAnalyzing} className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium flex items-center gap-2">
-          {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
-          {isAnalyzing ? 'Analyse en cours...' : "Lancer l'analyse IA"}
+        {(() => {
+          const needsIA = !(isAide && !aidePerms.peut_voir_diagnostic);
+          const hasRequiredFields = needsIA
+            ? (consultation.saturationO2 && consultation.frequenceCardiaque &&
+               consultation.tensionSystolique && consultation.tensionDiastolique &&
+               (consultation.toux || consultation.dyspnee || consultation.douleurThoracique ||
+                consultation.wheezing || consultation.hemoptysie || consultation.fatigue ||
+                consultation.fievre || consultation.motif))
+            : true;
+          const isDisabled = isAnalyzing || (needsIA && !hasRequiredFields);
+          return (
+        <button onClick={runAIAnalysis} disabled={isDisabled}
+          title={needsIA && !hasRequiredFields ? 'Remplissez SpO₂, FC, TA et au moins un symptôme' : ''}
+          className={`px-6 py-2.5 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
+            isDisabled
+              ? 'bg-gray-400 cursor-not-allowed opacity-60'
+              : isAide && !aidePerms.peut_voir_diagnostic
+                ? 'bg-emerald-600 hover:bg-emerald-700'
+                : 'bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+          }`}>
+          {isAnalyzing
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : isAide && !aidePerms.peut_voir_diagnostic
+              ? <CheckCircle className="w-4 h-4" />
+              : <Brain className="w-4 h-4" />}
+          {isAnalyzing
+            ? 'Enregistrement...'
+            : isAide && !aidePerms.peut_voir_diagnostic
+              ? 'Enregistrer'
+              : "Lancer l'analyse IA"}
         </button>
+          );
+        })()}
       </div>
     </div>
   );
@@ -1257,7 +1602,7 @@ const createAndContinue = async () => {
           <h3 className="font-bold text-sm mb-3 flex items-center gap-2 text-(--t1)">
             <Target className="w-4 h-4 text-blue-600" /> Diagnostic principal
           </h3>
-          <div className="text-center p-4 bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/5 rounded-lg">
+          <div className="text-center p-4 bg-blue-50 rounded-lg">
             <div className="text-xl font-bold text-blue-700 dark:text-blue-300">{aiResult.principal || 'En attente'}</div>
             <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 dark:bg-blue-500/20 rounded-full text-xs">
               <Brain className="w-3 h-3" /> Confiance patient : {aiResult.confidence}%
@@ -1329,7 +1674,7 @@ const createAndContinue = async () => {
       )}
 
       {/* Recommandations */}
-      <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-xl p-4 dark:from-blue-500/10 dark:to-blue-500/5">
+      <div className="bg-blue-50 rounded-xl p-4">
         <h3 className="font-bold text-sm text-blue-900 dark:text-blue-200 mb-2 flex items-center gap-2">
           <Zap className="w-4 h-4" /> Recommandations
         </h3>
@@ -1343,92 +1688,102 @@ const createAndContinue = async () => {
         </div>
       </div>
 
-      {/* Validation diagnostic par le médecin */}
-      <FormCard title="Avis du médecin sur le diagnostic IA" icon={<Stethoscope className="w-4 h-4" />}>
-        <p className="text-xs text-(--t4) mb-3">Sélectionnez le diagnostic que vous retenez cliniquement.</p>
-        <div className="space-y-2">
-          {[aiResult.principal, ...(aiResult.differentials || []).map(d => d.name)]
-            .filter(Boolean)
-            .map((maladie, i) => (
-              <label key={i} className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-(--ln) hover:bg-(--sf2) transition-colors">
-                <input
-                  type="radio"
-                  name="diagnosticFinal"
-                  value={maladie}
-                  checked={prescription.diagnosticFinal === maladie}
-                  onChange={() => {
-                    if (maladie !== aiResult.principal) {
-                      const diff = aiResult.differentials.find(d => d.name === maladie);
-                      setPrescription(prev => ({
-                        ...prev,
-                        diagnosticFinal: maladie,
-                        recommandations: diff?.recommandations?.length > 0
-                          ? diff.recommandations.join('\n')
-                          : prev.recommandations,
-                      }));
-                    } else {
-                      setPrescription(prev => ({
-                        ...prev,
-                        diagnosticFinal: maladie,
-                        recommandations: (aiResult.recommendations || []).join('\n'),
-                      }));
-                    }
-                  }}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <span className="text-sm text-(--t1) flex-1">{maladie}</span>
-                {i === 0 && (
-                  <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">Suggestion IA</span>
-                )}
-              </label>
-            ))
-          }
-          <label className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-(--ln) hover:bg-(--sf2) transition-colors">
-            <input
-              type="radio"
-              name="diagnosticFinal"
-              value="autre"
-              checked={prescription.diagnosticFinal === 'autre'}
-              onChange={() => setPrescription({...prescription, diagnosticFinal: 'autre'})}
-              className="w-4 h-4 text-blue-600"
-            />
-            <span className="text-sm text-(--t1)">Autre diagnostic</span>
-          </label>
-        </div>
-        {prescription.diagnosticFinal === 'autre' && (
-          <div className="mt-3">
-            <InputField
-              label="Précisez le diagnostic retenu"
-              value={prescription.diagnosticAutre || ''}
-              onChange={(e) => setPrescription({...prescription, diagnosticAutre: e.target.value})}
-              placeholder="Ex: Bronchite aiguë, Pleurésie..."
-            />
+      {/* Validation diagnostic par le médecin — masquée pour les aides */}
+      {!isAide ? (
+        <FormCard title="Avis du médecin sur le diagnostic IA" icon={<Stethoscope className="w-4 h-4" />}>
+          <p className="text-xs text-(--t4) mb-3">Sélectionnez le diagnostic que vous retenez cliniquement.</p>
+          <div className="space-y-2">
+            {[aiResult.principal, ...(aiResult.differentials || []).map(d => d.name)]
+              .filter(Boolean)
+              .map((maladie, i) => (
+                <label key={i} className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-(--ln) hover:bg-(--sf2) transition-colors">
+                  <input
+                    type="radio"
+                    name="diagnosticFinal"
+                    value={maladie}
+                    checked={prescription.diagnosticFinal === maladie}
+                    onChange={() => {
+                      if (maladie !== aiResult.principal) {
+                        const diff = aiResult.differentials.find(d => d.name === maladie);
+                        setPrescription(prev => ({
+                          ...prev,
+                          diagnosticFinal: maladie,
+                          recommandations: diff?.recommandations?.length > 0
+                            ? diff.recommandations.join('\n')
+                            : prev.recommandations,
+                        }));
+                      } else {
+                        setPrescription(prev => ({
+                          ...prev,
+                          diagnosticFinal: maladie,
+                          recommandations: (aiResult.recommendations || []).join('\n'),
+                        }));
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm text-(--t1) flex-1">{maladie}</span>
+                  {i === 0 && (
+                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">Suggestion IA</span>
+                  )}
+                </label>
+              ))
+            }
+            <label className="flex items-center gap-3 cursor-pointer p-2.5 rounded-lg border border-(--ln) hover:bg-(--sf2) transition-colors">
+              <input
+                type="radio"
+                name="diagnosticFinal"
+                value="autre"
+                checked={prescription.diagnosticFinal === 'autre'}
+                onChange={() => setPrescription({...prescription, diagnosticFinal: 'autre'})}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="text-sm text-(--t1)">Autre diagnostic</span>
+            </label>
           </div>
-        )}
-        <div className="mt-3 flex gap-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="concordance" value="oui"
-              checked={prescription.concordanceIA === true}
-              onChange={() => setPrescription({...prescription, concordanceIA: true})}
-              className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-xs text-emerald-700 font-medium inline-flex items-center gap-1">
-              <CheckCircle className="w-3.5 h-3.5" /> Je confirme le diagnostic IA
-            </span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="concordance" value="non"
-              checked={prescription.concordanceIA === false}
-              onChange={() => setPrescription({...prescription, concordanceIA: false})}
-              className="w-3.5 h-3.5 text-red-600" />
-            <span className="text-xs text-red-700 font-medium inline-flex items-center gap-1">
-              <XCircle className="w-3.5 h-3.5" /> Je diverge du diagnostic IA
-            </span>
-          </label>
+          {prescription.diagnosticFinal === 'autre' && (
+            <div className="mt-3">
+              <InputField
+                label="Précisez le diagnostic retenu"
+                value={prescription.diagnosticAutre || ''}
+                onChange={(e) => setPrescription({...prescription, diagnosticAutre: e.target.value})}
+                placeholder="Ex: Bronchite aiguë, Pleurésie..."
+              />
+            </div>
+          )}
+          <div className="mt-3 flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="concordance" value="oui"
+                checked={prescription.concordanceIA === true}
+                onChange={() => setPrescription({...prescription, concordanceIA: true})}
+                className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="text-xs text-emerald-700 font-medium inline-flex items-center gap-1">
+                <CheckCircle className="w-3.5 h-3.5" /> Je confirme le diagnostic IA
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="concordance" value="non"
+                checked={prescription.concordanceIA === false}
+                onChange={() => setPrescription({...prescription, concordanceIA: false})}
+                className="w-3.5 h-3.5 text-red-600" />
+              <span className="text-xs text-red-700 font-medium inline-flex items-center gap-1">
+                <XCircle className="w-3.5 h-3.5" /> Je diverge du diagnostic IA
+              </span>
+            </label>
+          </div>
+        </FormCard>
+      ) : (
+        <div className="rounded-xl p-5 border-2 border-dashed border-(--ln) flex items-center gap-4 text-(--t3)">
+          <Lock className="w-6 h-6 shrink-0 text-(--t4)" />
+          <div>
+            <p className="font-semibold text-sm text-(--t2)">Avis du médecin</p>
+            <p className="text-xs mt-0.5">L'avis clinique sera complété par le médecin superviseur après votre saisie.</p>
+          </div>
         </div>
-      </FormCard>
+      )}
 
       {/* Recommandations adaptées au choix du médecin */}
-      {prescription.diagnosticFinal && prescription.diagnosticFinal !== 'autre' && prescription.diagnosticFinal !== aiResult.principal && (
+      {!isAide && prescription.diagnosticFinal && prescription.diagnosticFinal !== 'autre' && prescription.diagnosticFinal !== aiResult.principal && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
           <p className="text-xs font-medium text-amber-800 mb-2">
             Vous avez choisi <strong>{prescription.diagnosticFinal}</strong> — recommandations adaptées :
@@ -1441,31 +1796,40 @@ const createAndContinue = async () => {
         </div>
       )}
 
-      {/* Prescription médicale */}
-      <FormCard title="Prescription médicale" icon={<Pill className="w-4 h-4" />}>
-        <TextAreaField label="Médicaments" value={prescription.medicaments} onChange={(e) => setPrescription({...prescription, medicaments: e.target.value})} placeholder="Amoxicilline 1g × 3/j pendant 7 jours" rows={3} />
-        <TextAreaField label="Conseils à domicile" value={prescription.conseilsMaison} onChange={(e) => setPrescription({...prescription, conseilsMaison: e.target.value})} placeholder="Hydratation, repos, kinésithérapie..." rows={2} />
-        <TextAreaField label="Recommandations" value={prescription.recommandations} onChange={(e) => setPrescription({...prescription, recommandations: e.target.value})} placeholder="Consultation de contrôle, surveillance..." rows={2} />
+      {/* Prescription médicale — masquée si aide sans droit prescrire */}
+      {(!isAide || aidePerms.peut_prescrire) ? (
+        <FormCard title="Prescription médicale" icon={<Pill className="w-4 h-4" />}>
+          <TextAreaField label="Médicaments" value={prescription.medicaments} onChange={(e) => setPrescription({...prescription, medicaments: e.target.value})} placeholder="Amoxicilline 1g × 3/j pendant 7 jours" rows={3} />
+          <TextAreaField label="Conseils à domicile" value={prescription.conseilsMaison} onChange={(e) => setPrescription({...prescription, conseilsMaison: e.target.value})} placeholder="Hydratation, repos, kinésithérapie..." rows={2} />
+          <TextAreaField label="Recommandations" value={prescription.recommandations} onChange={(e) => setPrescription({...prescription, recommandations: e.target.value})} placeholder="Consultation de contrôle, surveillance..." rows={2} />
 
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          <div>
-            <CheckboxField label="Arrêt de travail" checked={prescription.arretTravail} onChange={(c) => setPrescription({...prescription, arretTravail: c})} />
-            {prescription.arretTravail && <InputField label="Durée (jours)" type="number" value={prescription.dureeArret} onChange={(e) => setPrescription({...prescription, dureeArret: e.target.value})} className="mt-2" />}
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div>
+              <CheckboxField label="Arrêt de travail" checked={prescription.arretTravail} onChange={(c) => setPrescription({...prescription, arretTravail: c})} />
+              {prescription.arretTravail && <InputField label="Durée (jours)" type="number" value={prescription.dureeArret} onChange={(e) => setPrescription({...prescription, dureeArret: e.target.value})} className="mt-2" />}
+            </div>
+            <div>
+              <CheckboxField label="Hospitalisation" checked={prescription.hospitalisation} onChange={(c) => setPrescription({...prescription, hospitalisation: c})} />
+              {prescription.hospitalisation && <InputField label="Motif" value={prescription.motifHospitalisation} onChange={(e) => setPrescription({...prescription, motifHospitalisation: e.target.value})} className="mt-2" />}
+            </div>
           </div>
+
+          <SelectField label="Suivi" value={prescription.suivi} onChange={(e) => setPrescription({...prescription, suivi: e.target.value})} options={[
+            {value: '7 jours', label: '7 jours'}, {value: '15 jours', label: '15 jours'},
+            {value: '1 mois', label: '1 mois'}, {value: '3 mois', label: '3 mois'}
+          ]} />
+
+          <TextAreaField label="Observations du médecin" value={prescription.observations} onChange={(e) => setPrescription({...prescription, observations: e.target.value})} placeholder="Notes complémentaires, contexte particulier..." rows={2} />
+        </FormCard>
+      ) : (
+        <div className="rounded-xl p-5 border-2 border-dashed border-(--ln) flex items-center gap-4 text-(--t3)">
+          <Lock className="w-6 h-6 shrink-0 text-(--t4)" />
           <div>
-            <CheckboxField label="Hospitalisation" checked={prescription.hospitalisation} onChange={(c) => setPrescription({...prescription, hospitalisation: c})} />
-            {prescription.hospitalisation && <InputField label="Motif" value={prescription.motifHospitalisation} onChange={(e) => setPrescription({...prescription, motifHospitalisation: e.target.value})} className="mt-2" />}
+            <p className="font-semibold text-sm text-(--t2)">Prescription médicale</p>
+            <p className="text-xs mt-0.5">Vous n'avez pas les droits pour établir une prescription. Le médecin supervisera cette étape.</p>
           </div>
         </div>
-
-        <SelectField label="Suivi" value={prescription.suivi} onChange={(e) => setPrescription({...prescription, suivi: e.target.value})} options={[
-          {value: '7 jours', label: '7 jours'}, {value: '15 jours', label: '15 jours'},
-          {value: '1 mois', label: '1 mois'}, {value: '3 mois', label: '3 mois'}
-        ]} />
-
-        <TextAreaField label="Observations du médecin" value={prescription.observations} onChange={(e) => setPrescription({...prescription, observations: e.target.value})} placeholder="Notes complémentaires, contexte particulier..." rows={2} />
-
-      </FormCard>
+      )}
 
       <div className="flex justify-between">
         <button onClick={handlePrev} className="px-5 py-2.5 border rounded-lg text-sm">← Retour</button>

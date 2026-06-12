@@ -32,6 +32,7 @@ export default function MedecinLayout() {
     if (path.includes('/parametres')) return 'Paramètres';
     if (path.includes('/historique')) return 'Historique';
     if (path.includes('/corbeille')) return 'Corbeille';
+    if (path.includes('/mon-equipe')) return 'Mon équipe';
     return 'Dashboard';
   };
 
