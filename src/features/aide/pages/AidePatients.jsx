@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { getMesPatientsAide } from '../../../services/patientsApi';
 
-const RED = '#DC2626';
+const BLUE = '#2563EB';
 
 const STATUS_CFG = {
   actif:   { label:'Actif',      cls:'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/15' },
@@ -47,8 +47,8 @@ export default function AidePatients() {
 
   if (error === 'access') return (
     <div className="w-full max-w-6xl mx-auto flex flex-col items-center justify-center py-24 text-center gap-4">
-      <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
-        <Lock className="w-8 h-8 text-red-500" />
+      <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+        <Lock className="w-8 h-8 text-blue-500" />
       </div>
       <div>
         <h2 className="font-bold text-lg text-(--t1)">Accès restreint</h2>
@@ -71,7 +71,7 @@ export default function AidePatients() {
         </div>
         {perms.peut_creer_patient && (
           <Link to="/aide/patients/nouveau"
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white rounded-xl bg-red-600 hover:bg-red-700 transition-colors active:scale-95 shadow-sm">
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white rounded-xl bg-blue-600 hover:bg-blue-700 transition-colors active:scale-95 shadow-sm">
             <UserPlus className="w-4 h-4" /> Nouveau patient
           </Link>
         )}
@@ -83,13 +83,13 @@ export default function AidePatients() {
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-(--t4)" />
         <input type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Rechercher par nom, prénom, email…"
-          className="w-full pl-10 pr-4 py-2.5 bg-(--sf) border border-(--ln) rounded-xl text-sm text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-red-400/25 focus:border-red-400 transition-all" />
+          className="w-full pl-10 pr-4 py-2.5 bg-(--sf) border border-(--ln) rounded-xl text-sm text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-400/25 focus:border-blue-400 transition-all" />
       </motion.div>
 
       {/* ── Contenu ── */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="w-7 h-7 animate-spin text-red-500" />
+          <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
@@ -112,7 +112,7 @@ export default function AidePatients() {
           </div>
           {!search && perms.peut_creer_patient && (
             <Link to="/aide/patients/nouveau"
-              className="mt-1 text-sm font-bold text-white px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 transition-colors">
+              className="mt-1 text-sm font-bold text-white px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 transition-colors">
               Ajouter un patient
             </Link>
           )}
@@ -142,7 +142,7 @@ export default function AidePatients() {
                 <div key={p.id} onClick={() => navigate(`/aide/patients/${p.id}`)}
                   className="flex items-center gap-4 px-5 py-4 hover:bg-(--sf2) transition-colors cursor-pointer group">
                   {/* Avatar */}
-                  <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-sm font-bold text-white shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-sm font-bold text-white shrink-0">
                     {ini}
                   </div>
                   {/* Infos */}
@@ -171,7 +171,7 @@ export default function AidePatients() {
                   </div>
                   {/* Flèche */}
                   {perms.peut_lire_dossier && (
-                    <ChevronRight className="w-4 h-4 text-(--t4) group-hover:text-red-500 shrink-0 transition-colors" />
+                    <ChevronRight className="w-4 h-4 text-(--t4) group-hover:text-blue-500 shrink-0 transition-colors" />
                   )}
                 </div>
               );

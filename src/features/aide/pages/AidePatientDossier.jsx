@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { getPatientAide, updatePatientAide } from '../../../services/patientsApi';
 
-const RED = '#DC2626';
+const BLUE = '#2563EB';
 
 function calculerAge(dateStr) {
   if (!dateStr) return null;
@@ -31,7 +31,7 @@ function InfoRow({ icon: Icon, label, value, color = 'text-(--t3)' }) {
   );
 }
 
-const inp = "w-full px-3 py-2.5 border border-(--ln) rounded-xl bg-(--sf2) text-(--t1) text-sm focus:outline-none focus:ring-2 focus:ring-red-400/30 focus:border-red-400 transition-all placeholder:text-(--t4)";
+const inp = "w-full px-3 py-2.5 border border-(--ln) rounded-xl bg-(--sf2) text-(--t1) text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 transition-all placeholder:text-(--t4)";
 const GROUPES = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
 
 export default function AidePatientDossier() {

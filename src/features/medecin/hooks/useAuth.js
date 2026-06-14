@@ -4,8 +4,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 // Cache module-level : tous les composants qui appellent useProfil()
 // partagent le même fetch — 1 seul appel réseau par session.
-let _cache   = null;   // résultat mis en cache
-let _promise = null;   // promise en cours (évite les appels parallèles)
+let _cache     = null;   // résultat mis en cache
+let _promise   = null;   // promise en cours (évite les appels parallèles)
+const _listeners = new Set(); // abonnés pour les mises à jour de cache
 
 function fetchProfil(token) {
   if (_cache)   return Promise.resolve(_cache);
@@ -30,10 +31,21 @@ export function invalidateProfil() {
   _promise = null;
 }
 
+export function updateProfilCache(newData) {
+  _cache   = newData;
+  _promise = null;
+  _listeners.forEach(fn => fn(newData));
+}
+
 export function useProfil() {
   const [profil,  setProfil]  = useState(_cache);
   const [loading, setLoading] = useState(!_cache);
   const [error,   setError]   = useState(null);
+
+  useEffect(() => {
+    _listeners.add(setProfil);
+    return () => _listeners.delete(setProfil);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token')

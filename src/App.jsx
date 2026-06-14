@@ -29,6 +29,7 @@ import Commantaire from './features/medecin/pages/Commantaire';
 import CorbeilleMedecin      from './features/medecin/pages/Corbeille';
 import PatientDossier  from './features/medecin/pages/PatientDossier';
 import NouveauPatient  from './features/medecin/pages/NouveauPatient';
+import MesPublications from './features/medecin/pages/MesPublications';
 
 import AideLayout          from './features/aide/layout/AideLayout';
 import AideDashboard       from './features/aide/pages/AideDashboard';
@@ -106,9 +107,10 @@ function App() {
               <Route path="historique" element={<Historique/>} />
               <Route path="monitoring" element={<Monitoring/>} />
               <Route path="commentaires" element={<Commantaire/>} />
-              <Route path="corbeille"        element={<CorbeilleMedecin />} />
-              <Route path="patients/nouveau" element={<NouveauPatient />} />
-              <Route path="patients/:patientId" element={<PatientDossier />} />
+              <Route path="corbeille"            element={<CorbeilleMedecin />} />
+              <Route path="mes-publications"     element={<MesPublications />} />
+              <Route path="patients/nouveau"     element={<NouveauPatient />} />
+              <Route path="patients/:patientId"  element={<PatientDossier />} />
             </Route>
 
             {/* SECTION AIDE SOIGNANT */}

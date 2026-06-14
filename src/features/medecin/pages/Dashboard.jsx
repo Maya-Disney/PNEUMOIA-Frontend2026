@@ -1,19 +1,15 @@
 // src/features/medecin/pages/Dashboard.jsx
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
+import {
   Users, AlertTriangle, Stethoscope, Award,
-  MessageCircle, Bell, ChevronRight, Eye,
+  ChevronRight, Eye,
   FileText, Calendar, Clock, TrendingUp,
-  Activity, CheckCircle, Clock as ClockIcon,
-  Star, TrendingDown, MoreHorizontal, PlusCircle,
-  RefreshCw, Info, ArrowUpRight, UserPlus,
-  Zap, Shield, Sparkles, Crown, HeartHandshake,
-  Target, Rocket, Send, Phone, Mail, MapPin, 
-  Briefcase, GraduationCap, Building2, 
-  Globe, BookOpen, Trophy,
-  Heart, Brain, Microscope, ClipboardList, Pill,
-  Calendar as CalendarIcon  
+  Activity, CheckCircle,
+  Star, PlusCircle,
+  RefreshCw, UserPlus,
+  Zap, Crown, Trophy,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
@@ -27,112 +23,31 @@ import {
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, ChartTooltip, ChartLegend);
 import { useProfil } from '../hooks/useAuth';
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
+async function apiFetch(ep) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API}${ep}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`Erreur ${res.status}`);
+  return res.json();
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { profil } = useProfil();
   const [period, setPeriod] = useState('weekly');
   const [statsLoading, setStatsLoading] = useState(false);
+  const [rankData, setRankData] = useState(null);
   const [dashboardData, setDashboardData] = useState({
     stats: [],
     chartData: [],
     recentConsultations: [],
-    recentMessages: [],
     recentPatients: [],
-    notifications: [],
     diagnostics: [],
-    ranking: { position: 2, total: 20, score: 94.2, cases: 124 }
+    ranking: { position: '—', total: '—', score: '—', cases: '—' }
   });
 
-  // Données mockées
-  const mockMessages = [
-    { id: 1, sender: "Dr. Merlin", message: "Pouvez-vous m'envoyer le résultat de Tamo ?", time: "14:30", unread: true, avatar: "DM" },
-    { id: 2, sender: "Dr Kamto Jordan", message: "Merci pour le partage du cas #124", time: "11:20", unread: false, avatar: "KJ" },
-    { id: 3, sender: "Dr. Nkoa", message: "Questions sur la prise en charge BPCO", time: "Hier", unread: true, avatar: "DN" },
-    { id: 4, sender: "Dr. Fouda", message: "Cas clinique intéressant à partager", time: "25/03", unread: false, avatar: "DF" }
-  ];
 
-  const mockNotifications = [
-    { id: 1, text: "Suivi dépassé — KAMGA Jean depuis 9 jours", time: "Il y a 2h", type: "warning", icon: ClockIcon },
-    { id: 2, text: "Dr. Martin demande accès au dossier de TAMO Bernard", time: "Il y a 3h", type: "info", icon: Users },
-    { id: 3, text: "Votre cas #124 a reçu 3 nouveaux commentaires", time: "Hier", type: "success", icon: MessageCircle }
-  ];
-
-  const calculateStats = () => {
-    const today = new Date();
-    const patients = JSON.parse(localStorage.getItem('medecin_patients') || '[]');
-    const consultations = JSON.parse(localStorage.getItem('medecin_consultations') || '[]');
-    
-    const patientsThisMonth = patients.filter(p => {
-      const lastVisit = new Date(p.lastVisit);
-      return lastVisit.getMonth() === today.getMonth();
-    }).length;
-    
-    const patientsLastMonth = patients.filter(p => {
-      const lastVisit = new Date(p.lastVisit);
-      return lastVisit.getMonth() === today.getMonth() - 1;
-    }).length;
-    
-    const patientGrowth = patientsLastMonth ? ((patientsThisMonth - patientsLastMonth) / patientsLastMonth * 100).toFixed(1) : 12;
-    
-    const consultationsThisMonth = consultations.filter(c => {
-      const date = new Date(c.date);
-      return date.getMonth() === today.getMonth();
-    }).length;
-    
-    const consultationsLastMonth = consultations.filter(c => {
-      const date = new Date(c.date);
-      return date.getMonth() === today.getMonth() - 1;
-    }).length;
-    
-    const consultationGrowth = consultationsLastMonth ? ((consultationsThisMonth - consultationsLastMonth) / consultationsLastMonth * 100).toFixed(1) : 8;
-    
-    const urgentCases = patients.filter(p => p.status === 'critique').length;
-    
-    return {
-      stats: [
-        { 
-          title: "Patients totaux", 
-          value: patients.length || 247, 
-          icon: Users, 
-          increase: `+${patientGrowth}%`, 
-          trend: "up",
-          gradient: "from-blue-500 to-blue-600",
-          subtitle: `${patientsThisMonth} nouveaux ce mois-ci`,
-          link: "/medecin/patients"
-        },
-        { 
-          title: "Cas urgents", 
-          value: urgentCases || 18, 
-          icon: AlertTriangle, 
-          increase: "+5%", 
-          trend: "up",
-          gradient: "from-orange-500 to-orange-600",
-          subtitle: `${urgentCases} patients nécessitent une attention immédiate`,
-          link: "/medecin/patients?status=critique"
-        },
-        { 
-          title: "Consultations", 
-          value: consultations.length || 1247, 
-          icon: Stethoscope, 
-          increase: `+${consultationGrowth}%`, 
-          trend: "up",
-          gradient: "from-emerald-500 to-emerald-600",
-          subtitle: `${consultationsThisMonth} consultations ce mois-ci`,
-          link: "/medecin/historique-consultations"
-        },
-        { 
-          title: "Communauté", 
-          value: "128", 
-          icon: Award, 
-          increase: "+15%", 
-          trend: "up",
-          gradient: "from-blue-500 to-blue-600",
-          subtitle: "124 cas partagés, 5 nouveaux membres",
-          link: "/medecin/cas-cliniques"
-        }
-      ]
-    };
-  };
 
   const generateChartData = (period) => {
     if (period === 'weekly') {
@@ -168,66 +83,148 @@ export default function Dashboard() {
     loadDashboardData();
   }, [period]);
 
-  const loadDashboardData = () => {
+  const loadDashboardData = async () => {
     setStatsLoading(true);
-    setTimeout(() => {
-      const { stats } = calculateStats();
-      const chartData = generateChartData(period);
-      
-      const consultations = JSON.parse(localStorage.getItem('medecin_consultations') || '[]');
-      const patients = JSON.parse(localStorage.getItem('medecin_patients') || '[]');
-      
-      const formattedConsultations = consultations.slice(0, 5).map((c, idx) => ({
-        id: c.id || idx,
-        name: typeof c.patient === 'string' ? c.patient : c.patient?.name || 'Patient',
-        pathology: c.pathology,
-        percentage: Math.floor(Math.random() * 40) + 60,
-        date: new Date(c.date).toLocaleDateString('fr-FR'),
-        time: c.time,
-        status: c.status,
-        avatar: (typeof c.patient === 'string' ? c.patient.charAt(0) : (c.patient?.name?.charAt(0) || 'P'))
+    const chartData = generateChartData(period);
+
+    try {
+      // Appels parallèles : patients, consultations historique, cas graves, rang, IA métriques
+      const [patients, consultations, casGraves, rang, iaMetrics] = await Promise.allSettled([
+        apiFetch('/patients/mes-patients'),
+        apiFetch('/consultations/historique'),
+        apiFetch('/consultations/cas-graves'),
+        apiFetch('/medecins/mon-rang'),
+        apiFetch('/monitoring/ia-metrics'),
+      ]);
+
+      const pts   = patients.status      === 'fulfilled' ? (patients.value      || []) : [];
+      const conss = consultations.status === 'fulfilled' ? (consultations.value || []) : [];
+      const grv   = casGraves.status     === 'fulfilled' ? (casGraves.value     || []) : [];
+      const rg    = rang.status          === 'fulfilled' ?  rang.value                 : null;
+      const ia    = iaMetrics.status     === 'fulfilled' ?  iaMetrics.value            : null;
+
+      // grv contient déjà uniquement les cas graves (filtrage fait côté backend)
+      const urgents = grv;
+
+      // Consultations récentes depuis l'historique réel
+      const fmtDate = (d) => {
+        if (!d) return '—';
+        const dt = new Date(d);
+        const today = new Date();
+        const diff = Math.floor((today - dt) / 86400000);
+        if (diff === 0) return "Aujourd'hui";
+        if (diff === 1) return 'Hier';
+        return dt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      };
+
+      const recentConsultations = conss.slice(0, 5).map(c => ({
+        id:         c.id,
+        name:       c.patient ? `${c.patient.prenom} ${c.patient.nom}` : '—',
+        pathology:  c.diagnostic?.maladies?.[0]?.nom || 'Pas de diagnostic',
+        percentage: c.diagnostic?.maladies?.[0]?.pct || 0,
+        date:       fmtDate(c.created_at),
+        time:       new Date(c.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        status:     c.statut === 'terminee' ? 'completed' : c.statut === 'en_attente' ? 'pending' : 'in-progress',
+        avatar:     `${c.patient?.prenom?.[0] || ''}${c.patient?.nom?.[0] || ''}`.toUpperCase() || '?',
       }));
-      
-      const recentConsultations = formattedConsultations.length > 0 ? formattedConsultations : [
-        { id: 1, name: "Tamo Bernard", pathology: "Pneumonie bactérienne", percentage: 85, date: "Aujourd'hui", time: "14:30", status: "completed", avatar: "TB" },
-        { id: 2, name: "Fouda Marie", pathology: "BPCO stade 3", percentage: 72, date: "Aujourd'hui", time: "11:20", status: "in-progress", avatar: "FM" },
-        { id: 3, name: "Nguema Paul", pathology: "Asthme sévère", percentage: 91, date: "Hier", time: "09:15", status: "completed", avatar: "NP" },
-        { id: 4, name: "Mboma Éric", pathology: "Bronchite aiguë", percentage: 68, date: "Hier", time: "16:45", status: "pending", avatar: "MÉ" }
+
+      // Patients récents
+      const recentPatients = pts.slice(0, 5).map(p => {
+        const age = p.date_naissance ? Math.floor((Date.now() - new Date(p.date_naissance)) / 31557600000) : null;
+        return {
+          name:      `${p.prenom} ${p.nom}`,
+          age:       age ? `${age} ans` : '—',
+          pathology: '—',
+          status:    'Stable',
+          lastVisit: fmtDate(p.updated_at || p.created_at),
+          id:        p.id,
+        };
+      });
+
+      // KPI stats
+      const stats = [
+        {
+          title:    'Patients totaux',
+          value:    pts.length,
+          icon:     Users,
+          increase: `${pts.length} au total`,
+          trend:    'up',
+          gradient: 'from-blue-500 to-blue-600',
+          subtitle: `${pts.length} patient${pts.length > 1 ? 's' : ''} enregistré${pts.length > 1 ? 's' : ''}`,
+          link:     '/medecin/patients',
+        },
+        {
+          title:    'Cas urgents',
+          value:    urgents.length,
+          icon:     AlertTriangle,
+          increase: urgents.length > 0 ? `${urgents.length} à surveiller` : 'Aucun',
+          trend:    urgents.length > 0 ? 'up' : 'down',
+          gradient: 'from-orange-500 to-orange-600',
+          subtitle: `${urgents.length} patient${urgents.length > 1 ? 's' : ''} nécessitent une attention`,
+          link:     '/medecin/monitoring',
+        },
+        {
+          title:    'Consultations',
+          value:    conss.length,
+          icon:     Stethoscope,
+          increase: `${conss.filter(c => c.statut === 'terminee').length} terminées`,
+          trend:    'up',
+          gradient: 'from-emerald-500 to-emerald-600',
+          subtitle: `${conss.filter(c => c.statut === 'en_attente').length} en attente`,
+          link:     '/medecin/historique',
+        },
+        {
+          title:    'Score IA',
+          value:    ia ? `${ia.concordance_rate}%` : '—',
+          icon:     Award,
+          increase: rg ? `${rg.nb_partages} partagés` : '',
+          trend:    'up',
+          gradient: 'from-blue-500 to-blue-600',
+          subtitle: ia ? `${ia.total_diagnostics} diagnostics générés` : 'En attente de données',
+          link:     '/medecin/monitoring',
+        },
       ];
-      
-      const formattedPatients = patients.slice(0, 4).map(p => ({
-        name: p.name,
-        age: p.age,
-        pathology: p.pathology,
-        status: p.status === 'actif' ? 'Stable' : p.status === 'critique' ? 'Urgent' : 'Suivi 7j',
-        lastVisit: new Date(p.lastVisit).toLocaleDateString('fr-FR')
-      }));
-      
-      const recentPatients = formattedPatients.length > 0 ? formattedPatients : [
-        { name: "Tamo Bernard", age: "47 ans", pathology: "Pneumonie", status: "Suivi 7j", lastVisit: "Aujourd'hui" },
-        { name: "Fouda Marie", age: "52 ans", pathology: "BPCO", status: "Stable", lastVisit: "Hier" },
-        { name: "Kamga Jean", age: "71 ans", pathology: "Tuberculose", status: "Urgent", lastVisit: "Il y a 2j" },
-        { name: "Nguema Paul", age: "63 ans", pathology: "Asthme", status: "Stable", lastVisit: "Il y a 3j" }
-      ];
-      
-      setDashboardData({
+
+      if (rg) {
+        setRankData({
+          position: rg.position,
+          total:    rg.total,
+          score:    rg.score_ia,
+          cases:    rg.nb_partages,
+        });
+      }
+
+      // Compute top diagnostics from real consultation data
+      const pathCounts = {};
+      conss.forEach(c => {
+        const nom = c.diagnostic?.maladies?.[0]?.nom;
+        if (nom) pathCounts[nom] = (pathCounts[nom] || 0) + 1;
+      });
+      const topDiagnostics = Object.entries(pathCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, count]) => ({
+          name,
+          patients: count,
+          value: Math.round((count / Math.max(conss.length, 1)) * 100),
+        }));
+
+      setDashboardData(prev => ({
+        ...prev,
         stats,
         chartData,
-        recentConsultations,
-        recentMessages: mockMessages,
-        recentPatients,
-        notifications: mockNotifications,
-        diagnostics: [
-          { name: "Pneumonie", value: 97, patients: 42, color: "from-blue-500 to-blue-600" },
-          { name: "BPCO", value: 69, patients: 28, color: "from-blue-500 to-blue-600" },
-          { name: "Asthme", value: 57, patients: 23, color: "from-blue-500 to-blue-600" },
-          { name: "Tuberculose", value: 43, patients: 18, color: "from-blue-500 to-blue-600" },
-          { name: "Bronchite", value: 38, patients: 15, color: "from-blue-500 to-blue-600" }
-        ],
-        ranking: { position: 2, total: 20, score: 94.2, cases: 124 }
-      });
+        recentConsultations: recentConsultations.length ? recentConsultations : prev.recentConsultations,
+        recentPatients:   recentPatients.length ? recentPatients : prev.recentPatients,
+        diagnostics:      topDiagnostics.length ? topDiagnostics : prev.diagnostics,
+        ranking: rg
+          ? { position: rg.position, total: rg.total, score: rg.score_ia, cases: rg.nb_partages }
+          : prev.ranking,
+      }));
+    } catch (e) {
+      console.error('Dashboard load error:', e);
+    } finally {
       setStatsLoading(false);
-    }, 500);
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -550,46 +547,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Messages récents */}
-          <div className="bg-(--sf) rounded-2xl border border-(--ln) overflow-hidden shadow-md">
-            <div className="p-5 border-b border-(--ln)">
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <MessageCircle className="w-4 h-4 text-blue-500" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-(--t4)">Communication</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-(--t1)">Messages récents</h3>
-                </div>
-                <Link to="/medecin/messagerie" className="text-sm font-medium text-blue-600 hover:text-blue-700">
-                  Nouveau message →
-                </Link>
-              </div>
-            </div>
-            <div className="divide-y divide-(--ln)">
-              {dashboardData.recentMessages.map((msg, i) => (
-                <Link key={i} to="/medecin/messagerie" className="block p-4 hover:bg-(--sf2) transition-all">
-                  <div className="flex items-start gap-3">
-                    <div className="relative">
-                      <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold">
-                        {msg.avatar}
-                      </div>
-                      {msg.unread && (
-                        <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-blue-500 rounded-full ring-2 ring-(--sf)"></div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center">
-                        <p className="font-semibold text-(--t1)">{msg.sender}</p>
-                        <span className="text-xs text-(--t4)">{msg.time}</span>
-                      </div>
-                      <p className="text-sm text-(--t3)">{msg.message}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Colonne droite (1/3) */}
@@ -682,76 +639,34 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Notifications */}
-          <div className="bg-(--sf) rounded-2xl border border-(--ln) overflow-hidden shadow-md">
-            <div className="p-5 border-b border-(--ln)">
-              <div className="flex items-center gap-2">
+          {/* Diagnostics — depuis les vraies consultations */}
+          {dashboardData.diagnostics.length > 0 && (
+            <div className="bg-(--sf) rounded-2xl p-5 border border-(--ln) shadow-md">
+              <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                  <Bell className="w-4 h-4 text-white" />
+                  <Zap className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-(--t1)">Alertes</h3>
-                  <p className="text-xs text-(--t4)">Notifications importantes</p>
+                  <span className="text-xs font-bold uppercase tracking-wider text-(--t4)">Analyse</span>
+                  <h3 className="text-lg font-bold text-(--t1)">Top diagnostics IA</h3>
                 </div>
               </div>
-            </div>
-            <div className="divide-y divide-(--ln)">
-              {dashboardData.notifications.map((notif, i) => {
-                const IconComponent = notif.icon;
-                const notifColors = {
-                  warning: 'bg-amber-500',
-                  info: 'bg-blue-500',
-                  success: 'bg-emerald-500'
-                };
-                return (
-                  <div key={i} className="p-4 hover:bg-(--sf2) transition-all">
-                    <div className="flex gap-3">
-                      <div className={`shrink-0 w-8 h-8 rounded-lg ${notifColors[notif.type]} flex items-center justify-center`}>
-                        <IconComponent className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-(--t2)">{notif.text}</p>
-                        <p className="text-xs text-(--t4) mt-1">{notif.time}</p>
-                      </div>
+              <div className="space-y-4">
+                {dashboardData.diagnostics.map((diag, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="font-medium text-(--t2)">{diag.name}</span>
+                      <span className="font-bold text-(--t1)">{diag.value}%</span>
                     </div>
+                    <div className="h-2 bg-(--sf3) rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${diag.value}%` }} />
+                    </div>
+                    <p className="text-xs text-(--t4) mt-1">{diag.patients} consultation{diag.patients > 1 ? 's' : ''}</p>
                   </div>
-                );
-              })}
-            </div>
-            <div className="p-3 bg-(--sf2) text-center border-t border-(--ln)">
-              <Link to="/medecin/notifications" className="text-sm font-medium text-blue-600 hover:text-blue-700">
-                Voir toutes →
-              </Link>
-            </div>
-          </div>
-
-          {/* Diagnostics - tout en bleu */}
-          <div className="bg-(--sf) rounded-2xl p-5 border border-(--ln) shadow-md">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-white" />
+                ))}
               </div>
-              <span className="text-xs font-bold uppercase tracking-wider text-(--t4)">Analyse</span>
             </div>
-            <h3 className="text-lg font-bold text-(--t1) mb-4">Top diagnostics — Mars 2026</h3>
-            <div className="space-y-4">
-              {dashboardData.diagnostics.map((diag, i) => (
-                <div key={i}>
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="font-medium text-(--t2)">{diag.name}</span>
-                    <span className="font-bold text-(--t1)">{diag.value}%</span>
-                  </div>
-                  <div className="h-2 bg-(--sf3) rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 rounded-full"
-                      style={{ width: `${diag.value}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-(--t4) mt-1">{diag.patients} patients</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
           
         </div>
       </div>

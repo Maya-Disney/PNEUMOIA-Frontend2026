@@ -5,7 +5,7 @@ import {
   Loader2, Trash2, BellOff, Clock, Shield, UserCheck, Key
 } from 'lucide-react';
 
-const RED = '#DC2626';
+const BLUE = '#2563EB';
 
 const NOTIF_ICONS = {
   permission: Shield,

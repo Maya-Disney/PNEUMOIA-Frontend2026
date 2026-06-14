@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-const RED     = '#DC2626';
+const BLUE    = '#2563EB';
 
 const PERM_META = {
   peut_creer_patient:    { label: 'Créer patients',    icon: UserPlus,      color: 'blue'   },
@@ -125,7 +125,7 @@ export default function AideDashboard() {
         {/* Decorative glow */}
         <div className="relative p-6 pb-5 overflow-hidden">
           <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full opacity-20"
-            style={{ background: `radial-gradient(circle, ${RED}, transparent)` }} />
+            style={{ background: `radial-gradient(circle, ${BLUE}, transparent)` }} />
           <div className="absolute left-1/3 -bottom-12 w-56 h-56 rounded-full opacity-10"
             style={{ background: `radial-gradient(circle, #3b82f6, transparent)` }} />
 
@@ -133,14 +133,14 @@ export default function AideDashboard() {
           <div className="relative flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg shrink-0 border border-white/10"
-                style={{ background: 'linear-gradient(135deg, #DC2626, #991B1B)' }}>
+                style={{ background: 'linear-gradient(135deg, #2563EB, #1D4ED8)' }}>
                 {info.initials}
               </div>
               <div>
                 <p className="text-slate-400 text-sm font-medium">{greet} 👋</p>
                 <h1 className="text-2xl font-black text-white leading-tight">{info.nom}</h1>
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-red-500/30 text-red-300 bg-red-500/10">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-blue-500/30 text-blue-300 bg-blue-500/10">
                     <Stethoscope size={9} /> Aide soignant
                   </span>
                   <span className="text-[11px] text-slate-500 font-mono">{info.id}</span>
@@ -160,7 +160,7 @@ export default function AideDashboard() {
           <div className="relative grid grid-cols-3 gap-3 mt-5">
             {[
               { label: 'Patients suivis',  value: loading ? '…' : patients.length,           icon: Users,        sub: 'sous votre suivi',   accent: 'border-blue-500/20 bg-blue-500/8'    },
-              { label: 'Permissions',      value: `${activeList.length} / ${totalPerms}`,    icon: Shield,       sub: `${permPct}% configurés`, accent: 'border-red-500/20 bg-red-500/8'  },
+              { label: 'Permissions',      value: `${activeList.length} / ${totalPerms}`,    icon: Shield,       sub: `${permPct}% configurés`, accent: 'border-blue-500/20 bg-blue-500/8' },
               { label: 'Statut du compte', value: 'Actif',                                   icon: CheckCircle,  sub: 'accès complet',       accent: 'border-emerald-500/20 bg-emerald-500/8' },
             ].map(({ label, value, icon: Icon, sub, accent }) => (
               <div key={label} className={`rounded-xl p-3.5 border ${accent}`}>
@@ -186,11 +186,11 @@ export default function AideDashboard() {
           <motion.div {...fade(0.08)} className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-(--ln) bg-(--sf2)">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-red-500" />
+                <Users className="w-4 h-4 text-blue-500" />
                 <h2 className="text-sm font-bold text-(--t1)">Patients récents</h2>
               </div>
               <Link to="/aide/patients"
-                className="flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-600 transition-colors">
+                className="flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-600 transition-colors">
                 Voir tout <ArrowUpRight size={12} />
               </Link>
             </div>
@@ -219,7 +219,7 @@ export default function AideDashboard() {
                 {perms.peut_creer_patient && (
                   <Link to="/aide/patients/nouveau"
                     className="text-xs font-bold text-white px-4 py-2 rounded-xl transition-colors"
-                    style={{ backgroundColor: RED }}>
+                    style={{ backgroundColor: BLUE }}>
                     + Nouveau patient
                   </Link>
                 )}
@@ -233,7 +233,7 @@ export default function AideDashboard() {
                     <Link key={p.id} to={`/aide/patients/${p.id}`}
                       className="flex items-center gap-4 px-5 py-3.5 hover:bg-(--sf2) transition-colors group">
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
-                        style={{ backgroundColor: RED }}>
+                        style={{ backgroundColor: BLUE }}>
                         {ini}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -257,7 +257,7 @@ export default function AideDashboard() {
                           {p.statut === 'actif' ? 'Actif' : p.statut === 'urgent' ? 'Urgent' : p.statut === 'attente' ? 'En attente' : 'Clôturé'}
                         </span>
                       )}
-                      <ChevronRight className="w-4 h-4 text-(--t4) group-hover:text-red-500 shrink-0 transition-colors" />
+                      <ChevronRight className="w-4 h-4 text-(--t4) group-hover:text-blue-500 shrink-0 transition-colors" />
                     </Link>
                   );
                 })}
@@ -269,10 +269,10 @@ export default function AideDashboard() {
           <motion.div {...fade(0.14)} className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-(--ln) bg-(--sf2)">
               <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-red-500" />
+                <Lock className="w-4 h-4 text-blue-500" />
                 <h2 className="text-sm font-bold text-(--t1)">Mes permissions</h2>
               </div>
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300 border border-red-100 dark:border-red-500/20">
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-300 border border-blue-100 dark:border-blue-500/20">
                 {activeList.length} / {totalPerms} actives
               </span>
             </div>
@@ -290,7 +290,7 @@ export default function AideDashboard() {
                     animate={{ width: `${permPct}%` }}
                     transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
                     className="h-full rounded-full"
-                    style={{ backgroundColor: RED }}
+                    style={{ backgroundColor: BLUE }}
                   />
                 </div>
               </div>
@@ -337,7 +337,7 @@ export default function AideDashboard() {
           {/* Actions rapides */}
           <motion.div {...fade(0.1)} className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-4 border-b border-(--ln) bg-(--sf2)">
-              <Zap className="w-4 h-4 text-red-500" />
+              <Zap className="w-4 h-4 text-blue-500" />
               <h2 className="text-sm font-bold text-(--t1)">Actions rapides</h2>
             </div>
             <div className="p-3 space-y-1">
@@ -352,7 +352,7 @@ export default function AideDashboard() {
                     <span className="text-sm font-semibold text-(--t2) group-hover:text-(--t1) flex-1 transition-colors">
                       {q.label}
                     </span>
-                    <ChevronRight className="w-3.5 h-3.5 text-(--t4) group-hover:text-red-500 transition-colors" />
+                    <ChevronRight className="w-3.5 h-3.5 text-(--t4) group-hover:text-blue-500 transition-colors" />
                   </Link>
                 );
               })}
@@ -362,13 +362,13 @@ export default function AideDashboard() {
           {/* Indicateur activité */}
           <motion.div {...fade(0.16)} className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-4 border-b border-(--ln) bg-(--sf2)">
-              <TrendingUp className="w-4 h-4 text-red-500" />
+              <TrendingUp className="w-4 h-4 text-blue-500" />
               <h2 className="text-sm font-bold text-(--t1)">Vue d'ensemble</h2>
             </div>
             <div className="p-4 space-y-3">
               {[
                 { label: 'Patients total',     value: loading ? '…' : patients.length, icon: Users,       color: 'text-blue-500'   },
-                { label: 'Permissions actives', value: activeList.length,               icon: Shield,      color: 'text-red-500'    },
+                { label: 'Permissions actives', value: activeList.length,               icon: Shield,      color: 'text-blue-500'   },
                 { label: 'Accès bloqués',       value: inactiveList.length,             icon: Lock,        color: 'text-slate-400'  },
               ].map(({ label, value, icon: Icon, color }) => (
                 <div key={label} className="flex items-center justify-between py-1.5">
@@ -395,12 +395,12 @@ export default function AideDashboard() {
 
           {/* Note */}
           <motion.div {...fade(0.22)}
-            className="rounded-2xl p-4 border border-red-100 dark:border-red-500/20 bg-red-50 dark:bg-red-500/8">
+            className="rounded-2xl p-4 border border-blue-100 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-500/8">
             <div className="flex items-start gap-2.5">
-              <Heart className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+              <Heart className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-bold text-red-700 dark:text-red-300 mb-1">Rappel important</p>
-                <p className="text-[11px] text-red-600 dark:text-red-400 leading-relaxed">
+                <p className="text-xs font-bold text-blue-700 dark:text-blue-300 mb-1">Rappel important</p>
+                <p className="text-[11px] text-blue-600 dark:text-blue-400 leading-relaxed">
                   Vos permissions sont attribuées par votre médecin référent. Contactez-le via la messagerie pour toute modification.
                 </p>
               </div>

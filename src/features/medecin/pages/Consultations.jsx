@@ -581,9 +581,8 @@ const createAndContinue = async () => {
   };
 
   try {
-    // ── CAS 1 : Patient déjà créé → UPDATE uniquement, pas de nouvelle consultation ──
+    // ── CAS 1 : Patient déjà créé → UPDATE + créer consultation si besoin ──
     if (patientId) {
-      // Si c'est un ID local (offline), on met à jour l'action en attente
       if (String(patientId).startsWith('local-')) {
         await sauvegarderAction('UPDATE_PATIENT', {
           local_id: patientId,
@@ -597,6 +596,34 @@ const createAndContinue = async () => {
           body: JSON.stringify(patientData),
         });
         addToast('Informations patient mises à jour', 'success');
+
+        // Créer la consultation si elle n'existe pas encore
+        // (cas : médecin ouvre une consultation depuis ?patient_id=XXX sans consultation_id)
+        if (!consultationId && !isAide) {
+          try {
+            const cons = await apiFetch('/consultations', {
+              method: 'POST',
+              body: JSON.stringify({ patient_id: patientId }),
+            });
+            setConsultationId(cons.id);
+          } catch (consErr) {
+            if (isNetworkError(consErr)) {
+              const cLocalId = genLocalId();
+              setModeOffline(true);
+              await sauvegarderAction('CREATE_CONSULTATION', {
+                local_id:         cLocalId,
+                patient_id:       patientId,
+                patient_local_id: null,
+              });
+              setConsultationId(cLocalId);
+              setConsultationLocalId(cLocalId);
+            } else {
+              addToast(consErr.message, 'error');
+              setIsSaving(false);
+              return;
+            }
+          }
+        }
       }
       setCurrentStep(2);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1602,9 +1629,9 @@ const createAndContinue = async () => {
           <h3 className="font-bold text-sm mb-3 flex items-center gap-2 text-(--t1)">
             <Target className="w-4 h-4 text-blue-600" /> Diagnostic principal
           </h3>
-          <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <div className="text-xl font-bold text-blue-700 dark:text-blue-300">{aiResult.principal || 'En attente'}</div>
-            <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 dark:bg-blue-500/20 rounded-full text-xs">
+          <div className="text-center p-4 bg-(--sf2) rounded-lg border border-(--ln)">
+            <div className="text-xl font-bold text-(--t1)">{aiResult.principal || 'En attente'}</div>
+            <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-(--sf3) rounded-full text-xs text-(--t2)">
               <Brain className="w-3 h-3" /> Confiance patient : {aiResult.confidence}%
             </div>
             {aiResult.versionModele && (
@@ -1636,7 +1663,7 @@ const createAndContinue = async () => {
               {d.criteres_valides?.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {d.criteres_valides.map((c, j) => (
-                    <span key={j} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px]">{c}</span>
+                    <span key={j} className="px-1.5 py-0.5 bg-(--sf3) text-(--t3) rounded text-[10px]">{c}</span>
                   ))}
                 </div>
               )}
@@ -1667,15 +1694,15 @@ const createAndContinue = async () => {
           </h3>
           <div className="flex flex-wrap gap-1.5">
             {aiResult.examensRecommandes.map((e, i) => (
-              <span key={i} className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">{e}</span>
+              <span key={i} className="px-2 py-1 bg-(--sf3) text-(--t2) rounded-full text-xs">{e}</span>
             ))}
           </div>
         </div>
       )}
 
       {/* Recommandations */}
-      <div className="bg-blue-50 rounded-xl p-4">
-        <h3 className="font-bold text-sm text-blue-900 dark:text-blue-200 mb-2 flex items-center gap-2">
+      <div className="bg-(--sf) rounded-xl border border-(--ln) p-4">
+        <h3 className="font-bold text-sm text-(--t1) mb-2 flex items-center gap-2">
           <Zap className="w-4 h-4" /> Recommandations
         </h3>
         <div className="space-y-1.5">
@@ -1724,7 +1751,7 @@ const createAndContinue = async () => {
                   />
                   <span className="text-sm text-(--t1) flex-1">{maladie}</span>
                   {i === 0 && (
-                    <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">Suggestion IA</span>
+                    <span className="text-xs px-2 py-0.5 bg-(--sf3) text-(--t3) rounded-full">Suggestion IA</span>
                   )}
                 </label>
               ))

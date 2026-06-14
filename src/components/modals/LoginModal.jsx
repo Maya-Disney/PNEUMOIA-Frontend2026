@@ -186,7 +186,7 @@ export default function LoginModal({ isOpen, onClose }) {
         const data = await resMedecin.json();
         setRole('medecin'); setMedecinId(data.medecin_id); setOtp('');
         setOtpTrigger(n => n + 1); setStep('otp');
-        toast.info('Code OTP envoyé à votre email. Valable 5 minutes.', { title: 'Code envoyé ✉️' });
+        toast.info('Code OTP envoyé à votre email. Valable 5 minutes.', { title: 'Code envoyé ' });
         return;
       }
 
@@ -236,7 +236,7 @@ export default function LoginModal({ isOpen, onClose }) {
         localStorage.setItem('aide_id', data.aide.id);
         localStorage.setItem('aide_nom', `${data.aide.prenom} ${data.aide.nom}`);
         localStorage.setItem('aide_permissions', JSON.stringify(data.permissions));
-        toast.success('Connexion réussie !', { title: 'Bienvenue 👋' });
+        toast.success('Connexion réussie !', { title: 'Bienvenue ' });
         reset(); onClose(); navigate('/aide/dashboard');
       } else {
         const res  = await fetch(`${API_URL}/auth/verify-otp`, {
@@ -248,7 +248,7 @@ export default function LoginModal({ isOpen, onClose }) {
         localStorage.setItem('token', data.access_token);
         localStorage.setItem('token_type', 'bearer');
         localStorage.setItem('role', 'medecin');
-        toast.success('Connexion réussie !', { title: 'Bienvenue 👋' });
+        toast.success('Connexion réussie !', { title: 'Bienvenue ' });
         reset(); onClose(); navigate('/medecin/dashboard');
       }
     } catch (err) { setError(err.message); setOtp(''); }

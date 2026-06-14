@@ -8,10 +8,10 @@ import {
 import { useTheme } from '../../medecin/contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 
-const RED = '#DC2626';
+const BLUE = '#2563EB';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
-const inp = 'w-full px-3 py-2.5 bg-(--sf2) border border-(--ln) rounded-xl text-sm text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-red-300 transition pr-10';
+const inp = 'w-full px-3 py-2.5 bg-(--sf2) border border-(--ln) rounded-xl text-sm text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-300 transition pr-10';
 
 function hdrs() {
   return { 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('token')}` };
@@ -31,7 +31,7 @@ function Section({ icon: Icon, title, delay=0, children }) {
     <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay }}
       className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
       <div className="flex items-center gap-2 px-5 py-4 border-b border-(--ln) bg-(--sf2)">
-        <Icon className="w-4 h-4" style={{ color:RED }} />
+        <Icon className="w-4 h-4" style={{ color:BLUE }} />
         <span className="text-xs font-black uppercase tracking-[0.15em] text-(--t2)">{title}</span>
       </div>
       <div className="divide-y divide-(--ln)">{children}</div>
@@ -106,7 +106,7 @@ export default function AideParametres() {
       {/* Header */}
       <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }}>
         <p className="text-[10px] font-black uppercase tracking-widest text-(--t3) flex items-center gap-1.5 mb-0.5">
-          <Settings className="w-3 h-3" style={{ color:RED }} /> Configuration
+          <Settings className="w-3 h-3" style={{ color:BLUE }} /> Configuration
         </p>
         <h1 className="text-xl font-black text-(--t1)">Paramètres</h1>
       </motion.div>
@@ -148,7 +148,7 @@ export default function AideParametres() {
         <div className="px-5 py-3">
           <button onClick={handleSaveNotifs}
             className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white rounded-xl transition-all"
-            style={{ backgroundColor:RED }}>
+            style={{ backgroundColor:BLUE }}>
             <Check className="w-4 h-4" /> Enregistrer
           </button>
         </div>
@@ -202,7 +202,7 @@ export default function AideParametres() {
           <div className="flex">
             <button onClick={handleChangePassword} disabled={pwSaving}
               className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 transition-all"
-              style={{ backgroundColor:RED }}>
+              style={{ backgroundColor:BLUE }}>
               {pwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
               {pwSaving ? 'Modification…' : 'Modifier le mot de passe'}
             </button>
@@ -218,7 +218,7 @@ export default function AideParametres() {
         />
         <Row label="Rôle"
           right={
-            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-100 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/15">
+            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/15">
               Aide soignant
             </span>
           }

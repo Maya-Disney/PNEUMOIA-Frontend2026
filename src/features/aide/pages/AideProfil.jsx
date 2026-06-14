@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, Lock
 } from 'lucide-react';
 
-const RED = '#DC2626';
+const BLUE = '#2563EB';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 const PERM_LABELS = {
@@ -19,7 +19,7 @@ const PERM_LABELS = {
   peut_prescrire:        'Prescrire',
 };
 
-const inp = 'w-full px-3 py-2.5 bg-(--sf2) border border-(--ln) rounded-xl text-sm text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-red-300 transition';
+const inp = 'w-full px-3 py-2.5 bg-(--sf2) border border-(--ln) rounded-xl text-sm text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-300 transition';
 
 function hdrs() {
   return { 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('token')}` };
@@ -179,15 +179,15 @@ export default function AideProfil() {
       <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.05 }}
         className="bg-(--sf) border border-(--ln) rounded-2xl p-6 flex items-center gap-5">
         <div className="w-16 h-16 rounded-2xl text-white text-2xl font-black flex items-center justify-center shrink-0 shadow-lg"
-          style={{ background:`linear-gradient(135deg,${RED},#991B1B)` }}>
+          style={{ background:`linear-gradient(135deg,${BLUE},#1D4ED8)` }}>
           {initials}
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-black text-(--t1) truncate">{aideNom || 'Aide soignant'}</h2>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-xs text-(--t4) font-mono">{aideId}</span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/15">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Aide soignant
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/15">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Aide soignant
             </span>
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/15">
               <CheckCircle className="w-3 h-3" /> Compte actif
@@ -315,7 +315,7 @@ export default function AideProfil() {
         <div className="flex items-center gap-2 px-5 py-4 border-b border-(--ln) bg-(--sf2)">
           <Shield className="w-4 h-4" style={{ color:RED }} />
           <span className="text-xs font-black uppercase tracking-[0.15em] text-(--t2)">Mes permissions</span>
-          <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/15">
+          <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/15">
             {activePerms.length}/{Object.keys(PERM_LABELS).length} actifs
           </span>
         </div>

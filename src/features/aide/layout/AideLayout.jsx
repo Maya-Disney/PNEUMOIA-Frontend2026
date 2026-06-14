@@ -9,9 +9,8 @@ import {
 import { useTheme } from '../../medecin/contexts/ThemeContext';
 import logo from '../../../assets/images/logo.png';
 
-const RED      = '#DC2626';
-const RED_DARK = '#991B1B';
-const API_URL  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const BLUE = '#2563EB';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 function getPerms() {
   try { return JSON.parse(localStorage.getItem('aide_permissions') || '{}'); } catch { return {}; }
@@ -47,7 +46,19 @@ export default function AideLayout() {
   const location    = useLocation();
   const { theme, toggleTheme } = useTheme();
 
-  const perms        = getPerms();
+  const isDark = theme === 'dark';
+
+  // ── Palette sidebar ────────────────────────────────────────────
+  const SIDEBAR_BG  = isDark ? '#0a1525' : '#EEF3FF';
+  const BORDER_C    = isDark ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.18)';
+  const ACTIVE_BG   = isDark ? 'rgba(37,99,235,0.22)' : 'rgba(255,255,255,0.95)';
+  const ACTIVE_TX   = isDark ? '#93C5FD'               : '#1D4ED8';
+  const ACTIVE_SH   = isDark ? 'none'                  : '0 1px 6px rgba(37,99,235,0.14)';
+  const ITEM_TX     = isDark ? 'rgba(255,255,255,0.65)' : '#1e3a6e';
+  const SEC_TX      = isDark ? 'rgba(255,255,255,0.28)' : 'rgba(10,50,120,0.48)';
+  const FOOT_TX     = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(10,50,120,0.28)';
+
+  const perms = getPerms();
   const [info, setInfo] = useState(getInfo());
 
   useEffect(() => {
@@ -104,67 +115,87 @@ export default function AideLayout() {
   const pageTitle = PAGE_TITLES[location.pathname]
     || (location.pathname.startsWith('/aide/patients/') && location.pathname !== '/aide/patients/nouveau' ? 'Dossier patient' : null)
     || 'Espace aide soignant';
-  const expanded  = !collapsed || !isDesktop;
-  const sw        = isDesktop ? (collapsed ? 'w-[68px]' : 'w-[240px]') : 'w-[240px]';
-  const ml        = !isDesktop ? '0px' : collapsed ? '68px' : '240px';
-
-  const itemCls = (active) => [
-    'flex items-center gap-3 text-[14px] font-bold transition-all duration-150 rounded-xl',
-    expanded ? 'px-3 py-2.5' : 'justify-center px-0 py-2.5 mx-auto w-11 h-11',
-    active ? 'text-white' : 'text-white/80 hover:text-white',
-  ].join(' ');
+  const expanded = !collapsed || !isDesktop;
+  const sw       = isDesktop ? (collapsed ? 'w-[68px]' : 'w-[240px]') : 'w-[240px]';
+  const ml       = !isDesktop ? '0px' : collapsed ? '68px' : '240px';
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full overflow-hidden">
+
+      {/* Toggle collapse (desktop) */}
       {isDesktop && (
         <button onClick={() => setCollapsed(c => !c)}
           className="absolute -right-3 top-14 z-50 w-6 h-6 bg-white rounded-full border border-slate-200 shadow-md flex items-center justify-center hover:bg-slate-50 transition">
           <ChevronLeft size={12} className={`text-slate-400 transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} />
         </button>
       )}
+
+      {/* Fermeture mobile */}
       {!isDesktop && mobileOpen && (
         <button onClick={() => setMobileOpen(false)}
           className="absolute right-3 top-3 z-50 w-8 h-8 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.15)' }}>
-          <X size={15} className="text-white/80" />
+          style={{ background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(37,99,235,0.10)' }}>
+          <X size={15} style={{ color: isDark ? 'rgba(255,255,255,0.7)' : BLUE }} />
         </button>
       )}
 
-      {/* Brand */}
-      <div className={`flex items-center gap-3 px-4 py-5 ${!isDesktop && mobileOpen ? 'pt-14' : ''} ${!expanded ? 'justify-center px-2' : ''}`}
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
-        <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-md">
-          <img src={logo} alt="PneumoIA" className="w-7 h-7 object-contain" />
-        </div>
-        {expanded && (
-          <div>
-            <h1 className="text-[14px] font-black text-white leading-tight">PneumoIA</h1>
-            <p className="text-[9px] font-bold uppercase tracking-[0.3em] mt-0.5 text-white/45">Aide soignant</p>
-          </div>
-        )}
+      {/* Logo */}
+      <div className={`flex items-center justify-center px-4 py-4 ${!isDesktop && mobileOpen ? 'pt-14' : ''}`}
+        style={{ borderBottom: `1px solid ${BORDER_C}`, minHeight: 80 }}>
+        <img
+          src={logo}
+          alt="PneumoIA"
+          style={{
+            height:    expanded ? 54 : 30,
+            width:     'auto',
+            objectFit: 'contain',
+            maxWidth:  175,
+            filter:    isDark ? 'brightness(1.1)' : 'none',
+            transition:'height 0.3s ease',
+          }}
+        />
       </div>
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
         {expanded && (
-          <p className="px-2 mb-2 mt-1 text-[10px] font-black uppercase tracking-[0.28em] text-white/50">Navigation</p>
+          <p className="px-2 mb-2 mt-1 text-[10px] font-black uppercase tracking-[0.28em]"
+            style={{ color: SEC_TX }}>Navigation</p>
         )}
         {NAV.map(item => {
           const Icon = item.icon;
           return (
-            <NavLink key={item.path} to={item.path}
+            <NavLink
+              key={item.path}
+              to={item.path}
               end={item.path === '/aide/patients'}
               onClick={() => !isDesktop && setMobileOpen(false)}
-              className={({ isActive }) => itemCls(isActive)}>
+              className={[
+                'flex items-center gap-3 text-[13.5px] font-semibold transition-all duration-150 rounded-xl',
+                expanded ? 'px-3 py-2.5' : 'justify-center px-0 py-2.5 mx-auto w-11 h-11',
+              ].join(' ')}
+              style={({ isActive }) => ({
+                background: isActive ? ACTIVE_BG : 'transparent',
+                color:      isActive ? ACTIVE_TX : ITEM_TX,
+                boxShadow:  isActive ? ACTIVE_SH : 'none',
+              })}
+            >
               {({ isActive }) => (
                 <>
                   <div className="relative shrink-0">
-                    <Icon size={18} strokeWidth={2.8} className={isActive ? 'text-white' : 'text-white/80'} />
-                    {isActive && (
-                      <span className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-r-full" />
+                    <Icon size={18} strokeWidth={2.8} style={{ color: isActive ? ACTIVE_TX : ITEM_TX }} />
+                    {isActive && expanded && (
+                      <span
+                        className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full"
+                        style={{ backgroundColor: BLUE }}
+                      />
                     )}
                   </div>
-                  {expanded && <span className={`flex-1 truncate ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label}</span>}
+                  {expanded && (
+                    <span className="flex-1 truncate" style={{ fontWeight: isActive ? 700 : 500 }}>
+                      {item.label}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>
@@ -172,9 +203,11 @@ export default function AideLayout() {
         })}
       </nav>
 
-      {/* Footer - version minimale, topbar gère thème/logout/profil */}
+      {/* Footer */}
       <div className="px-3 pb-4 shrink-0">
-        <p className="text-center text-[9px] text-white/20 select-none">PneumoIA v2.0 · 2026</p>
+        <p className="text-center text-[9px] select-none" style={{ color: FOOT_TX }}>
+          PneumoIA v2.0 · 2026
+        </p>
       </div>
     </div>
   );
@@ -182,7 +215,7 @@ export default function AideLayout() {
   return (
     <div className="min-h-screen bg-(--bg) text-(--t1) transition-colors duration-300">
 
-      {/* Mobile overlay */}
+      {/* Overlay mobile */}
       {!isDesktop && mobileOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)} />
@@ -191,15 +224,16 @@ export default function AideLayout() {
       {/* Sidebar desktop */}
       <aside className={`hidden lg:flex lg:flex-col fixed inset-y-0 left-0 z-30 transition-all duration-300 ${sw}`}
         style={{
-          background: `linear-gradient(170deg, ${RED} 0%, ${RED_DARK} 100%)`,
-          boxShadow: '2px 0 20px rgba(220,38,38,0.3)',
+          background:   SIDEBAR_BG,
+          borderRight:  `1px solid ${BORDER_C}`,
+          boxShadow:    isDark ? '2px 0 20px rgba(0,0,0,0.25)' : '2px 0 20px rgba(37,99,235,0.08)',
         }}>
         <SidebarContent />
       </aside>
 
       {/* Sidebar mobile */}
       <aside className={`fixed top-0 left-0 z-50 h-full lg:hidden transition-transform duration-300 ${sw} ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
-        style={{ background: `linear-gradient(170deg, ${RED} 0%, ${RED_DARK} 100%)` }}>
+        style={{ background: SIDEBAR_BG, borderRight: `1px solid ${BORDER_C}` }}>
         <SidebarContent />
       </aside>
 
@@ -215,7 +249,8 @@ export default function AideLayout() {
                 <Menu className="w-5 h-5 text-(--t2)" />
               </button>
               <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-(--t4)">Espace aide soignant</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em]"
+                  style={{ color: BLUE }}>Espace aide soignant</p>
                 <p className="text-sm font-bold text-(--t1) leading-tight">{pageTitle}</p>
               </div>
             </div>
@@ -237,7 +272,7 @@ export default function AideLayout() {
                 <button onClick={() => setUserMenu(u => !u)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-(--sf2) border border-(--ln) hover:bg-(--sf3) transition-all">
                   <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0"
-                    style={{ backgroundColor: RED }}>
+                    style={{ backgroundColor: BLUE }}>
                     {info.initials}
                   </div>
                   <span className="hidden sm:block text-xs font-semibold text-(--t1) truncate max-w-30">{info.nom}</span>
@@ -246,19 +281,23 @@ export default function AideLayout() {
 
                 <AnimatePresence>
                   {userMenu && (
-                    <motion.div initial={{ opacity:0, y:-6, scale:0.97 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:-6, scale:0.97 }}
+                    <motion.div
+                      initial={{ opacity:0, y:-6, scale:0.97 }}
+                      animate={{ opacity:1, y:0,  scale:1   }}
+                      exit={{    opacity:0, y:-6, scale:0.97 }}
                       transition={{ duration:0.15 }}
                       className="absolute right-0 mt-2 w-52 bg-(--sf) rounded-xl border border-(--ln) shadow-xl overflow-hidden z-50">
                       <div className="p-3 border-b border-(--ln) bg-(--sf2)">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: RED }}>
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                            style={{ backgroundColor: BLUE }}>
                             {info.initials}
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-(--t1) truncate">{info.nom}</p>
                             <p className="text-[10px] font-mono text-(--t4) truncate">{info.id}</p>
-                            <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300">
-                              <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Actif
+                            <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Actif
                             </span>
                           </div>
                         </div>
@@ -294,7 +333,9 @@ export default function AideLayout() {
         </header>
 
         <main className="px-4 sm:px-6 py-6" style={{ minHeight: 'calc(100vh - 56px)' }}>
-          <Outlet />
+          <div className="max-w-5xl mx-auto">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Stethoscope, Users, Share2,
   FolderOpen, Users2, Bell, Search,
   User, Settings, History, X,
-  ChevronLeft, Activity, MessageSquare,
+  ChevronLeft, Activity, MessageSquare, BookOpen,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import logo from '../../../assets/images/logo.png';
@@ -34,10 +34,11 @@ const NAV_MAIN = [
   { path: '/medecin/partage',      icon: Share2,          label: 'Partage'         },
 ];
 const NAV_COMMUNITY = [
-  { path: '/medecin/cas-cliniques', icon: FolderOpen,    label: 'Cas cliniques' },
-  { path: '/medecin/mon-equipe',    icon: Users2,        label: 'Mon équipe'    },
-  { path: '/medecin/commentaires',  icon: MessageSquare, label: 'Commentaires'  },
-  { path: '/medecin/monitoring',    icon: Activity,      label: 'Monitoring'    },
+  { path: '/medecin/cas-cliniques',    icon: FolderOpen,     label: 'Cas cliniques'    },
+  { path: '/medecin/mes-publications', icon: BookOpen,       label: 'Mes publications' },
+  { path: '/medecin/mon-equipe',       icon: Users2,         label: 'Mon équipe'       },
+  { path: '/medecin/commentaires',     icon: MessageSquare,  label: 'Commentaires'     },
+  { path: '/medecin/monitoring',       icon: Activity,       label: 'Monitoring'       },
 ];
 const NAV_ACCOUNT = [
   { path: '/medecin/historique',    icon: History,  label: 'Historique'     },
@@ -122,22 +123,21 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, onCollapsedChange
 
       {/* ── Logo / Brand ──────────────────────────────────────────── */}
       <div
-        className={`flex items-center gap-3 px-4 py-5 ${!isDesktop && sidebarOpen ? 'pt-14' : ''} ${!expanded ? 'justify-center px-2' : ''}`}
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}
+        className={`flex items-center justify-center px-4 py-4 ${!isDesktop && sidebarOpen ? 'pt-14' : ''}`}
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.12)', minHeight: 80 }}
       >
-        <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-black/20">
-          <img src={logo} alt="PneumoIA" className="w-9 h-9 object-contain" />
-        </div>
-        {expanded && (
-          <div>
-            <h1 className="text-[16px] font-black text-white leading-tight tracking-tight">
-              PneumoIA
-            </h1>
-            <p className="text-[9px] font-bold uppercase tracking-[0.28em] mt-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              Espace Médecin
-            </p>
-          </div>
-        )}
+        <img
+          src={logo}
+          alt="PneumoIA"
+          style={{
+            height: expanded ? 56 : 32,
+            width: 'auto',
+            objectFit: 'contain',
+            maxWidth: 180,
+            filter: 'brightness(0) invert(1)',
+            transition: 'height 0.3s ease',
+          }}
+        />
       </div>
 
       {/* ── Navigation ─────────────────────────────────────────────── */}

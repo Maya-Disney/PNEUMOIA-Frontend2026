@@ -25,6 +25,10 @@ export default function MedecinLayout() {
     if (path.includes('/patients')) return 'Patients';
     if (path.includes('/partage')) return 'Partage';
     if (path.includes('/cas-cliniques')) return 'Cas cliniques';
+    if (path.includes('/mes-publications')) return 'Mes publications';
+    if (path.includes('/mon-equipe')) return 'Mon équipe';
+    if (path.includes('/commentaires')) return 'Commentaires';
+    if (path.includes('/monitoring')) return 'Monitoring';
     if (path.includes('/messagerie')) return 'Messagerie';
     if (path.includes('/notifications')) return 'Notifications';
     if (path.includes('/recherche')) return 'Recherche';
@@ -32,8 +36,7 @@ export default function MedecinLayout() {
     if (path.includes('/parametres')) return 'Paramètres';
     if (path.includes('/historique')) return 'Historique';
     if (path.includes('/corbeille')) return 'Corbeille';
-    if (path.includes('/mon-equipe')) return 'Mon équipe';
-    return 'Dashboard';
+    return 'Tableau de bord';
   };
 
   // Calculer la marge gauche

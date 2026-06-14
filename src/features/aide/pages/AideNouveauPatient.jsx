@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { createPatientAide } from '../../../services/patientsApi';
 
-const RED = '#DC2626';
+const BLUE = '#2563EB';
 
 function calculerAge(dateStr) {
   if (!dateStr) return null;
@@ -39,7 +39,7 @@ function SectionCard({ icon: Icon, label, color = 'red', children, delay = 0 }) 
   );
 }
 
-function Field({ label, required, color = 'red', children }) {
+function Field({ label, required, color = 'blue', children }) {
   const star = color === 'red' ? 'text-red-500' : 'text-blue-500';
   return (
     <div>
@@ -103,7 +103,7 @@ export default function AideNouveauPatient() {
     }
   };
 
-  const inp = "w-full px-3 py-2.5 border border-(--ln) rounded-xl bg-(--sf) text-(--t1) text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all placeholder:text-(--t4)";
+  const inp = "w-full px-3 py-2.5 border border-(--ln) rounded-xl bg-(--sf) text-(--t1) text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all placeholder:text-(--t4)";
   const sel = `${inp} cursor-pointer`;
 
   const age      = calculerAge(form.date_naissance);
@@ -123,8 +123,8 @@ export default function AideNouveauPatient() {
         </motion.button>
         <div>
           <div className="flex items-center gap-2 mb-0.5">
-            <div className="w-1 h-4 rounded-full" style={{ backgroundColor: RED }} />
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: RED }}>
+            <div className="w-1 h-4 rounded-full" style={{ backgroundColor: BLUE }} />
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: BLUE }}>
               Nouveau patient
             </span>
           </div>
@@ -157,18 +157,18 @@ export default function AideNouveauPatient() {
                         <motion.label key={opt.val} whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
                           className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${
                             form.civilite === opt.val
-                              ? 'border-red-500 bg-red-50 dark:bg-red-500/10'
-                              : 'border-(--ln) hover:border-red-300 hover:bg-(--sf2)'
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
+                              : 'border-(--ln) hover:border-blue-300 hover:bg-(--sf2)'
                           }`}>
                           <input type="radio" name="civilite" value={opt.val}
                             checked={form.civilite === opt.val} onChange={() => set('civilite', opt.val)} className="sr-only" />
                           <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                            form.civilite === opt.val ? 'border-red-500' : 'border-(--ln)'
+                            form.civilite === opt.val ? 'border-blue-500' : 'border-(--ln)'
                           }`}>
-                            {form.civilite === opt.val && <div className="w-2 h-2 rounded-full bg-red-500" />}
+                            {form.civilite === opt.val && <div className="w-2 h-2 rounded-full bg-blue-500" />}
                           </div>
                           <div>
-                            <div className={`text-sm font-bold ${form.civilite === opt.val ? 'text-red-700 dark:text-red-300' : 'text-(--t1)'}`}>{opt.label}</div>
+                            <div className={`text-sm font-bold ${form.civilite === opt.val ? 'text-blue-700 dark:text-blue-300' : 'text-(--t1)'}`}>{opt.label}</div>
                             <div className="text-xs text-(--t4)">{opt.sub}</div>
                           </div>
                         </motion.label>
@@ -302,7 +302,7 @@ export default function AideNouveauPatient() {
                   <div className="flex flex-col items-center mb-5">
                     <motion.div key={initials} initial={{ scale:0.85 }} animate={{ scale:1 }}
                       className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg mb-3"
-                      style={{ background:`linear-gradient(135deg, ${RED}, #991B1B)`, boxShadow:`0 8px 24px ${RED}33` }}>
+                      style={{ background:`linear-gradient(135deg, ${BLUE}, #1D4ED8)`, boxShadow:`0 8px 24px ${BLUE}33` }}>
                       {initials || <User size={24} className="opacity-60" />}
                     </motion.div>
                     <div className="text-center">
@@ -345,9 +345,9 @@ export default function AideNouveauPatient() {
                   {/* Badge allergies */}
                   {form.allergies_text.trim() && (
                     <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }}
-                      className="mt-3 flex items-start gap-2 p-2.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl">
-                      <Syringe size={12} className="text-red-500 shrink-0 mt-0.5" />
-                      <span className="text-[11px] text-red-800 dark:text-red-300 font-semibold leading-relaxed">
+                      className="mt-3 flex items-start gap-2 p-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
+                      <Syringe size={12} className="text-blue-500 shrink-0 mt-0.5" />
+                      <span className="text-[11px] text-blue-800 dark:text-blue-300 font-semibold leading-relaxed">
                         Allergies : {form.allergies_text}
                       </span>
                     </motion.div>
@@ -379,7 +379,7 @@ export default function AideNouveauPatient() {
                   <motion.button whileHover={canSubmit ? { scale:1.02 } : {}} whileTap={canSubmit ? { scale:0.98 } : {}}
                     type="submit" disabled={!canSubmit}
                     className="w-full flex items-center justify-center gap-2 py-3 text-white text-sm font-bold rounded-xl shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
-                    style={{ backgroundColor: RED, boxShadow: canSubmit ? `0 4px 14px ${RED}44` : 'none' }}>
+                    style={{ backgroundColor: BLUE, boxShadow: canSubmit ? `0 4px 14px ${BLUE}44` : 'none' }}>
                     {loading
                       ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       : <UserPlus size={15} />}

@@ -5,9 +5,9 @@ import {
   ChevronRight, Clock, Calendar, Loader2, Sparkles,
   Activity, TrendingUp, BookOpen, MessageCircle, Eye,
   QrCode, Send, CheckCircle2, XCircle, AlertCircle,
-  RefreshCw, UserCheck, Lock, ArrowRight
+  RefreshCw, UserCheck, Lock, ArrowRight, ShieldAlert
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProfil } from '../hooks/useAuth';
 import {
@@ -16,6 +16,25 @@ import {
   rechercheParCode,
   rechercherPatient,
 } from '../services/api';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+async function rechercherConsultations(q) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE}/consultations/search?q=${encodeURIComponent(q)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return [];
+  return res.json().catch(() => []);
+}
+
+async function rechercherCasGraves() {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE}/consultations/cas-graves`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return [];
+  return res.json().catch(() => []);
+}
 
 const SUGGESTIONS = ['Pneumonie', 'BPCO', 'Asthme', 'Tuberculose', 'Bronchite'];
 
@@ -49,6 +68,7 @@ const fmtDate = (d) => {
 
 export default function Recherche() {
   const { profil } = useProfil();
+  const [searchParams] = useSearchParams();
 
   // ── Tab principal : 'recherche' | 'acces' ──
   const [mainTab, setMainTab] = useState('recherche');
@@ -121,12 +141,12 @@ export default function Recherche() {
     }
   };
 
-  // ── Initialisation depuis l'URL ──
+  // ── Réagit aux params URL (topbar ou lien externe) ──
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get('q') || '';
-    if (q) { setQuery(q); doSearch(q); }
-    inputRef.current?.focus();
-  }, []);
+    const q = searchParams.get('q') || '';
+    if (q) setQuery(q);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, [searchParams]);
 
   // ── Recherche dynamique avec debounce 400ms ──
   useEffect(() => {
@@ -139,8 +159,14 @@ export default function Recherche() {
     if (!q.trim()) return;
     setLoading(true); setResults(null);
     try {
-      const raw = await rechercherPatient(q.trim());
-      const patients = (Array.isArray(raw) ? raw : []).map(p => ({
+      const [rawPts, rawConss, rawCasGraves] = await Promise.allSettled([
+        rechercherPatient(q.trim()),
+        rechercherConsultations(q.trim()),
+        rechercherCasGraves(),
+      ]);
+
+      const rawPatients = (rawPts.status === 'fulfilled' && Array.isArray(rawPts.value) ? rawPts.value : []);
+      const patients = rawPatients.map(p => ({
         id:        p.id,
         name:      `${p.civilite ? p.civilite + ' ' : ''}${p.prenom} ${p.nom}`,
         age:       p.age,
@@ -149,7 +175,69 @@ export default function Recherche() {
         lastVisit: p.date_derniere_visite || null,
         avatar:    `${p.prenom?.[0] || ''}${p.nom?.[0] || ''}`.toUpperCase(),
       }));
-      setResults({ patients, consultations: [], cas: [] });
+
+      const rawConssData = (rawConss.status === 'fulfilled' && Array.isArray(rawConss.value) ? rawConss.value : []);
+      const consultations = rawConssData.map(c => ({
+        id:         c.id,
+        patient_id: c.patient_id,
+        patient:    c.patient,
+        pathology:  c.pathology || '—',
+        status:     c.status,
+        date:       c.date,
+        time:       c.time,
+        doctor:     c.doctor,
+      }));
+
+      // Extraire les patients uniques depuis les consultations trouvées
+      const existingIds = new Set(patients.map(p => p.id));
+      const patientsFromConss = rawConssData
+        .filter(c => c.patient_id && !existingIds.has(c.patient_id))
+        .reduce((acc, c) => {
+          if (!acc.find(p => p.id === c.patient_id)) {
+            const [prenom, ...rest] = (c.patient || '').split(' ');
+            acc.push({
+              id:        c.patient_id,
+              name:      c.patient || '—',
+              age:       null,
+              pathology: c.pathology || '—',
+              status:    'actif',
+              lastVisit: c.date || null,
+              avatar:    `${prenom?.[0] || ''}${rest[0]?.[0] || ''}`.toUpperCase() || '?',
+            });
+          }
+          return acc;
+        }, []);
+
+      const allPatients = [...patients, ...patientsFromConss];
+
+      const qLow = q.trim().toLowerCase();
+      const rawCasData = (rawCasGraves.status === 'fulfilled' && Array.isArray(rawCasGraves.value) ? rawCasGraves.value : []);
+      const cas = rawCasData
+        .filter(c => {
+          const patientName = `${c.patient_prenom || ''} ${c.patient_nom || ''}`.toLowerCase();
+          const pathologie  = (c.diagnostic?.pathologie || '').toLowerCase();
+          const statut      = (c.statut_clinique || c.diagnostic?.etat_patient || '').toLowerCase();
+          const motif       = (c.motif || '').toLowerCase();
+          return patientName.includes(qLow) || pathologie.includes(qLow) || statut.includes(qLow) || motif.includes(qLow);
+        })
+        .map(c => ({
+          id:         c.consultation_id,
+          patient:    `${c.patient_prenom || ''} ${c.patient_nom || ''}`.trim() || '—',
+          patient_id: c.patient_id,
+          pathologie: c.diagnostic?.pathologie || '—',
+          statut:     c.statut_clinique || c.diagnostic?.etat_patient || 'inconnu',
+          date:       c.created_at,
+          motif:      c.motif || '',
+        }));
+
+      setResults({ patients: allPatients, consultations, cas });
+      if (allPatients.length > 0) {
+        setTab('patients');
+      } else if (consultations.length > 0) {
+        setTab('consultations');
+      } else if (cas.length > 0) {
+        setTab('cas');
+      }
     } catch {
       setResults({ patients: [], consultations: [], cas: [] });
     } finally {
@@ -167,16 +255,17 @@ export default function Recherche() {
       (!filters.pathology || c.pathology.toLowerCase().includes(filters.pathology.toLowerCase()))
     ),
     cas: results.cas.filter(c =>
-      (!filters.pathology || c.pathology.toLowerCase().includes(filters.pathology.toLowerCase()))
+      (!filters.pathology || (c.pathologie || '').toLowerCase().includes(filters.pathology.toLowerCase())) &&
+      (filters.status === 'all' || c.statut === filters.status)
     ),
   } : null;
 
   const total = filtered ? filtered.patients.length + filtered.consultations.length + filtered.cas.length : 0;
 
   const searchTabs = [
-    { id:'patients',      label:'Patients',     icon:Users,       count: filtered?.patients.length      ?? 0 },
-    { id:'consultations', label:'Consultations', icon:Stethoscope, count: filtered?.consultations.length ?? 0 },
-    { id:'cas',           label:'Cas cliniques', icon:FileText,    count: filtered?.cas.length           ?? 0 },
+    { id:'patients',      label:'Patients',     icon:Users,        count: filtered?.patients.length      ?? 0 },
+    { id:'consultations', label:'Consultations', icon:Stethoscope,  count: filtered?.consultations.length ?? 0 },
+    { id:'cas',           label:'Cas graves',    icon:ShieldAlert,  count: filtered?.cas.length           ?? 0 },
   ];
 
   const nbAccordes   = demandes.filter(d => d.statut === 'accorde').length;
@@ -403,21 +492,29 @@ export default function Recherche() {
                 <div className="space-y-3">
                   {filtered.cas.length > 0 ? filtered.cas.map((c, i) => (
                     <motion.div key={c.id} initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} transition={{delay: i * 0.04}}>
-                      <div className="flex items-center gap-4 p-4 bg-(--sf) border border-(--ln) rounded-2xl">
-                        <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center shrink-0">
-                          <BookOpen className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                      <Link
+                        to={c.patient_id ? `/medecin/patients/${c.patient_id}` : '#'}
+                        className="flex items-center gap-4 p-4 bg-(--sf) border border-(--ln) rounded-2xl hover:border-red-300 hover:shadow-md transition-all group">
+                        <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+                          <ShieldAlert className="w-6 h-6 text-red-500 dark:text-red-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-(--t1)">{c.title}</h3>
-                          <p className="text-sm text-(--t3) mt-0.5">Par {c.author} · {fmtDate(c.date)}</p>
-                          <div className="flex items-center gap-4 mt-1 text-xs text-(--t4)">
-                            <span className="flex items-center gap-1"><MessageCircle className="w-3 h-3" />{c.comments}</span>
-                            <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{c.views} vues</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold text-(--t1) group-hover:text-red-600 transition-colors">{c.patient}</h3>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${getStatusStyle(c.statut)}`}>
+                              {getStatusLabel(c.statut)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-(--t3) mt-0.5">{c.pathologie}</p>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-(--t4)">
+                            {c.motif && <span className="flex items-center gap-1"><Activity className="w-3 h-3" />{c.motif}</span>}
+                            {c.date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(c.date)}</span>}
                           </div>
                         </div>
-                      </div>
+                        <ChevronRight className="w-5 h-5 text-(--t4) group-hover:text-red-500 transition-colors shrink-0" />
+                      </Link>
                     </motion.div>
-                  )) : <EmptyState icon={FileText} label="Aucun cas clinique correspondant" />}
+                  )) : <EmptyState icon={FileText} label="Aucun cas grave correspondant" />}
                 </div>
               )}
             </motion.div>
