@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Download, Search, ChevronLeft, ChevronRight, Trash2, X, AlertTriangle, Activity, CheckCircle2, XCircle, ShieldAlert } from "lucide-react";
@@ -6,26 +6,26 @@ import { brand, getSurface, getText } from "../theme";
 import {
   Th, Tr, Td, EmptyCell, MutedText, SubtleText, PaginationBar,
 } from "../components/ui/Table";
+import { getAuditLogs, purgerAuditLogs } from "../api/adminapi";
 
 const NOW = new Date();
-const sub = (ms) => new Date(NOW.getTime() - ms);
 const pad = (n) => String(n).padStart(2, "0");
 function fmtDT(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
 function elapsed(d) { const dm = Math.floor((NOW - d) / 60000), dh = Math.floor(dm / 60), dd = Math.floor(dh / 24); if (dm < 60) return `${dm} min`; if (dh < 24) return `${dh}h`; if (dd === 1) return "Hier"; return `${dd}j`; }
 
-const INITIAL_DATA = [
-  { id:1,  date:sub(2*60000),         acteur:"Dr. Aminata Sow",   role:"Médecin", action:"Connexion réussie",              cible:"Compte médecin",       ip:"197.234.56.78", ville:"Douala",  statut:"success" },
-  { id:2,  date:sub(15*60000),        acteur:"Super Admin",        role:"Admin",   action:"Compte médecin validé",          cible:"Dr. Paul Essomba",     ip:"192.168.1.1",   ville:"Local",   statut:"success" },
-  { id:3,  date:sub(34*60000),        acteur:"Inconnu",            role:"—",       action:"Tentative connexion échouée",    cible:"admin@pneumoia.cm",    ip:"105.112.43.21", ville:"Lagos",   statut:"danger"  },
-  { id:4,  date:sub(2*3600000),       acteur:"Super Admin",        role:"Admin",   action:"Compte médecin rejeté",          cible:"Dr. Tabi Jonas",       ip:"192.168.1.1",   ville:"Local",   statut:"warning" },
-  { id:5,  date:sub(3*3600000),       acteur:"Dr. Jean Dupont",    role:"Médecin", action:"Consultation enregistrée",       cible:"Patient #247",         ip:"197.234.12.55", ville:"Douala",  statut:"success" },
-  { id:6,  date:sub(5*3600000),       acteur:"Super Admin",        role:"Admin",   action:"Dr. Fokou suspendu",             cible:"Dr. Fokou Emmanuel",   ip:"192.168.1.1",   ville:"Local",   statut:"warning" },
-  { id:7,  date:sub(8*3600000),       acteur:"Dr. Kamto Diane",    role:"Médecin", action:"Connexion réussie",              cible:"Compte médecin",       ip:"41.202.219.67", ville:"Yaoundé", statut:"success" },
-  { id:8,  date:sub(12*3600000),      acteur:"Système",            role:"Système", action:"Modèle IA mis à jour",           cible:"Model v2.4.1",         ip:"—",             ville:"—",       statut:"info"    },
-  { id:9,  date:sub(24*3600000),      acteur:"Super Admin",        role:"Admin",   action:"Paramètres mis à jour",          cible:"Config plateforme",    ip:"192.168.1.1",   ville:"Local",   statut:"info"    },
-  { id:10, date:sub(2*24*3600000),    acteur:"Inconnu",            role:"—",       action:"Tentative connexion échouée",    cible:"d.kamto@chu.cm",       ip:"102.89.45.200", ville:"Abidjan", statut:"danger"  },
-  { id:11, date:sub(3*24*3600000),    acteur:"Dr. Aminata Sow",    role:"Médecin", action:"Cas publié communauté",          cible:"Cas #64",              ip:"197.234.56.78", ville:"Douala",  statut:"success" },
-  { id:12, date:sub(4*24*3600000),    acteur:"Super Admin",        role:"Admin",   action:"Sauvegarde automatique réussie", cible:"BDD principale",       ip:"192.168.1.1",   ville:"Local",   statut:"success" },
+const MOCK_DATA = [
+  { id:1,  date:new Date(NOW.getTime()-2*60000),         acteur:"Dr. Aminata Sow",   role:"Médecin", action:"Connexion réussie",              cible:"Compte médecin",       ip:"197.234.56.78", ville:"Douala",  statut:"success" },
+  { id:2,  date:new Date(NOW.getTime()-15*60000),        acteur:"Super Admin",        role:"Admin",   action:"Compte médecin validé",          cible:"Dr. Paul Essomba",     ip:"192.168.1.1",   ville:"Local",   statut:"success" },
+  { id:3,  date:new Date(NOW.getTime()-34*60000),        acteur:"Inconnu",            role:"—",       action:"Tentative connexion échouée",    cible:"admin@pneumoia.cm",    ip:"105.112.43.21", ville:"Lagos",   statut:"danger"  },
+  { id:4,  date:new Date(NOW.getTime()-2*3600000),       acteur:"Super Admin",        role:"Admin",   action:"Compte médecin rejeté",          cible:"Dr. Tabi Jonas",       ip:"192.168.1.1",   ville:"Local",   statut:"warning" },
+  { id:5,  date:new Date(NOW.getTime()-3*3600000),       acteur:"Dr. Jean Dupont",    role:"Médecin", action:"Consultation enregistrée",       cible:"Patient #247",         ip:"197.234.12.55", ville:"Douala",  statut:"success" },
+  { id:6,  date:new Date(NOW.getTime()-5*3600000),       acteur:"Super Admin",        role:"Admin",   action:"Dr. Fokou suspendu",             cible:"Dr. Fokou Emmanuel",   ip:"192.168.1.1",   ville:"Local",   statut:"warning" },
+  { id:7,  date:new Date(NOW.getTime()-8*3600000),       acteur:"Dr. Kamto Diane",    role:"Médecin", action:"Connexion réussie",              cible:"Compte médecin",       ip:"41.202.219.67", ville:"Yaoundé", statut:"success" },
+  { id:8,  date:new Date(NOW.getTime()-12*3600000),      acteur:"Système",            role:"Système", action:"Modèle IA mis à jour",           cible:"Model v2.4.1",         ip:"—",             ville:"—",       statut:"info"    },
+  { id:9,  date:new Date(NOW.getTime()-24*3600000),      acteur:"Super Admin",        role:"Admin",   action:"Paramètres mis à jour",          cible:"Config plateforme",    ip:"192.168.1.1",   ville:"Local",   statut:"info"    },
+  { id:10, date:new Date(NOW.getTime()-2*24*3600000),    acteur:"Inconnu",            role:"—",       action:"Tentative connexion échouée",    cible:"d.kamto@chu.cm",       ip:"102.89.45.200", ville:"Abidjan", statut:"danger"  },
+  { id:11, date:new Date(NOW.getTime()-3*24*3600000),    acteur:"Dr. Aminata Sow",    role:"Médecin", action:"Cas publié communauté",          cible:"Cas #64",              ip:"197.234.56.78", ville:"Douala",  statut:"success" },
+  { id:12, date:new Date(NOW.getTime()-4*24*3600000),    acteur:"Super Admin",        role:"Admin",   action:"Sauvegarde automatique réussie", cible:"BDD principale",       ip:"192.168.1.1",   ville:"Local",   statut:"success" },
 ];
 
 const TYPES = ["Tous","Connexion","Validation","Suspension","Consultation","Système","Erreur"];
@@ -94,7 +94,7 @@ function CleanModal({ dark, onClean, onClose, lastClean }) {
         </div>
 
         <p className={`text-[13px] ${dark ? "text-[#8b949e]" : "text-gray-400"}`}>
-          Choisissez quelles entrées supprimer. Cette action est irréversible dans cette session.
+          Choisissez quelles entrées supprimer. Cette action est irréversible.
         </p>
 
         <div className="flex flex-col gap-2">
@@ -118,21 +118,18 @@ function CleanModal({ dark, onClean, onClose, lastClean }) {
   );
 }
 
-function loadData() {
-  try {
-    const saved = localStorage.getItem("auditData");
-    if (saved) {
-      // Les dates sont sérialisées en string, il faut les reconvertir
-      return JSON.parse(saved).map(l => ({ ...l, date: new Date(l.date) }));
-    }
-  } catch {}
-  // Premier lancement : on persiste les données initiales
-  localStorage.setItem("auditData", JSON.stringify(INITIAL_DATA));
-  return INITIAL_DATA;
-}
-
-function saveData(entries) {
-  localStorage.setItem("auditData", JSON.stringify(entries));
+function normalizeLog(l) {
+  return {
+    id:     l.id,
+    date:   l.date instanceof Date ? l.date : new Date(l.date),
+    acteur: l.acteur,
+    role:   l.role,
+    action: l.action,
+    cible:  l.cible,
+    ip:     l.ip,
+    ville:  l.ville,
+    statut: l.statut,
+  };
 }
 
 export default function JournalAudit() {
@@ -140,38 +137,32 @@ export default function JournalAudit() {
   const [search, setSearch] = useState("");
   const [type, setType] = useState("Tous");
   const [page, setPage] = useState(1);
-  const [data, setData] = useState(loadData);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showClean, setShowClean] = useState(false);
   const [lastClean, setLastClean] = useState(() => localStorage.getItem("auditLastClean") || null);
   const PER_PAGE = 8;
 
-  // Auto-cleanup: supprimer entrées >30j si dernière purge >7j
   useEffect(() => {
-    const stored = localStorage.getItem("auditLastClean");
-    if (stored) {
-      const daysSince = Math.floor((NOW - new Date(stored)) / (1000 * 60 * 60 * 24));
-      if (daysSince >= 7) {
-        setData(prev => {
-          const cleaned = prev.filter(l => (NOW - l.date) < 30 * 24 * 60 * 60 * 1000);
-          saveData(cleaned);
-          return cleaned;
-        });
-        const now = NOW.toISOString();
-        localStorage.setItem("auditLastClean", now);
-        setLastClean(now);
-      }
-    } else {
-      const now = NOW.toISOString();
-      localStorage.setItem("auditLastClean", now);
-      setLastClean(now);
-    }
+    setLoading(true);
+    getAuditLogs()
+      .then(res => {
+        const entries = Array.isArray(res) ? res : (res?.logs ?? []);
+        setData(entries.length ? entries.map(normalizeLog) : MOCK_DATA.map(normalizeLog));
+      })
+      .catch(() => setData(MOCK_DATA.map(normalizeLog)))
+      .finally(() => setLoading(false));
   }, []);
 
-  function handleClean(days) {
-    const cleaned = days === 0 ? [] : data.filter(l => (NOW - l.date) < days * 24 * 60 * 60 * 1000);
-    setData(cleaned);
-    saveData(cleaned);
-    const now = NOW.toISOString();
+  async function handleClean(days) {
+    try {
+      await purgerAuditLogs(days);
+    } catch {}
+    // Recharge les données après purge
+    const res = await getAuditLogs().catch(() => null);
+    const entries = Array.isArray(res) ? res : (res?.logs ?? []);
+    setData(entries.map(normalizeLog));
+    const now = new Date().toISOString();
     localStorage.setItem("auditLastClean", now);
     setLastClean(now);
     setShowClean(false);
@@ -278,7 +269,6 @@ export default function JournalAudit() {
 
       {/* Table card */}
       <div className={`rounded-2xl border ${dark ? "bg-[#161b22] border-[#21262d]" : "bg-white border-gray-100 shadow-sm"}`}>
-        {/* Filtres + recherche */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 dark:border-[#21262d]">
           <div className="flex flex-wrap gap-1.5">
             {TYPES.map(t => (
@@ -295,7 +285,6 @@ export default function JournalAudit() {
             ))}
           </div>
 
-          {/* Barre de recherche — fond neutre, pas noir */}
           <div className={`flex items-center gap-2 h-8 px-3 rounded-lg border w-full sm:w-56 ${dark ? "bg-[#1c2128] border-[#30363d]" : "bg-gray-50 border-gray-200"}`}>
             <Search size={12} className={`shrink-0 ${dark ? "text-[#6e7681]" : "text-gray-400"}`} />
             <input
@@ -307,53 +296,59 @@ export default function JournalAudit() {
           </div>
         </div>
 
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <Th dark={dark}>Date / Heure</Th>
-              <Th dark={dark}>Acteur</Th>
-              <Th dark={dark}>Rôle</Th>
-              <Th dark={dark}>Action</Th>
-              <Th dark={dark}>Cible</Th>
-              <Th dark={dark}>IP</Th>
-              <Th dark={dark}>Statut</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.length === 0
-              ? <EmptyCell dark={dark} colSpan={7}>Aucun événement trouvé</EmptyCell>
-              : paginated.map(l => {
-                  const s = STATUT_CFG[l.statut] || STATUT_CFG.info;
-                  return (
-                    <Tr key={l.id} dark={dark}>
-                      <Td dark={dark}>
-                        <p className="text-[14px] font-mono whitespace-nowrap" style={{ color: txt.secondary }}>{fmtDT(l.date)}</p>
-                        <SubtleText dark={dark}>{elapsed(l.date)}</SubtleText>
-                      </Td>
-                      <Td dark={dark}>
-                        <span className="text-[14px] font-semibold" style={{ color: txt.primary }}>{l.acteur}</span>
-                      </Td>
-                      <Td dark={dark}>
-                        <RoleBadge role={l.role} />
-                      </Td>
-                      <Td dark={dark}>
-                        <p className="truncate text-[14px]" style={{ color: txt.muted, maxWidth: 200 }}>{l.action}</p>
-                      </Td>
-                      <Td dark={dark}>
-                        <p className="truncate text-[14px]" style={{ color: txt.subtle, maxWidth: 140 }}>{l.cible}</p>
-                      </Td>
-                      <Td dark={dark}><MutedText dark={dark} mono>{l.ip}</MutedText></Td>
-                      <Td dark={dark}>
-                        <span className={`flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-0.5 rounded-md border w-fit ${s.cls}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.dot}`} />{s.label}
-                        </span>
-                      </Td>
-                    </Tr>
-                  );
-                })
-            }
-          </tbody>
-        </table>
+        {loading ? (
+          <div className="flex flex-col gap-2 p-5">
+            {[1,2,3,4].map(i => <div key={i} className="h-10 rounded-xl animate-pulse" style={{ background: dark ? "#21262d" : "#f3f4f6" }} />)}
+          </div>
+        ) : (
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <Th dark={dark}>Date / Heure</Th>
+                <Th dark={dark}>Acteur</Th>
+                <Th dark={dark}>Rôle</Th>
+                <Th dark={dark}>Action</Th>
+                <Th dark={dark}>Cible</Th>
+                <Th dark={dark}>IP</Th>
+                <Th dark={dark}>Statut</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginated.length === 0
+                ? <EmptyCell dark={dark} colSpan={7}>Aucun événement trouvé</EmptyCell>
+                : paginated.map(l => {
+                    const s = STATUT_CFG[l.statut] || STATUT_CFG.info;
+                    return (
+                      <Tr key={l.id} dark={dark}>
+                        <Td dark={dark}>
+                          <p className="text-[14px] font-mono whitespace-nowrap" style={{ color: txt.secondary }}>{fmtDT(l.date)}</p>
+                          <SubtleText dark={dark}>{elapsed(l.date)}</SubtleText>
+                        </Td>
+                        <Td dark={dark}>
+                          <span className="text-[14px] font-semibold" style={{ color: txt.primary }}>{l.acteur}</span>
+                        </Td>
+                        <Td dark={dark}>
+                          <RoleBadge role={l.role} />
+                        </Td>
+                        <Td dark={dark}>
+                          <p className="truncate text-[14px]" style={{ color: txt.muted, maxWidth: 200 }}>{l.action}</p>
+                        </Td>
+                        <Td dark={dark}>
+                          <p className="truncate text-[14px]" style={{ color: txt.subtle, maxWidth: 140 }}>{l.cible}</p>
+                        </Td>
+                        <Td dark={dark}><MutedText dark={dark} mono>{l.ip}</MutedText></Td>
+                        <Td dark={dark}>
+                          <span className={`flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-0.5 rounded-md border w-fit ${s.cls}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.dot}`} />{s.label}
+                          </span>
+                        </Td>
+                      </Tr>
+                    );
+                  })
+              }
+            </tbody>
+          </table>
+        )}
       </div>
 
       <PaginationBar dark={dark}>

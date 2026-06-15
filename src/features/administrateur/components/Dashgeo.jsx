@@ -1,9 +1,11 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "./Card";
 import CardHeader from "./CardHeader";
 import { brand, getSurface, getText } from "../theme";
+import { getRepartitionGeo } from "../api/adminapi";
 
-const VILLES = [
+const MOCK_VILLES = [
   { v: "Douala",    c: 2240 },
   { v: "Yaoundé",  c: 1540 },
   { v: "Bafoussam",c: 580  },
@@ -11,7 +13,7 @@ const VILLES = [
   { v: "Bertoua",  c: 141  },
 ];
 
-const REGIONS = [
+const MOCK_REGIONS = [
   { r: "Littoral",   md: 18, cov: 94 },
   { r: "Centre",     md: 12, cov: 88 },
   { r: "Ouest",      md: 4,  cov: 52 },
@@ -24,16 +26,28 @@ const REGIONS = [
   { r: "S-Ouest",    md: 0,  cov: 0  },
 ];
 
-const TOTAL_MD  = REGIONS.reduce((s, r) => s + r.md, 0);
-const TOTAL_C   = VILLES.reduce((s, v) => s + v.c, 0);
-const TOTAL_P   = 1163;
-const COUVERTES = REGIONS.filter(r => r.md > 0).length;
-const MAX_C     = Math.max(...VILLES.map(v => v.c));
-
 export default function DashGeo({ dark }) {
   const navigate = useNavigate();
   const surface  = getSurface(dark);
   const txt      = getText(dark);
+
+  const [villes,  setVilles]  = useState(MOCK_VILLES);
+  const [regions, setRegions] = useState(MOCK_REGIONS);
+
+  useEffect(() => {
+    getRepartitionGeo()
+      .then(data => {
+        if (data?.villes?.length)  setVilles(data.villes.map(v  => ({ v: v.ville,  c: v.consultations })));
+        if (data?.regions?.length) setRegions(data.regions.map(r => ({ r: r.region, md: r.medecins, cov: r.couverture })));
+      })
+      .catch(() => {});
+  }, []);
+
+  const TOTAL_MD  = regions.reduce((s, r) => s + r.md, 0);
+  const TOTAL_C   = villes.reduce((s, v) => s + v.c, 0);
+  const TOTAL_P   = 1163;
+  const COUVERTES = regions.filter(r => r.md > 0).length;
+  const MAX_C     = Math.max(...villes.map(v => v.c));
 
   function covColor(cov) {
     if (cov === 0) return dark ? "#30363d" : "#e5e7eb";
@@ -70,7 +84,7 @@ export default function DashGeo({ dark }) {
       {/* Mini bar chart — consultations par ville */}
       <p className="text-[12px] font-bold mb-2" style={{ color: txt.muted }}>Consultations par ville</p>
       <div className="flex flex-col gap-1.5 mb-4">
-        {VILLES.map(v => (
+        {villes.map(v => (
           <div key={v.v} className="flex items-center gap-2">
             <span className="text-[11px] w-20 shrink-0 truncate" style={{ color: txt.muted }}>{v.v}</span>
             <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: surface.borderSoft }}>
@@ -89,7 +103,7 @@ export default function DashGeo({ dark }) {
       {/* Couverture par région */}
       <p className="text-[12px] font-bold mb-2" style={{ color: txt.muted }}>Couverture par région</p>
       <div className="flex flex-col gap-1.5">
-        {REGIONS.map(r => (
+        {regions.map(r => (
           <div key={r.r} className="flex items-center gap-2">
             <span className="text-[11px] w-20 shrink-0 truncate" style={{ color: txt.muted }}>{r.r}</span>
             <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: surface.borderSoft }}>

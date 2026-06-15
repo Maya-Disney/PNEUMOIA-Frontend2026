@@ -362,11 +362,15 @@ export async function getConsultationsTotal(from, to) {
 }
 
 /**
- * Répartition géographique des médecins par ville.
- * GET /api/admin/stats/repartition-geo
+ * Répartition géographique des médecins par ville avec filtres mois/année.
+ * GET /api/admin/stats/repartition-geo?mois=6&annee=2026
  */
-export async function getRepartitionGeo() {
-  return request("GET", "/api/admin/stats/repartition-geo", null, true);
+export async function getRepartitionGeo(mois, annee) {
+  const p = new URLSearchParams();
+  if (mois)  p.append("mois",  mois);
+  if (annee) p.append("annee", annee);
+  const qs = p.toString() ? `?${p}` : "";
+  return request("GET", `/api/admin/stats/repartition-geo${qs}`, null, true);
 }
 
 /**
@@ -428,4 +432,44 @@ export async function getParametres() {
  */
 export async function updateParametres(params) {
   return request("PUT", "/api/admin/parametres", params, true);
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 13. KPIs DASHBOARD
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * KPIs globaux du tableau de bord admin.
+ * Retourne : { medecins_actifs, demandes_en_attente, consultations_total, precision_ia }
+ * GET /api/admin/stats/kpis
+ */
+export async function getKpis() {
+  return request("GET", "/api/admin/stats/kpis", null, true);
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 14. JOURNAL D'AUDIT
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Entrées du journal d'audit avec filtres optionnels.
+ * Chaque entrée : { id, date (ISO), acteur, role, action, cible, ip, ville, statut }
+ * GET /api/admin/audit/logs?type=Connexion&statut=success
+ */
+export async function getAuditLogs(type = "", statut = "") {
+  const p = new URLSearchParams();
+  if (type   && type   !== "Tous") p.append("type",   type);
+  if (statut && statut !== "Tous") p.append("statut", statut);
+  const qs = p.toString() ? `?${p}` : "";
+  return request("GET", `/api/admin/audit/logs${qs}`, null, true);
+}
+
+/**
+ * Supprime les entrées du journal antérieures à N jours (0 = tout purger).
+ * DELETE /api/admin/audit/logs/purger
+ */
+export async function purgerAuditLogs(days = 30) {
+  return request("DELETE", "/api/admin/audit/logs/purger", { days }, true);
 }

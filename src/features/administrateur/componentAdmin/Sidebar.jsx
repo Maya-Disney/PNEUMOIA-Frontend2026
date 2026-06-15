@@ -100,7 +100,7 @@ export default function Sidebar({ dark }) {
 
   function confirmLogout() {
     adminLogout();
-    navigate("/administrateur/login");
+    navigate("/pneumo-admin-secure");
   }
 
   const bg     = dark ? BG_DARK  : BG_LIGHT;

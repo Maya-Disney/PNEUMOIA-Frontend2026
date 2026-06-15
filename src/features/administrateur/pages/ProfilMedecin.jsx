@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useOutletContext, useLocation } from "react-router-dom";
-import { suspendreMedecin, supprimerMedecin } from "../api/adminApi";
+import { getMedecinById, suspendreMedecin, supprimerMedecin } from "../api/adminApi";
 import { AlertTriangle, ArrowLeft, Trash2, X, FileDown, Cpu, Calendar, User, PauseCircle } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
 
@@ -12,6 +12,41 @@ const MOCK = {
 };
 
 const RAISONS = ["— Choisir une raison —","Signalement d'un confrère","Comportement non conforme","Vérification d'identité requise","Incohérence dans les documents","Inactivité prolongée","Autre"];
+
+// Formate une date ISO en DD/MM/YYYY
+function fmt(d) {
+  const pad = n => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+// Convertit les champs API vers le format local attendu par le JSX
+function normaliserMedecin(data) {
+  const initials = `${(data.prenom?.[0] || "").toUpperCase()}${(data.nom?.[0] || "").toUpperCase()}`;
+  const statutMap = { valide: "Actif", suspendu: "Suspendu", en_attente: "En attente", rejete: "Refusé" };
+  return {
+    id:               data.id,
+    initials,
+    avatarColor:      "#0f766e",
+    photo_url:        data.photo_url || null,
+    nom:              `${data.civilite || "Dr."} ${data.prenom} ${data.nom}`,
+    specialite:       data.specialite       || "Pneumologue",
+    cnom:             data.numero_rpps      || "—",
+    hopital:          data.etablissement    || "—",
+    ville:            data.adresse          || "—",
+    email:            data.email            || "—",
+    telephone:        data.telephone        || "—",
+    patients:         data.nb_patients      || 0,
+    consultations:    data.nb_consultations || 0,
+    concordanceIA:    data.concordance_ia   || null,
+    statut:           statutMap[data.statut] || data.statut || "Inactif",
+    derniereActivite: data.derniere_activite || null,
+    creeLE:           data.created_at ? fmt(new Date(data.created_at)) : "—",
+    valideLE:         data.valide_le  ? fmt(new Date(data.valide_le))  : "—",
+    rangCommunaute:   data.rang_communaute  || "—",
+    casPartages:      data.cas_partages     || "—",
+    activiteRecente:  data.activite_recente || [],
+  };
+}
 
 function Modal({ onClose, title, sub: subtitle, children, footer, dark }) {
   return (
@@ -92,10 +127,19 @@ export default function ProfilMedecin() {
   const [toast,       setToast]       = useState(null);
 
   useEffect(() => {
+    // Priorité 1 : données passées via navigate(state) depuis MedecinsActifs
     const fromState = location.state?.medecin;
-    const fromMock  = MOCK[Number(id)];
-    const data = (fromState && fromState.email) ? fromState : fromMock;
-    if (data) setM(data); else navigate("/administrateur/medecins");
+    if (fromState?.email) { setM(fromState); return; }
+
+    // Priorité 2 : charge depuis l'API backend (profil complet + stats)
+    getMedecinById(id)
+      .then(data => setM(normaliserMedecin(data)))
+      .catch(() => {
+        // Fallback MOCK si l'API est absente ou retourne 404
+        const mock = MOCK[Number(id)];
+        if (mock) setM(mock);
+        else navigate("/administrateur/medecins");
+      });
   }, [id]);
 
   useEffect(() => {

@@ -14,6 +14,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Wind, PauseCircle, AlertCircle, Globe, Clock, Bell, Settings } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
+import { getParametres, updateParametres } from "../api/adminApi";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VALEURS PAR DÉFAUT
@@ -231,14 +232,13 @@ export default function Parametres() {
   const [saving,   setSaving]   = useState(false);
   const [toast,    setToast]    = useState(null);
 
-  // ── Chargement depuis le backend ────────────────────────────────────────────
+  // ── Chargement depuis le backend (JWT inclus automatiquement via adminApi) ──
   useEffect(() => {
     setLoading(true);
-    fetch("/api/admin/parametres")
-      .then(res=>{if(!res.ok)throw new Error();return res.json();})
-      .then(data=>{setParams({...DEFAULTS,...data});setOriginal({...DEFAULTS,...data});})
-      .catch(()=>{setParams(DEFAULTS);setOriginal(DEFAULTS);})
-      .finally(()=>setLoading(false));
+    getParametres()
+      .then(data => { setParams({ ...DEFAULTS, ...data }); setOriginal({ ...DEFAULTS, ...data }); })
+      .catch(()  => { setParams(DEFAULTS); setOriginal(DEFAULTS); })
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -249,21 +249,17 @@ export default function Parametres() {
 
   const set = useCallback((k, v)=>setParams(p=>({...p,[k]:v})), []);
 
-  // ── Sauvegarde ──────────────────────────────────────────────────────────────
+  // ── Sauvegarde (PUT /api/admin/parametres avec JWT) ─────────────────────────
   async function handleSave() {
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/parametres", {
-        method:"PUT",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(params),
-      });
-      if (!res.ok) throw new Error();
+      await updateParametres(params);
       setOriginal(params);
-      setToast({msg:"Paramètres sauvegardés ✓", type:"success"});
+      setToast({ msg: "Paramètres sauvegardés ✓", type: "success" });
     } catch {
+      // Garde quand même les valeurs localement si le backend est absent
       setOriginal(params);
-      setToast({msg:"Paramètres sauvegardés (mode démo)", type:"success"});
+      setToast({ msg: "Paramètres sauvegardés (mode démo)", type: "success" });
     } finally {
       setSaving(false);
     }

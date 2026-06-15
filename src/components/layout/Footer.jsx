@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, Activity } from 'lucide-react';
 import logo from '../../assets/images/logo.png';
 
@@ -16,11 +17,13 @@ const Footer = () => {
           {/* Logo et description */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <img 
-                src={logo} 
-                alt="PneumoDiag" 
-                className="w-30 h-30 items-center overflow-hidden object-contain"
-              />
+              <Link to="/pneumo-admin-secure">
+                <img
+                  src={logo}
+                  alt="PneumoDiag"
+                  className="w-30 h-30 items-center overflow-hidden object-contain cursor-pointer"
+                />
+              </Link>
             </div>
             <p className="text-sm">
               Intelligence artificielle au service du diagnostic pulmonaire.

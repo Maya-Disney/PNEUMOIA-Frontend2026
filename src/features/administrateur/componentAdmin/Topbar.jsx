@@ -8,21 +8,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { brand, getSurface, getText } from "../theme";
 import { useAdminTheme } from "../context/useAdminTheme";
 import { getDemandes, getQuestions } from "../api/adminApi";
-import { MOCK as MOCK_DEMANDES, mapMedecin } from "../api/demandesData";
-
-// ── Fallback mock data for when the API is offline ────────────────────────────
-const _sub = ms => new Date(Date.now() - ms);
-
-const MOCK_COMMENT_NOTIFS = [
-  { id: 1, nom: "Dr. Jean Dupont", note: 5, date: _sub(30  * 60000)   },
-  { id: 2, nom: "Dr. Kamto Diane", note: 4, date: _sub(3   * 3600000) },
-  { id: 3, nom: "Dr. Nkoa",        note: 2, date: _sub(24  * 3600000) },
-];
-
-const MOCK_FAQ_NOTIFS = [
-  { id: 1, medecin: "Dr. Kamga Denis", question: "Comment modifier mon établissement de rattachement sur la plateforme ?", date: _sub(45 * 60000)  },
-  { id: 2, medecin: "Dr. Abena Nkolo", question: "Le module IA est-il certifié pour usage clinique ?",                   date: _sub(2  * 3600000) },
-];
+import { mapMedecin } from "../api/demandesData";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function notifElapsed(d) {
@@ -161,7 +147,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
   const [panelPos,     setPanelPos]     = useState({ top: 0, right: 0 });
   const [inscriptions, setInscriptions] = useState([]);
   const [faqNotifs,    setFaqNotifs]    = useState([]);
-  const commentNotifs = MOCK_COMMENT_NOTIFS;
+  const commentNotifs = [];
   const notifRef    = useRef(null);
   const bellRef     = useRef(null);
   const prevCount   = useRef(null); // null = premier chargement
@@ -184,10 +170,10 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
 
       try {
         const data = await getDemandes();
-        const mapped = Array.isArray(data) ? data.map(mapMedecin) : MOCK_DEMANDES;
+        const mapped = Array.isArray(data) ? data.map(mapMedecin) : [];
         newInscriptions = mapped.filter(d => d.status === "en_attente");
       } catch {
-        newInscriptions = MOCK_DEMANDES.filter(d => d.status === "en_attente");
+        newInscriptions = [];
       }
 
       try {
@@ -200,13 +186,13 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
             date:     q.created_at ? new Date(q.created_at) : (q.date ? new Date(q.date) : new Date()),
           }));
         } else {
-          newFaq = MOCK_FAQ_NOTIFS;
+          newFaq = [];
         }
       } catch {
-        newFaq = MOCK_FAQ_NOTIFS;
+        newFaq = [];
       }
 
-      const newTotal = newInscriptions.length + MOCK_COMMENT_NOTIFS.length + newFaq.length;
+      const newTotal = newInscriptions.length + newFaq.length;
 
       // Premier chargement avec notifs → son immédiat
       // Polling suivant avec plus de notifs → son d'alerte

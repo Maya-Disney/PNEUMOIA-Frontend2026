@@ -4,7 +4,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid
 } from "recharts";
-import { getConsultationsSemaine } from "../api/adminApi";
+import { getConsultationsSemaine, getConsultationsTotal } from "../api/adminApi";
 
 const BRAND   = "#0f766e";
 const COMPARE = "#8b5cf6";
@@ -90,43 +90,67 @@ function genMockData(annee, mois, nbJours) {
   });
 }
 
+function dateRange(annee, mois, startDay, nbJours) {
+  const from = new Date(annee, mois, startDay).toISOString().slice(0, 10);
+  const to   = new Date(annee, mois, startDay + nbJours - 1).toISOString().slice(0, 10);
+  return { from, to };
+}
+
 export default function CourbeActivite() {
   const { dark }   = useOutletContext() || {};
   const navigate   = useNavigate();
-  const [periode,   setPeriode]  = useState("30j");
-  const [loading,   setLoading]  = useState(true);
-  const [dataActuel, setDataActuel] = useState([]);
-  const [dataPrec,   setDataPrec]   = useState([]);
+  const [periode,     setPeriode]    = useState("30j");
+  const [loading,     setLoading]    = useState(true);
+  const [dataActuel,  setDataActuel] = useState([]);
+  const [dataPrec,    setDataPrec]   = useState([]);
+  const [variationAPI, setVariation] = useState(null);
 
   const nb           = PERIODES.find(p => p.key === periode)?.nb || 30;
   const anneeActuel  = NOW.getFullYear();
-  const anneePrec    = NOW.getMonth() === 0 ? anneeActuel - 1 : anneeActuel;
-  const moisActuel   = MOIS_LONG[NOW.getMonth()];
-  const moisPrec     = MOIS_LONG[new Date(NOW.getFullYear(), NOW.getMonth() - 1).getMonth()];
+  const moisActuelIdx = NOW.getMonth();
+  const anneePrec    = moisActuelIdx === 0 ? anneeActuel - 1 : anneeActuel;
+  const moisPrecIdx  = moisActuelIdx === 0 ? 11 : moisActuelIdx - 1;
+  const moisActuel   = MOIS_LONG[moisActuelIdx];
+  const moisPrec     = MOIS_LONG[moisPrecIdx];
   const labelActuel  = `${moisActuel} ${anneeActuel}`;
   const labelPrec    = `${moisPrec} ${anneePrec}`;
 
   useEffect(() => {
     setLoading(true);
+
+    const { from: fromA, to: toA } = dateRange(anneeActuel, moisActuelIdx, 1, nb);
+    const { from: fromP, to: toP } = dateRange(anneePrec,   moisPrecIdx,   1, nb);
+
     Promise.all([
-      getConsultationsSemaine(),
-      getConsultationsSemaine(),
+      getConsultationsSemaine().catch(() => null),
+      getConsultationsTotal(fromA, toA).catch(() => null),
+      getConsultationsTotal(fromP, toP).catch(() => null),
     ])
-      .then(() => {
-        const moisActuelIdx = NOW.getMonth();
-        const moisPrecIdx   = moisActuelIdx === 0 ? 11 : moisActuelIdx - 1;
-        const aA = NOW.getFullYear();
-        const aP = moisActuelIdx === 0 ? aA - 1 : aA;
-        setDataActuel(genMockData(aA, moisActuelIdx, nb));
-        setDataPrec(genMockData(aP, moisPrecIdx, nb));
+      .then(([semaine, totActuel, totPrec]) => {
+        // Données journalières période actuelle
+        if (Array.isArray(semaine?.jours) && semaine.jours.length) {
+          const mapped = semaine.jours.slice(0, nb).map((d, i) => ({
+            jour:  i + 1,
+            label: d.j || `${pad(i + 1)} ${MOIS[moisActuelIdx]}`,
+            date:  d.j || `J${i + 1}`,
+            val:   d.c ?? 0,
+          }));
+          setDataActuel(mapped);
+        } else {
+          setDataActuel(genMockData(anneeActuel, moisActuelIdx, nb));
+        }
+
+        // Variation via l'API total
+        if (totActuel?.variation_vs_mois_precedent != null) {
+          setVariation(totActuel.variation_vs_mois_precedent);
+        }
+
+        // Données période précédente (mock car pas d'endpoint dédié)
+        setDataPrec(genMockData(anneePrec, moisPrecIdx, nb));
       })
       .catch(() => {
-        const moisActuelIdx = NOW.getMonth();
-        const moisPrecIdx   = moisActuelIdx === 0 ? 11 : moisActuelIdx - 1;
-        const aA = NOW.getFullYear();
-        const aP = moisActuelIdx === 0 ? aA - 1 : aA;
-        setDataActuel(genMockData(aA, moisActuelIdx, nb));
-        setDataPrec(genMockData(aP, moisPrecIdx, nb));
+        setDataActuel(genMockData(anneeActuel, moisActuelIdx, nb));
+        setDataPrec(genMockData(anneePrec, moisPrecIdx, nb));
       })
       .finally(() => setLoading(false));
   }, [nb]);
@@ -143,7 +167,7 @@ export default function CourbeActivite() {
   const totalPrec   = data.reduce((s,d) => s + d.precedent, 0);
   const moyActuel   = Math.round(totalActuel / nb);
   const moyPrec     = Math.round(totalPrec   / nb);
-  const variation   = totalPrec > 0 ? Math.round((totalActuel - totalPrec) / totalPrec * 100) : 0;
+  const variation   = variationAPI ?? (totalPrec > 0 ? Math.round((totalActuel - totalPrec) / totalPrec * 100) : 0);
   const picActuel   = data.reduce((m,d) => d.actuel > m.actuel ? d : m, data[0] || {actuel:0});
 
   const ax   = dark ? "#484f58" : "#cbd5e1";
@@ -239,7 +263,6 @@ export default function CourbeActivite() {
                 <span className={`text-[13px] font-medium ${dark?"text-[#8b949e]":"text-gray-500"}`}>{labelPrec}</span>
               </div>
             </div>
-            {/* Bouton Visualiser */}
             <button
               onClick={() => navigate("/administrateur/consultations-annuelles")}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold transition-all border"

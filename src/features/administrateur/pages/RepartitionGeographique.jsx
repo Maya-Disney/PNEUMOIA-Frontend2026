@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS, BarElement, LinearScale, CategoryScale, Tooltip,
 } from "chart.js";
 import { brand, getSurface, getText } from "../theme";
+import { getRepartitionGeo } from "../api/adminapi";
 
 ChartJS.register(BarElement, LinearScale, CategoryScale, Tooltip);
 
@@ -28,8 +29,7 @@ const REGIONS_BASE = [
   { r: "Sud-Ouest",    cov: 0  },
 ];
 
-// Données déterministes pour chaque combinaison mois/année
-function getVilles(annee, mois) {
+function getVillesMock(annee, mois) {
   const base = [
     { v:"Douala",    r:"Littoral", mdBase:15, cBase:180, pBase:42  },
     { v:"Yaoundé",   r:"Centre",   mdBase:10, cBase:125, pBase:30  },
@@ -37,7 +37,7 @@ function getVilles(annee, mois) {
     { v:"Garoua",    r:"Nord",     mdBase:2,  cBase:26,  pBase:7   },
     { v:"Bertoua",   r:"Est",      mdBase:1,  cBase:11,  pBase:3   },
   ];
-  const yearBoost = (annee - 2024) * 0.08; // +8% par an
+  const yearBoost    = (annee - 2024) * 0.08;
   const seasonFactor = [0.85,0.90,0.95,1.05,1.10,1.00,0.92,0.88,0.98,1.08,1.12,1.15][mois - 1];
   const factor = (1 + yearBoost) * seasonFactor;
   return base.map(({ v, r, mdBase, cBase, pBase }) => ({
@@ -56,13 +56,62 @@ export default function RepartitionGeo() {
   const now = new Date();
   const [mois,  setMois]  = useState(now.getMonth() + 1);
   const [annee, setAnnee] = useState(now.getFullYear() <= 2026 ? now.getFullYear() : 2026);
+  const [loading, setLoading] = useState(false);
 
-  const VILLES = useMemo(() => getVilles(annee, mois), [annee, mois]);
+  const [VILLES,  setVilles]  = useState(() => getVillesMock(now.getFullYear() <= 2026 ? now.getFullYear() : 2026, now.getMonth() + 1));
+  const [REGIONS, setRegions] = useState(() =>
+    REGIONS_BASE.map(reg => {
+      const mock = getVillesMock(now.getFullYear() <= 2026 ? now.getFullYear() : 2026, now.getMonth() + 1);
+      const match = mock.find(v => v.r === reg.r);
+      return { ...reg, md: match ? match.md : 0 };
+    })
+  );
 
-  const REGIONS = useMemo(() => REGIONS_BASE.map(reg => {
-    const match = VILLES.find(v => v.r === reg.r);
-    return { ...reg, md: match ? match.md : 0 };
-  }), [VILLES]);
+  useEffect(() => {
+    setLoading(true);
+    getRepartitionGeo(mois, annee)
+      .then(data => {
+        if (data?.villes?.length) {
+          const apiVilles = data.villes.map(v => ({
+            v: v.ville,
+            r: v.region || "",
+            md: v.medecins  ?? 0,
+            c:  v.consultations ?? 0,
+            p:  v.patients  ?? 0,
+          }));
+          setVilles(apiVilles);
+
+          if (data?.regions?.length) {
+            setRegions(data.regions.map(r => ({
+              r:   r.region,
+              cov: r.couverture ?? 0,
+              md:  r.medecins   ?? 0,
+            })));
+          } else {
+            setRegions(REGIONS_BASE.map(reg => {
+              const match = apiVilles.find(v => v.r === reg.r);
+              return { ...reg, md: match ? match.md : 0 };
+            }));
+          }
+        } else {
+          const mock = getVillesMock(annee, mois);
+          setVilles(mock);
+          setRegions(REGIONS_BASE.map(reg => {
+            const match = mock.find(v => v.r === reg.r);
+            return { ...reg, md: match ? match.md : 0 };
+          }));
+        }
+      })
+      .catch(() => {
+        const mock = getVillesMock(annee, mois);
+        setVilles(mock);
+        setRegions(REGIONS_BASE.map(reg => {
+          const match = mock.find(v => v.r === reg.r);
+          return { ...reg, md: match ? match.md : 0 };
+        }));
+      })
+      .finally(() => setLoading(false));
+  }, [mois, annee]);
 
   const TOTAL_MD  = VILLES.reduce((s, v) => s + v.md, 0);
   const TOTAL_C   = VILLES.reduce((s, v) => s + v.c, 0);
@@ -146,7 +195,6 @@ export default function RepartitionGeo() {
           </p>
         </div>
 
-        {/* Sélecteurs mois + année */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5">
             <span className="text-[13px] font-semibold" style={{ color: txt.muted }}>Mois</span>
@@ -204,11 +252,15 @@ export default function RepartitionGeo() {
         <div className="rounded-2xl border p-6" style={cardStyle}>
           <p className="text-[15px] font-bold mb-1" style={{ color: txt.primary }}>Consultations par ville</p>
           <p className="text-[13px] mb-5" style={{ color: txt.subtle }}>
-            {periodLabel} — 5 villes actives
+            {periodLabel} — {VILLES.length} villes actives
           </p>
-          <div style={{ height: 220 }}>
-            <Bar data={chartData} options={chartOptions} />
-          </div>
+          {loading ? (
+            <div className="h-[220px] rounded-xl animate-pulse" style={{ background: surface.bg }} />
+          ) : (
+            <div style={{ height: 220 }}>
+              <Bar data={chartData} options={chartOptions} />
+            </div>
+          )}
         </div>
 
         {/* Couverture par région */}

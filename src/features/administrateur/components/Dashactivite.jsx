@@ -6,9 +6,13 @@ import {
 } from "chart.js";
 import Card from "./Card";
 import { brand, getSurface, getText } from "../theme";
+import {
+  getConsultationsSemaine,
+  getConsultationsAnnee,
+  getConsultationsTotal,
+} from "../api/adminapi";
 
 ChartJS.register(LineElement, BarElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler);
-
 
 const MOIS_FR    = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 const MOIS_COURT = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
@@ -45,7 +49,7 @@ export default function DashActivite({ dark }) {
   const surface  = getSurface(dark);
   const txt      = getText(dark);
 
-  const [periode,   setPeriode]   = useState("semaine"); // "semaine" | "mois"
+  const [periode,   setPeriode]   = useState("semaine");
   const [annee,     setAnnee]     = useState(now.getFullYear());
   const [loading,   setLoading]   = useState(false);
 
@@ -57,59 +61,61 @@ export default function DashActivite({ dark }) {
   const [picMois,   setPicMois]   = useState(null);
   const [varMois,   setVarMois]   = useState(null);
 
-  // ── Chargement données semaine ──────────────────────────────────────────────
+  // ── Données semaine ──────────────────────────────────────────────────────
   useEffect(() => {
     setLoading(true);
-    // ── Décommenter quand le backend est prêt ──
-    // fetch("/api/admin/stats/consultations/semaine")
-    //   .then(r => r.json())
-    //   .then(data => setWeekData(data.jours))
-    //   .catch(() => setWeekData(genMockWeek()))
-    //   .finally(() => setLoading(false));
-
-    setTimeout(() => { setWeekData(genMockWeek()); setLoading(false); }, 600);
+    getConsultationsSemaine()
+      .then(data => {
+        if (Array.isArray(data?.jours) && data.jours.length) {
+          setWeekData(data.jours);
+        } else {
+          setWeekData(genMockWeek());
+        }
+      })
+      .catch(() => setWeekData(genMockWeek()))
+      .finally(() => setLoading(false));
   }, []);
 
-  // ── Chargement données mois par année ───────────────────────────────────────
+  // ── Données mois par année ───────────────────────────────────────────────
   useEffect(() => {
-    // ── Décommenter quand le backend est prêt ──
-    // fetch(`/api/admin/stats/consultations/annee?year=${annee}`)
-    //   .then(r => r.json())
-    //   .then(data => setMonthData(data.mois))
-    //   .catch(() => setMonthData(genMockMonths(annee)));
-
-    setMonthData(genMockMonths(annee));
+    getConsultationsAnnee(annee)
+      .then(data => {
+        if (Array.isArray(data?.mois) && data.mois.length) {
+          setMonthData(data.mois);
+        } else if (Array.isArray(data) && data.length) {
+          setMonthData(data.map((v, i) => ({ m: MOIS_COURT[i], v })));
+        } else {
+          setMonthData(genMockMonths(annee));
+        }
+      })
+      .catch(() => setMonthData(genMockMonths(annee)));
   }, [annee]);
 
-  // ── Chargement totaux mois courant ──────────────────────────────────────────
+  // ── Totaux mois courant ──────────────────────────────────────────────────
   useEffect(() => {
     const debut = startOfMonth();
     const fin   = endOfToday();
-
-    // ── Décommenter quand le backend est prêt ──
-    // fetch(`/api/admin/stats/consultations/total?from=${debut}&to=${fin}`)
-    //   .then(r => r.json())
-    //   .then(data => {
-    //     setTotalMois(data.total);
-    //     setMoyMois(data.moyenne_par_jour);
-    //     setPicMois(data.pic);
-    //     setVarMois(data.variation_vs_mois_precedent);
-    //   })
-    //   .catch(() => setTotalMois(null));
-
-    const mockTotal = Math.round(3800 + Math.random() * 1200);
-    const jours     = now.getDate();
-    setTotalMois(mockTotal);
-    setMoyMois(Math.round(mockTotal / jours));
-    setPicMois(Math.round(mockTotal / jours * 1.4));
-    setVarMois(Math.round((Math.random() * 20) - 5));
+    getConsultationsTotal(debut, fin)
+      .then(data => {
+        setTotalMois(data.total            ?? null);
+        setMoyMois(data.moyenne_par_jour   ?? null);
+        setPicMois(data.pic                ?? null);
+        setVarMois(data.variation_vs_mois_precedent ?? null);
+      })
+      .catch(() => {
+        const mockTotal = Math.round(3800 + Math.random() * 1200);
+        const jours     = now.getDate();
+        setTotalMois(mockTotal);
+        setMoyMois(Math.round(mockTotal / jours));
+        setPicMois(Math.round(mockTotal / jours * 1.4));
+        setVarMois(Math.round((Math.random() * 20) - 5));
+      });
   }, []);
 
   const axisColor = dark ? "#484f58" : "#9ca3af";
   const gridColor = dark ? "#21262d" : "#f3f4f6";
   const nomMois   = MOIS_FR[now.getMonth()];
 
-  // ── Tooltip Chart.js générique ──────────────────────────────────────────────
   const tooltipBase = useMemo(() => ({
     backgroundColor: dark ? "#161b22" : "#ffffff",
     borderColor: dark ? "#21262d" : "#e5e7eb",
@@ -122,7 +128,6 @@ export default function DashActivite({ dark }) {
     bodyFont: { size: 12 },
   }), [dark]);
 
-  // ── Graphique semaine (Area/Line) ───────────────────────────────────────────
   const weekChartData = useMemo(() => ({
     labels: weekData.map(d => d.j),
     datasets: [{
@@ -159,7 +164,6 @@ export default function DashActivite({ dark }) {
     },
   }), [tooltipBase, axisColor, gridColor]);
 
-  // ── Graphique mois (Bar) ────────────────────────────────────────────────────
   const monthChartData = useMemo(() => ({
     labels: monthData.map(d => d.m),
     datasets: [{
@@ -200,7 +204,6 @@ export default function DashActivite({ dark }) {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Toggle semaine / mois */}
             <div className="flex gap-0.5 p-0.5 rounded-lg border" style={{ background: surface.bg, borderColor: surface.border }}>
               {[{k:"semaine",l:"7j"},{k:"mois",l:"Mois"}].map(({k,l}) => (
                 <button key={k} onClick={() => setPeriode(k)}
@@ -211,7 +214,6 @@ export default function DashActivite({ dark }) {
               ))}
             </div>
 
-            {/* Sélecteur année */}
             {periode === "mois" && (
               <select value={annee} onChange={e => setAnnee(Number(e.target.value))}
                 className="text-[13px] px-2.5 py-1.5 rounded-lg border outline-none cursor-pointer"

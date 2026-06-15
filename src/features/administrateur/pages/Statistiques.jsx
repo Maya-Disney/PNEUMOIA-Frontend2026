@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Bar, Line } from "react-chartjs-2";
 import {
@@ -7,23 +7,29 @@ import {
 } from "chart.js";
 import { Users, Activity, Brain, TrendingUp } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
+import {
+  getKpis,
+  getRepartitionGeo,
+  getTopMedecinsConcordance,
+  getConsultationsAnnee,
+  getConsultationsSemaine,
+} from "../api/adminapi";
 
 ChartJS.register(BarElement, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler);
 
 const MOIS_FR    = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 const MOIS_COURT = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
 
-const VILLES = [
+const MOCK_VILLES = [
   {v:"Douala",c:2240,md:18},{v:"Yaoundé",c:1540,md:12},
   {v:"Bafoussam",c:580,md:4},{v:"Garoua",c:320,md:3},{v:"Bertoua",c:141,md:1},
 ];
-const TOP = [
+const MOCK_TOP = [
   {ini:"DK", nom:"Dr. Kamto Diane", c:3201, ia:92, bg:"bg-blue-100 text-blue-700"},
   {ini:"JD", nom:"Dr. Jean Dupont", c:4821, ia:88, bg:"bg-teal-100 text-teal-700"},
   {ini:"AS", nom:"Dr. Aminata Sow", c:1243, ia:82, bg:"bg-purple-100 text-purple-700"},
   {ini:"DM", nom:"Dr. Mbang",       c:987,  ia:74, bg:"bg-amber-100 text-amber-700"},
 ];
-const maxV = Math.max(...VILLES.map(v => v.c));
 
 function genDayData(year, month) {
   const days = new Date(year, month + 1, 0).getDate();
@@ -43,9 +49,8 @@ function genMonthData(year) {
 }
 
 function genYearData() {
-  const cur   = Math.max(new Date().getFullYear(), 2026);
-  const count = cur - 2025;
-  return Array.from({ length: count }, (_, i) => ({
+  const cur = Math.max(new Date().getFullYear(), 2026);
+  return Array.from({ length: cur - 2025 }, (_, i) => ({
     label: String(2026 + i),
     v: Math.round(40000 + Math.random() * 30000),
   }));
@@ -55,6 +60,14 @@ const VUES = [
   { k: "jours",  l: "Jours"  },
   { k: "mois",   l: "Mois"   },
   { k: "annees", l: "Années" },
+];
+
+const BG_COLORS = [
+  "bg-blue-100 text-blue-700",
+  "bg-teal-100 text-teal-700",
+  "bg-purple-100 text-purple-700",
+  "bg-amber-100 text-amber-700",
+  "bg-rose-100 text-rose-700",
 ];
 
 export default function Statistiques() {
@@ -70,6 +83,68 @@ export default function Statistiques() {
   const [annee, setAnnee] = useState(curYear);
   const [mois,  setMois]  = useState(now.getMonth());
 
+  // ── État API ──────────────────────────────────────────────────────────────
+  const [kpis,   setKpis]   = useState({ medecins_actifs: 38, consultations_total: 4821, precision_ia: 94, concordance_moy: 84 });
+  const [villes, setVilles] = useState(MOCK_VILLES);
+  const [top,    setTop]    = useState(MOCK_TOP);
+  const [rawData, setRawData] = useState(() => genMonthData(curYear));
+
+  useEffect(() => {
+    getKpis().then(data => setKpis(prev => ({ ...prev, ...data }))).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    getRepartitionGeo()
+      .then(data => {
+        if (data?.villes?.length) {
+          setVilles(data.villes.map(v => ({ v: v.ville, c: v.consultations, md: v.medecins ?? 0 })));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    getTopMedecinsConcordance(now.getMonth() + 1, now.getFullYear())
+      .then(res => {
+        const docs = Array.isArray(res) ? res : (res?.medecins ?? []);
+        if (docs.length) {
+          setTop(docs.map((m, i) => ({
+            ini: `${m.prenom?.[0]||""}${m.nom?.[0]||""}`.toUpperCase(),
+            nom: `Dr. ${m.prenom} ${m.nom}`,
+            c:   m.consultations,
+            ia:  m.concordance,
+            bg:  BG_COLORS[i % BG_COLORS.length],
+          })));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (vue === "jours") {
+      setRawData(genDayData(annee, mois));
+    } else if (vue === "mois") {
+      getConsultationsAnnee(annee)
+        .then(res => {
+          if (Array.isArray(res) && res.length) {
+            setRawData(res.map((v, i) => ({ label: MOIS_COURT[i], v })));
+          } else if (Array.isArray(res?.mois) && res.mois.length) {
+            setRawData(res.mois.map((d, i) => ({ label: MOIS_COURT[i], v: typeof d === "number" ? d : d.v })));
+          } else {
+            setRawData(genMonthData(annee));
+          }
+        })
+        .catch(() => setRawData(genMonthData(annee)));
+    } else {
+      getConsultationsSemaine()
+        .then(() => setRawData(genYearData()))
+        .catch(() => setRawData(genYearData()));
+    }
+  }, [vue, annee, mois]);
+
+  const chartLabels = rawData.map(d => d.label);
+  const chartValues = rawData.map(d => d.v);
+
   const axisColor = dark ? "#484f58" : "#9ca3af";
   const gridColor = dark ? "#21262d" : "#f3f4f6";
 
@@ -84,15 +159,6 @@ export default function Statistiques() {
     bodyFont:  { size: 13 },
   }), [dark]);
 
-  const rawData = useMemo(() => {
-    if (vue === "jours")  return genDayData(annee, mois);
-    if (vue === "mois")   return genMonthData(annee);
-    return genYearData();
-  }, [vue, annee, mois]);
-
-  const chartLabels = rawData.map(d => d.label);
-  const chartValues = rawData.map(d => d.v);
-
   const chartOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
@@ -104,6 +170,7 @@ export default function Statistiques() {
   }), [tooltipBase, axisColor, gridColor]);
 
   const cardStyle = { background: surface.card, borderColor: surface.border };
+  const maxV = villes.length ? Math.max(...villes.map(v => v.c)) : 1;
 
   const chartTitle =
     vue === "jours"  ? `Consultations — ${MOIS_FR[mois]} ${annee}` :
@@ -131,10 +198,10 @@ export default function Statistiques() {
       {/* ── KPIs ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon:Users,      l:"Médecins actifs",  v:"38",    s:"+3 ce mois",     ibg:"bg-teal-50 dark:bg-teal-900/20",    ic:"text-teal-600"   },
-          { icon:Activity,   l:"Consultations",    v:"4 821", s:"+247 ce mois",   ibg:"bg-blue-50 dark:bg-blue-900/20",     ic:"text-blue-500"   },
-          { icon:Brain,      l:"Précision IA",     v:"94%",   s:"+1.2% ce mois",  ibg:"bg-purple-50 dark:bg-purple-900/20", ic:"text-purple-500" },
-          { icon:TrendingUp, l:"Concordance moy.", v:"84%",   s:"Médecins actifs", ibg:"bg-amber-50 dark:bg-amber-900/20",  ic:"text-amber-500"  },
+          { icon:Users,      l:"Médecins actifs",  v: String(kpis.medecins_actifs ?? 38),                                s:"+3 ce mois",     ibg:"bg-teal-50 dark:bg-teal-900/20",    ic:"text-teal-600"   },
+          { icon:Activity,   l:"Consultations",    v: (kpis.consultations_total ?? 4821).toLocaleString("fr-FR"),       s:"+247 ce mois",   ibg:"bg-blue-50 dark:bg-blue-900/20",     ic:"text-blue-500"   },
+          { icon:Brain,      l:"Précision IA",     v: `${kpis.precision_ia ?? 94}%`,                                     s:"+1.2% ce mois",  ibg:"bg-purple-50 dark:bg-purple-900/20", ic:"text-purple-500" },
+          { icon:TrendingUp, l:"Concordance moy.", v: `${kpis.concordance_moy ?? 84}%`,                                  s:"Médecins actifs", ibg:"bg-amber-50 dark:bg-amber-900/20",  ic:"text-amber-500"  },
         ].map(({ icon: Icon, l, v, s, ibg, ic }) => (
           <div key={l} className="rounded-2xl border px-5 py-4" style={cardStyle}>
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${ibg}`}>
@@ -156,7 +223,6 @@ export default function Statistiques() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Toggle Jours / Mois / Années */}
             <div className="flex gap-0.5 p-0.5 rounded-lg border"
               style={{ background: surface.bg, borderColor: surface.border }}>
               {VUES.map(({ k, l }) => (
@@ -170,7 +236,6 @@ export default function Statistiques() {
               ))}
             </div>
 
-            {/* Sélecteur mois (vue Jours uniquement) */}
             {vue === "jours" && (
               <select value={mois} onChange={e => setMois(Number(e.target.value))}
                 className="text-[13px] px-2.5 py-1.5 rounded-lg border outline-none cursor-pointer"
@@ -179,7 +244,6 @@ export default function Statistiques() {
               </select>
             )}
 
-            {/* Sélecteur année (vues Jours et Mois) */}
             {vue !== "annees" && (
               <select value={annee} onChange={e => setAnnee(Number(e.target.value))}
                 className="text-[13px] px-2.5 py-1.5 rounded-lg border outline-none cursor-pointer"
@@ -242,7 +306,7 @@ export default function Statistiques() {
         <div className="rounded-2xl border p-6" style={cardStyle}>
           <p className="text-[15px] font-bold mb-5" style={{ color: txt.primary }}>Répartition géographique</p>
           <div className="flex flex-col gap-4">
-            {VILLES.map(v => (
+            {villes.map(v => (
               <div key={v.v}>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[14px] font-semibold" style={{ color: txt.muted }}>{v.v}</span>
@@ -264,7 +328,7 @@ export default function Statistiques() {
         <div className="rounded-2xl border p-6" style={cardStyle}>
           <p className="text-[15px] font-bold mb-5" style={{ color: txt.primary }}>Top médecins — Concordance IA</p>
           <div className="flex flex-col gap-3">
-            {[...TOP].sort((a, b) => b.ia - a.ia).map((m, i) => (
+            {[...top].sort((a, b) => b.ia - a.ia).map((m, i) => (
               <div key={m.nom} className="flex items-center gap-3 p-3.5 rounded-xl" style={{ background: surface.bg }}>
                 <span className="text-[13px] font-black w-5" style={{ color: txt.subtle }}>#{i + 1}</span>
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-black shrink-0 ${m.bg}`}>{m.ini}</div>

@@ -56,6 +56,11 @@ import Commentaires        from './features/administrateur/pages/Commentaires';
 import ConsultationsAnnuelles from './features/administrateur/pages/ConsultationsAnnuelles';
 
 
+function RequireAdminAuth() {
+  const token = localStorage.getItem("pneumo_admin_token");
+  return token ? <Outlet /> : <Navigate to="/pneumo-admin-secure" replace />;
+}
+
 function App() {
   useEffect(() => {
     // Délai de 500ms pour laisser StrictMode terminer son double-montage
@@ -110,7 +115,8 @@ function App() {
         <Route path="/activation" element={<ActivationPage />} />
 
         {/* ROUTES CONCERNANT LA SECTION ADMINISTRATEUR */}
-        <Route path="/administrateur/login" element={<AdminLogin />} />
+        <Route path="/pneumo-admin-secure" element={<AdminLogin />} />
+        <Route element={<RequireAdminAuth />}>
         <Route path="/administrateur" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="dashboard"      element={<AdminDashboard />} />
@@ -130,6 +136,7 @@ function App() {
           <Route path="faq"            element={<FAQ />} />
           <Route path="commentaires"        element={<Commentaires />} />
           <Route path="consultations-annuelles" element={<ConsultationsAnnuelles />} />
+        </Route>
         </Route>
 
       </Routes>

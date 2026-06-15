@@ -10,7 +10,7 @@ import {
   MutedText, SubtleText, StatusText, PaginationBar, PaginationSelect, PaginationButton,
 } from "../components/ui/Table";
 
-import { MOCK, mapMedecin, elapsedStr, pad } from "../api/demandesData";
+import { mapMedecin, elapsedStr, pad } from "../api/demandesData";
 
 const JOURS = ["dim.","lun.","mar.","mer.","jeu.","ven.","sam."];
 const MOIS  = ["jan","fév","mar","avr","mai","juin","juil","août","sep","oct","nov","déc"];
@@ -448,8 +448,8 @@ export default function NouvellesDemandes() {
   useEffect(() => {
     setLoading(true);
     getDemandes()
-      .then(data => setDemandes(Array.isArray(data) ? data.map(mapMedecin) : MOCK))
-      .catch(() => setDemandes(MOCK))
+      .then(data => setDemandes(Array.isArray(data) ? data.map(mapMedecin) : []))
+      .catch(() => setDemandes([]))
       .finally(() => setLoading(false));
   }, []);
 
