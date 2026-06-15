@@ -115,20 +115,21 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
           <div className="flex items-center gap-2.5">
 
             {/* Barre de recherche — desktop */}
-            <div className="hidden md:flex items-center gap-2.5 px-4 py-2 bg-[var(--sf2)] rounded-xl border border-[var(--ln)] min-w-[260px] transition-all focus-within:border-blue-300 focus-within:shadow-sm">
-              <Search className="w-4 h-4 text-[var(--t4)] shrink-0" />
+            <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2.5 px-4 py-2 bg-[var(--sf2)] rounded-xl border border-[var(--ln)] min-w-[260px] transition-all focus-within:border-blue-300 focus-within:shadow-sm">
+              <button type="submit" className="shrink-0 hover:text-blue-600 transition-colors">
+                <Search className="w-4 h-4 text-[var(--t4)]" />
+              </button>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
                 placeholder="Rechercher un patient, un cas…"
                 className="w-full bg-transparent text-sm text-[var(--t2)] placeholder:text-[var(--t4)] focus:outline-none"
               />
               <kbd className="text-[10px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
                 ⌘K
               </kbd>
-            </div>
+            </form>
 
             {/* Bouton recherche — mobile */}
             <button
@@ -242,19 +243,6 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
                     )}
                   </div>
 
-                  {/* Stats rapides */}
-                  <div className="px-4 py-3 bg-[var(--sf2)] border-t border-[var(--ln)]">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="text-center">
-                        <p className="text-[11px] font-medium text-[var(--t4)] uppercase tracking-wide">Patients</p>
-                        <p className="text-sm font-bold text-[var(--t1)] mt-0.5">234</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[11px] font-medium text-[var(--t4)] uppercase tracking-wide">Consultations</p>
-                        <p className="text-sm font-bold text-[var(--t1)] mt-0.5">1 289</p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
@@ -263,18 +251,19 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
 
         {/* Barre de recherche mobile */}
         <div className="md:hidden px-8 pb-4">
-          <div className="flex items-center gap-3 px-4 py-2 bg-[var(--sf2)] rounded-xl border border-[var(--ln)]">
-            <Search className="w-4 h-4 text-[var(--t4)] shrink-0" />
+          <form onSubmit={handleSearch} className="flex items-center gap-3 px-4 py-2 bg-[var(--sf2)] rounded-xl border border-[var(--ln)]">
+            <button type="submit" className="shrink-0">
+              <Search className="w-4 h-4 text-[var(--t4)]" />
+            </button>
             <input
               id="mobile-search"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
               placeholder="Rechercher…"
               className="w-full bg-transparent text-sm text-[var(--t2)] placeholder:text-[var(--t4)] focus:outline-none"
             />
-          </div>
+          </form>
         </div>
       </header>
 

@@ -30,6 +30,12 @@ export const getPatient             = (id)       => apiFetch(`/patients/${id}`);
 export const getConsultationsPatient = (id)      => apiFetch(`/patients/${id}/consultations`);
 export const getDernierDiagnostic   = (id)       => apiFetch(`/patients/${id}/dernier-diagnostic`);
 
+// ── Aide soignant patients ────────────────────────────────────────
+export const getMesPatientsAide  = ()         => apiFetch('/aides/patients');
+export const createPatientAide   = (data)     => apiFetch('/aides/patients', { method: 'POST', body: JSON.stringify(data) });
+export const getPatientAide      = (id)       => apiFetch(`/aides/patients/${id}`);
+export const updatePatientAide   = (id, data) => apiFetch(`/aides/patients/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+
 // ── Partage ───────────────────────────────────────────────────────
 export const getMedecins            = ()         => apiFetch('/medecins/liste');
 export const getCommunautes         = ()         => apiFetch('/communautes');

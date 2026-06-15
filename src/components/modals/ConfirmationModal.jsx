@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, X } from 'lucide-react';
 
-export default function ConfirmationModal({ isOpen, onClose }) {
+export default function ConfirmationModal({ isOpen, onClose, role = 'medecin' }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -40,17 +40,20 @@ export default function ConfirmationModal({ isOpen, onClose }) {
 
               {/* Titre */}
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                Inscription envoyée
+                {role === 'aide' ? 'Demande envoyée !' : 'Inscription envoyée'}
               </h3>
 
               {/* Message */}
               <p className="text-gray-600 text-sm mb-4">
-                Votre dossier est en cours de traitement par l'administrateur.
+                {role === 'aide'
+                  ? 'Votre demande a été transmise au médecin référent.'
+                  : "Votre dossier est en cours de traitement par l'administrateur."}
               </p>
-              
+
               <p className="text-gray-500 text-xs">
-                Sous 72h, vous recevrez un lien de confirmation de validation de compte 
-                ou de refus par boîte mail.
+                {role === 'aide'
+                  ? 'Vous recevrez un email dès que le médecin aura validé ou refusé votre compte.'
+                  : 'Sous 72h, vous recevrez un lien de confirmation de validation de compte ou de refus par boîte mail.'}
               </p>
 
               {/* Bouton de fermeture */}

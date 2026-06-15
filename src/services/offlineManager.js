@@ -189,7 +189,12 @@ export async function synchroniserAvecServeur() {
         const consId = idMap[action.payload.consultation_local_id]
                     ?? action.payload.consultation_id;
 
-        if (!consId || String(consId).startsWith('local-')) {
+        if (consId === null || consId === undefined) {
+          await dbDelete('actions_pending', action.id);
+          console.warn(`🗑️ [SAVE_DIAGNOSTIC] supprimée — consultation_id null non résolvable`);
+          continue;
+        }
+        if (String(consId).startsWith('local-')) {
           throw new Error(`consultation_id non résolu pour diagnostic: ${consId}`);
         }
 
@@ -236,7 +241,12 @@ export async function synchroniserAvecServeur() {
         const consId = idMap[action.payload.consultation_local_id]
                     ?? action.payload.consultation_id;
 
-        if (!consId || String(consId).startsWith('local-')) {
+        if (consId === null || consId === undefined) {
+          await dbDelete('actions_pending', action.id);
+          console.warn(`🗑️ [SAVE_ANTECEDENTS] supprimée — consultation_id null non résolvable`);
+          continue;
+        }
+        if (String(consId).startsWith('local-')) {
           throw new Error(`consultation_id non résolu: ${consId}`);
         }
 
@@ -253,7 +263,12 @@ export async function synchroniserAvecServeur() {
         const consId = idMap[action.payload.consultation_local_id]
                     ?? action.payload.consultation_id;
 
-        if (!consId || String(consId).startsWith('local-')) {
+        if (consId === null || consId === undefined) {
+          await dbDelete('actions_pending', action.id);
+          console.warn(`🗑️ [SAVE_SYMPTOMES] supprimée — consultation_id null non résolvable`);
+          continue;
+        }
+        if (String(consId).startsWith('local-')) {
           throw new Error(`consultation_id non résolu: ${consId}`);
         }
 
@@ -270,7 +285,12 @@ export async function synchroniserAvecServeur() {
         const consId = idMap[action.payload.consultation_local_id]
                     ?? action.payload.consultation_id;
 
-        if (!consId || String(consId).startsWith('local-')) {
+        if (consId === null || consId === undefined) {
+          await dbDelete('actions_pending', action.id);
+          console.warn(`🗑️ [SAVE_OPINION] supprimée — consultation_id null non résolvable`);
+          continue;
+        }
+        if (String(consId).startsWith('local-')) {
           throw new Error(`consultation_id non résolu: ${consId}`);
         }
 

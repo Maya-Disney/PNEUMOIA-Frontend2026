@@ -9,5 +9,6 @@ export default defineConfig({
   ],
   optimizeDeps: {
     exclude: ['onnxruntime-web'],
+    include: ['react-markdown'],
   },
 })
