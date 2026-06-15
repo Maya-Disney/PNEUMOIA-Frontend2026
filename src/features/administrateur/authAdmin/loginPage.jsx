@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { adminLogin, adminResetRequest, adminResetConfirm } from "../api/adminApi";
 import { useNavigate } from "react-router-dom";
 import logo from "../../../assets/images/logo.png";
+import dashIcon from "../../../assets/favicorn/Happy Bunch - Desk.png";
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
@@ -16,9 +17,8 @@ function useIsDesktop() {
 const T1 = "#1f7a75";
 const T2 = "#339991";
 const T3 = "#5ab3ac";
-const OFF_WHITE = "#ffffff";
 
-const TAGLINES = [
+const MISSIONS = [
   "Supervisez la plateforme et garantissez la qualité des soins.",
   "Validez les dossiers médecins et assurez la conformité.",
   "Analysez les performances globales et pilotez le modèle IA.",
@@ -49,31 +49,38 @@ const IcoArrow  = () => <svg width="14" height="14" fill="none" stroke="currentC
 const IcoShield = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
 const IcoPhone  = () => <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg>;
 
+const IcoCheck = () => (
+  <svg width="11" height="11" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+
 function AnimatedTagline() {
   const [idx, setIdx] = useState(0);
-  const [show, setShow] = useState(true);
+  const [visible, setVisible] = useState(true);
   useEffect(() => {
     const t = setInterval(() => {
-      setShow(false);
-      setTimeout(() => { setIdx(i => (i + 1) % TAGLINES.length); setShow(true); }, 400);
+      setVisible(false);
+      setTimeout(() => { setIdx(i => (i + 1) % MISSIONS.length); setVisible(true); }, 350);
     }, 4000);
     return () => clearInterval(t);
   }, []);
   return (
-    <p style={{ 
-      transition: "opacity .4s, transform .4s", 
-      opacity: show ? 1 : 0, 
-      transform: show ? "translateY(0)" : "translateY(6px)", 
-      color: "#fff", 
-      fontSize: 22, 
-      fontWeight: 600, 
-      lineHeight: 1.4, 
-      minHeight: 60, 
-      textAlign: "center", 
-      padding: "0 20px",
-      fontFamily: "'Inter', sans-serif"
+    <p style={{
+      transition: "opacity .35s, transform .35s",
+      opacity: visible ? 1 : 0,
+      transform: visible ? "translateY(0)" : "translateY(8px)",
+      color: "rgba(255,255,255,0.92)",
+      fontSize: 18,
+      fontWeight: 600,
+      lineHeight: 1.5,
+      textAlign: "center",
+      fontFamily: "'Inter', sans-serif",
+      margin: 0,
+      padding: "0 8px",
+      minHeight: 60,
     }}>
-      {TAGLINES[idx]}
+      {MISSIONS[idx]}
     </p>
   );
 }
@@ -237,8 +244,8 @@ export default function AdminLogin() {
   const cardBord = dark ? "rgba(255,255,255,.15)" : "#e5e7eb";
   const topbarBg   = dark ? "#0d1117" : "#ffffff";
   const topbarBord = dark ? "rgba(255,255,255,.1)" : "#e2e8e4";
-  const asideBg  = `linear-gradient(160deg, ${T1} 0%, ${T2} 55%, ${T3} 100%)`;
-  const rightBg  = dark ? "#0d1117" : "#ffffff";
+  const asideBg  = "linear-gradient(160deg, #2a5f5b 0%, #3d8480 55%, #5aa09c 100%)";
+  const rightBg  = dark ? "#0d1117" : "#f9fafb";
 
   const iconMail = <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>;
   const iconLock = <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
@@ -290,61 +297,54 @@ export default function AdminLogin() {
       <main style={{ flex: 1, display: "flex", flexDirection: "row", overflow: "hidden", minHeight: 0 }}>
 
         {/* ── GAUCHE ── */}
-        <aside style={{ 
-          position: "relative", 
-          background: asideBg, 
-          flexShrink: 0, 
-          display: "flex", 
+        <aside style={{
+          position: "relative",
+          background: asideBg,
+          flexShrink: 0,
+          display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
-          padding: "40px 30px",
+          padding: "40px 28px",
           overflow: "hidden"
         }} className="w-full lg:w-[43%] lg:min-w-[43%] lg:min-h-0 lg:h-auto">
-          
+
           {/* Background decorations */}
-          <div style={{ position: "absolute", inset: 0, opacity: .03, backgroundImage: "radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)", backgroundSize: "22px 22px" }} />
-          <div style={{ position: "absolute", top: -70, right: -70, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.1), transparent 70%)" }} />
-          <div style={{ position: "absolute", bottom: -50, left: -50, width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.08), transparent 70%)" }} />
+          <div style={{ position: "absolute", inset: 0, opacity: .04, backgroundImage: "radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)", backgroundSize: "22px 22px" }} />
+          <div style={{ position: "absolute", top: -70, right: -70, width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.10), transparent 70%)" }} />
+          <div style={{ position: "absolute", bottom: -50, left: -50, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.07), transparent 70%)" }} />
 
-          {/* Contenu centré */}
-          <div style={{ position: "relative", width: "100%", maxWidth: 500, zIndex: 1 }}>
-            
-            {/* Titre avec police Arial */}
-            <div style={{ textAlign: "center", marginBottom: 25 }}>
-              <h1 style={{ 
-                fontSize: 36, 
-                fontWeight: 800, 
-                color: "#fff", 
-                margin: 0, 
-                letterSpacing: "-0.5px",
-                fontFamily: "Arial, sans-serif"
-              }}>
-                Espace Administrateur
-              </h1>
-            </div>
+          {/* ─── Centre : grande icône + tagline animée ──────────── */}
+          <div style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            position: "relative",
+            zIndex: 1,
+            width: "100%",
+            gap: 32
+          }}>
+            {/* Illustration Happy Bunch */}
+            <img
+              src={dashIcon}
+              alt="Espace Administrateur"
+              style={{
+                width: "min(320px, 80%)",
+                height: "auto",
+                objectFit: "contain",
+                filter: "hue-rotate(-65deg) saturate(1.3) brightness(1.05) drop-shadow(0 16px 32px rgba(31,122,117,0.20))"
+              }}
+            />
 
-            {/* Tagline animé avec police Inter */}
-            <div style={{ textAlign: "center" }}>
-              <p style={{ 
-                fontSize: 11, 
-                fontWeight: 700, 
-                textTransform: "uppercase", 
-                letterSpacing: ".15em", 
-                color: "rgba(255,255,255,.6)", 
-                marginBottom: 10,
-                fontFamily: "'Inter', sans-serif"
-              }}>
-                Mission du moment
-              </p>
-              <AnimatedTagline />
-            </div>
-
+            {/* Tagline animée */}
+            <AnimatedTagline />
           </div>
+
         </aside>
 
         {/* ── DROITE ── */}
-        <section style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:"24px 16px", background:rightBg, overflow:"hidden", transition:"background .25s", flex:1, minWidth:0 }}>
+        <section style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:"24px 16px", background:rightBg, overflow:"auto", transition:"background .25s", flex:1, minWidth:0 }}>
           <div style={{ width: "100%", maxWidth: 440, borderRadius: 18, background: cardBg, border: `1px solid ${cardBord}`, boxShadow: dark ? "0 8px 40px rgba(0,0,0,.4)" : "0 8px 32px rgba(31,122,117,.12)", padding: "20px 20px", transition: "all .25s" }} className="md:px-7">
 
             {view === "login" && (

@@ -242,6 +242,35 @@ export async function supprimerMedecin(medecinId) {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 8b. CORBEILLE
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Médecins en corbeille (supprimés mais encore restaurables avant 30 jours).
+ * GET /api/admin/corbeille
+ */
+export async function getCorbeille() {
+  return request("GET", "/api/admin/corbeille", null, true);
+}
+
+/**
+ * Restaure un médecin depuis la corbeille — statut reprend sa valeur précédente.
+ * POST /api/admin/corbeille/{id}/restaurer
+ */
+export async function restaurerMedecin(medecinId) {
+  return request("POST", `/api/admin/corbeille/${medecinId}/restaurer`, null, true);
+}
+
+/**
+ * Suppression définitive et immédiate depuis la corbeille.
+ * DELETE /api/admin/corbeille/{id}
+ */
+export async function supprimerDefinitivement(medecinId) {
+  return request("DELETE", `/api/admin/corbeille/${medecinId}`, null, true);
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 9. FAQ
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -340,9 +369,49 @@ export async function getRepartitionGeo() {
   return request("GET", "/api/admin/stats/repartition-geo", null, true);
 }
 
+/**
+ * Top 5 médecins classés par taux de concordance IA + consultations pour un mois donné.
+ * Retourne : [{ id, prenom, nom, photo_url, concordance, consultations, tendance }]
+ * GET /api/admin/stats/top-medecins-concordance?mois=6&annee=2026
+ */
+export async function getTopMedecinsConcordance(mois, annee) {
+  return request("GET", `/api/admin/stats/top-medecins-concordance?mois=${mois}&annee=${annee}`, null, true);
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 11. PARAMÈTRES
+// 11. COMMENTAIRES / AVIS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Avis / commentaires publiés par les médecins sur la plateforme.
+ * Chaque avis contient : id, prenom, nom, photo_url, specialite, hopital, ville,
+ *   note (1-5), commentaire, created_at, vu (bool).
+ * GET /api/admin/avis
+ */
+export async function getAvis() {
+  return request("GET", "/api/admin/avis", null, true);
+}
+
+/**
+ * Supprime un avis — le médecin est notifié par email.
+ * DELETE /api/admin/avis/{id}
+ */
+export async function supprimerAvis(avisId) {
+  return request("DELETE", `/api/admin/avis/${avisId}`, null, true);
+}
+
+/**
+ * Marque tous les avis comme vus.
+ * PATCH /api/admin/avis/marquer-vus
+ */
+export async function marquerAvisVus() {
+  return request("PATCH", "/api/admin/avis/marquer-vus", null, true);
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 12. PARAMÈTRES
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**

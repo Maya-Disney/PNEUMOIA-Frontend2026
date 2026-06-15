@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(JSON.stringify\\(Object.keys\\({...p.dependencies,...p.devDependencies}\\).filter\\(k=>k.includes\\('chart'\\)\\)\\)\\)\")",
+      "Bash(cat vite.config.js)",
+      "Bash(cat vite.config.ts)",
+      "Bash(curl -s http://localhost:5174)",
+      "Bash(curl -s http://localhost:5174/src/App.jsx)",
+      "Bash(taskkill /f /im node.exe)",
+      "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)",
+      "Bash(curl -s http://localhost:5173)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\DELL\\PNEUMOIA-Frontend2026\\node_modules\\.vite"
+    ]
+  }
+}

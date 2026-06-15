@@ -53,6 +53,7 @@ import ProfilMedecin       from './features/administrateur/pages/ProfilMedecin';
 import CorbeilleAdmin          from './features/administrateur/pages/Corbeille';
 import FAQ                 from './features/administrateur/pages/FAQ';
 import Commentaires        from './features/administrateur/pages/Commentaires';
+import ConsultationsAnnuelles from './features/administrateur/pages/ConsultationsAnnuelles';
 
 
 function App() {
@@ -127,7 +128,8 @@ function App() {
           <Route path="medecins/:id"   element={<ProfilMedecin />} />
           <Route path="corbeille"      element={<CorbeilleAdmin />} />
           <Route path="faq"            element={<FAQ />} />
-          <Route path="commentaires"   element={<Commentaires />} />
+          <Route path="commentaires"        element={<Commentaires />} />
+          <Route path="consultations-annuelles" element={<ConsultationsAnnuelles />} />
         </Route>
 
       </Routes>

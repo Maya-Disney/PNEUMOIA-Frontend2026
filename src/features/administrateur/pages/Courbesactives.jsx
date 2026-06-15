@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid
@@ -19,7 +19,6 @@ const PERIODES = [
   { key:"30j", label:"30 jours", nb:30 },
 ];
 
-// ── Tooltip custom ──────────────────────────────────────────────────────────
 function Tip({ active, payload, dark, nomActuel, nomPrec }) {
   if (!active || !payload?.length) return null;
   const a = payload.find(p => p.dataKey === "actuel");
@@ -35,29 +34,29 @@ function Tip({ active, payload, dark, nomActuel, nomPrec }) {
       <div style={{marginBottom:8}}>
         <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
           <span style={{width:8,height:2,borderRadius:99,background:BRAND,display:"inline-block"}}/>
-          <span style={{fontSize:10,fontWeight:700,color:BRAND}}>{payload[0]?.payload?.date}</span>
+          <span style={{fontSize:11,fontWeight:700,color:BRAND}}>{payload[0]?.payload?.date}</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <span style={{width:8,height:2,borderRadius:99,background:COMPARE,opacity:0.7,display:"inline-block"}}/>
-          <span style={{fontSize:10,fontWeight:700,color:COMPARE}}>{payload[0]?.payload?.datePrec}</span>
+          <span style={{fontSize:11,fontWeight:700,color:COMPARE}}>{payload[0]?.payload?.datePrec}</span>
         </div>
       </div>
       {a && (
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:4}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{width:8,height:8,borderRadius:99,background:BRAND,display:"inline-block"}}/>
-            <span style={{fontSize:11,color:dark?"#8b949e":"#6b7280"}}>{nomActuel}</span>
+            <span style={{fontSize:12,color:dark?"#8b949e":"#6b7280"}}>{nomActuel}</span>
           </div>
-          <span style={{fontSize:12,fontWeight:700,color:BRAND}}>{a.value?.toLocaleString("fr-FR")}</span>
+          <span style={{fontSize:13,fontWeight:700,color:BRAND}}>{a.value?.toLocaleString("fr-FR")}</span>
         </div>
       )}
       {p && (
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:ecart!==null?8:0}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{width:8,height:8,borderRadius:99,background:COMPARE,display:"inline-block"}}/>
-            <span style={{fontSize:11,color:dark?"#8b949e":"#6b7280"}}>{nomPrec}</span>
+            <span style={{fontSize:12,color:dark?"#8b949e":"#6b7280"}}>{nomPrec}</span>
           </div>
-          <span style={{fontSize:12,fontWeight:700,color:COMPARE}}>{p.value?.toLocaleString("fr-FR")}</span>
+          <span style={{fontSize:13,fontWeight:700,color:COMPARE}}>{p.value?.toLocaleString("fr-FR")}</span>
         </div>
       )}
       {ecart !== null && (
@@ -66,8 +65,8 @@ function Tip({ active, payload, dark, nomActuel, nomPrec }) {
           paddingTop:8,
           display:"flex",alignItems:"center",justifyContent:"space-between"
         }}>
-          <span style={{fontSize:10,color:dark?"#484f58":"#9ca3af"}}>Écart</span>
-          <span style={{fontSize:11,fontWeight:700,color:ecart>=0?BRAND:"#dc2626"}}>
+          <span style={{fontSize:11,color:dark?"#484f58":"#9ca3af"}}>Écart</span>
+          <span style={{fontSize:12,fontWeight:700,color:ecart>=0?BRAND:"#dc2626"}}>
             {ecart>=0?"+":""}{ecart}%
           </span>
         </div>
@@ -76,11 +75,9 @@ function Tip({ active, payload, dark, nomActuel, nomPrec }) {
   );
 }
 
-// Génère des données mock depuis le 1er du mois sur N jours
 function genMockData(annee, mois, nbJours) {
-  // mois = 0-indexed
   return Array.from({ length: nbJours }, (_, i) => {
-    const d  = new Date(annee, mois, i + 1); // 1er du mois + i jours
+    const d  = new Date(annee, mois, i + 1);
     const we = d.getDay() === 0 || d.getDay() === 6;
     const base = we ? 280 : 540;
     const noise = (Math.random() - 0.5) * 180;
@@ -94,46 +91,46 @@ function genMockData(annee, mois, nbJours) {
 }
 
 export default function CourbeActivite() {
-  const { dark }    = useOutletContext() || {};
+  const { dark }   = useOutletContext() || {};
+  const navigate   = useNavigate();
   const [periode,   setPeriode]  = useState("30j");
   const [loading,   setLoading]  = useState(true);
   const [dataActuel, setDataActuel] = useState([]);
   const [dataPrec,   setDataPrec]   = useState([]);
 
-  const nb          = PERIODES.find(p => p.key === periode)?.nb || 30;
-  const moisActuel  = MOIS_LONG[NOW.getMonth()];
-  const moisPrec    = MOIS_LONG[new Date(NOW.getFullYear(), NOW.getMonth() - 1).getMonth()];
+  const nb           = PERIODES.find(p => p.key === periode)?.nb || 30;
+  const anneeActuel  = NOW.getFullYear();
+  const anneePrec    = NOW.getMonth() === 0 ? anneeActuel - 1 : anneeActuel;
+  const moisActuel   = MOIS_LONG[NOW.getMonth()];
+  const moisPrec     = MOIS_LONG[new Date(NOW.getFullYear(), NOW.getMonth() - 1).getMonth()];
+  const labelActuel  = `${moisActuel} ${anneeActuel}`;
+  const labelPrec    = `${moisPrec} ${anneePrec}`;
 
   useEffect(() => {
     setLoading(true);
-    // Appel API réel
     Promise.all([
-      getConsultationsSemaine(), // TODO: adapter endpoint pour mois actuel
-      getConsultationsSemaine(), // TODO: adapter endpoint pour mois précédent
+      getConsultationsSemaine(),
+      getConsultationsSemaine(),
     ])
       .then(() => {
-        // Fallback mock en attendant le backend
-        // Mois actuel et mois précédent depuis le 1er de chaque mois
         const moisActuelIdx = NOW.getMonth();
         const moisPrecIdx   = moisActuelIdx === 0 ? 11 : moisActuelIdx - 1;
-        const anneeActuel   = NOW.getFullYear();
-        const anneePrec     = moisActuelIdx === 0 ? anneeActuel - 1 : anneeActuel;
-        setDataActuel(genMockData(anneeActuel, moisActuelIdx, nb));
-        setDataPrec(genMockData(anneePrec,    moisPrecIdx,   nb));
+        const aA = NOW.getFullYear();
+        const aP = moisActuelIdx === 0 ? aA - 1 : aA;
+        setDataActuel(genMockData(aA, moisActuelIdx, nb));
+        setDataPrec(genMockData(aP, moisPrecIdx, nb));
       })
       .catch(() => {
         const moisActuelIdx = NOW.getMonth();
         const moisPrecIdx   = moisActuelIdx === 0 ? 11 : moisActuelIdx - 1;
-        const anneeActuel   = NOW.getFullYear();
-        const anneePrec     = moisActuelIdx === 0 ? anneeActuel - 1 : anneeActuel;
-        setDataActuel(genMockData(anneeActuel, moisActuelIdx, nb));
-        setDataPrec(genMockData(anneePrec,    moisPrecIdx,   nb));
+        const aA = NOW.getFullYear();
+        const aP = moisActuelIdx === 0 ? aA - 1 : aA;
+        setDataActuel(genMockData(aA, moisActuelIdx, nb));
+        setDataPrec(genMockData(aP, moisPrecIdx, nb));
       })
       .finally(() => setLoading(false));
   }, [nb]);
 
-  // Fusionner les données — label = date du mois actuel
-  // tooltip montre date actuel ET date équivalente mois précédent
   const data = Array.from({ length: nb }, (_, i) => ({
     label:     dataActuel[i]?.label || `J${i+1}`,
     date:      dataActuel[i]?.date  || `J${i+1}`,
@@ -142,7 +139,6 @@ export default function CourbeActivite() {
     precedent: dataPrec[i]?.val     || 0,
   }));
 
-  // Stats
   const totalActuel = data.reduce((s,d) => s + d.actuel, 0);
   const totalPrec   = data.reduce((s,d) => s + d.precedent, 0);
   const moyActuel   = Math.round(totalActuel / nb);
@@ -150,32 +146,30 @@ export default function CourbeActivite() {
   const variation   = totalPrec > 0 ? Math.round((totalActuel - totalPrec) / totalPrec * 100) : 0;
   const picActuel   = data.reduce((m,d) => d.actuel > m.actuel ? d : m, data[0] || {actuel:0});
 
-  const ax = dark ? "#484f58" : "#cbd5e1";
-  const gr = dark ? "#1e2836" : "#f8fafc";
-
+  const ax   = dark ? "#484f58" : "#cbd5e1";
+  const gr   = dark ? "#1e2836" : "#f8fafc";
   const card = `rounded-2xl border ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-100 shadow-sm"}`;
 
   return (
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className={`text-xl md:text-2xl font-black tracking-tight ${dark?"text-white":"text-gray-900"}`}>
+          <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${dark?"text-white":"text-gray-900"}`}>
             Courbe d'activité
           </h1>
-          <p className={`text-[12px] mt-1 ${dark?"text-[#8b949e]":"text-gray-400"}`}>
-            <span style={{color:BRAND,fontWeight:700}}>{moisActuel}</span>
+          <p className={`text-[15px] mt-1 ${dark?"text-[#8b949e]":"text-gray-500"}`}>
+            <span style={{color:BRAND,fontWeight:700}}>{labelActuel}</span>
             {" "}vs{" "}
-            <span style={{color:COMPARE,fontWeight:700}}>{moisPrec}</span>
+            <span style={{color:COMPARE,fontWeight:700}}>{labelPrec}</span>
             {" "}— {nb} derniers jours
           </p>
         </div>
-        {/* Sélecteur */}
         <div className={`flex gap-1 p-1 rounded-xl border ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-100 border-gray-200"}`}>
           {PERIODES.map(p => (
             <button key={p.key} onClick={() => setPeriode(p.key)}
-              className="px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+              className="px-4 py-2 rounded-lg text-[13px] font-bold transition-all"
               style={periode === p.key
                 ? {background: BRAND, color:"#fff", boxShadow:"0 2px 8px rgba(15,118,110,.3)"}
                 : {color: dark?"#484f58":"#9ca3af", background:"transparent"}}>
@@ -185,18 +179,18 @@ export default function CourbeActivite() {
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* ── KPIs ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            label: `Total ${moisActuel}`,
+            label: `Total ${labelActuel}`,
             value: totalActuel.toLocaleString("fr-FR"),
-            sub:   `${variation>=0?"+":""}${variation}% vs ${moisPrec}`,
+            sub:   `${variation>=0?"+":""}${variation}% vs ${labelPrec}`,
             subColor: variation>=0?BRAND:"#dc2626",
             color: dark?"text-white":"text-gray-900",
           },
           {
-            label: `Total ${moisPrec}`,
+            label: `Total ${labelPrec}`,
             value: totalPrec.toLocaleString("fr-FR"),
             sub:   "Période de référence",
             subColor: dark?"#484f58":"#9ca3af",
@@ -205,50 +199,65 @@ export default function CourbeActivite() {
           {
             label: "Moyenne / jour",
             value: moyActuel.toLocaleString("fr-FR"),
-            sub:   `vs ${moyPrec.toLocaleString("fr-FR")} (${moisPrec})`,
+            sub:   `vs ${moyPrec.toLocaleString("fr-FR")} (${labelPrec})`,
             subColor: dark?"#484f58":"#9ca3af",
             color: "text-teal-600",
           },
           {
             label: `Pic — ${picActuel.date||""}`,
             value: picActuel.actuel?.toLocaleString("fr-FR") || "—",
-            sub:   moisActuel,
+            sub:   labelActuel,
             subColor: dark?"#484f58":"#9ca3af",
             color: "text-teal-600",
           },
         ].map(({ label, value, sub, subColor, color }) => (
           <div key={label} className={`${card} px-5 py-4`}>
-            <p className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{label}</p>
-            <p className={`text-2xl font-black ${color}`}>{value}</p>
-            <p className="text-[10px] mt-1.5 font-medium" style={{color: subColor}}>{sub}</p>
+            <p className={`text-[13px] font-semibold mb-1.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{label}</p>
+            <p className={`text-3xl font-black ${color}`}>{value}</p>
+            <p className="text-[13px] mt-1.5 font-medium" style={{color: subColor}}>{sub}</p>
           </div>
         ))}
       </div>
 
-      {/* Graphique area */}
+      {/* ── Graphique area ── */}
       <div className={`${card} p-6`}>
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
-            <p className={`text-[13px] font-bold ${dark?"text-white":"text-gray-800"}`}>Consultations par jour</p>
-            <p className={`text-[11px] mt-0.5 ${dark?"text-[#8b949e]":"text-gray-400"}`}>
+            <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>Consultations par jour</p>
+            <p className={`text-[13px] mt-0.5 ${dark?"text-[#8b949e]":"text-gray-400"}`}>
               Courbes superposées — survol pour détails
             </p>
           </div>
-          <div className="flex items-center gap-5">
-            <div className="flex items-center gap-2">
-              <div style={{width:24,height:3,borderRadius:99,background:BRAND}}/>
-              <span className={`text-[11px] font-medium ${dark?"text-[#8b949e]":"text-gray-500"}`}>{moisActuel}</span>
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div style={{width:24,height:3,borderRadius:99,background:BRAND}}/>
+                <span className={`text-[13px] font-medium ${dark?"text-[#8b949e]":"text-gray-500"}`}>{labelActuel}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div style={{width:24,height:3,borderRadius:99,background:COMPARE,opacity:0.7}}/>
+                <span className={`text-[13px] font-medium ${dark?"text-[#8b949e]":"text-gray-500"}`}>{labelPrec}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div style={{width:24,height:3,borderRadius:99,background:COMPARE,opacity:0.7}}/>
-              <span className={`text-[11px] font-medium ${dark?"text-[#8b949e]":"text-gray-500"}`}>{moisPrec}</span>
-            </div>
+            {/* Bouton Visualiser */}
+            <button
+              onClick={() => navigate("/administrateur/consultations-annuelles")}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold transition-all border"
+              style={{
+                background: BRAND,
+                color: "#fff",
+                borderColor: BRAND,
+                boxShadow: "0 2px 8px rgba(15,118,110,.3)",
+              }}
+            >
+              Visualiser par année →
+            </button>
           </div>
         </div>
 
         {loading ? (
           <div style={{height:280,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <p className={`text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Chargement…</p>
+            <p className={`text-[14px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Chargement…</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
@@ -265,14 +274,12 @@ export default function CourbeActivite() {
               </defs>
               <CartesianGrid vertical={false} stroke={gr}/>
               <XAxis
-                dataKey="label" tick={{fontSize:9,fill:ax}}
+                dataKey="label" tick={{fontSize:11,fill:ax}}
                 axisLine={false} tickLine={false}
                 interval={nb===7?0:nb===14?1:4}
               />
-              <YAxis tick={{fontSize:9,fill:ax}} axisLine={false} tickLine={false} width={36}/>
-              <Tooltip content={<Tip dark={dark} nomActuel={moisActuel} nomPrec={moisPrec}/>} cursor={{stroke:gr,strokeWidth:2}}/>
-
-              {/* Mois précédent */}
+              <YAxis tick={{fontSize:11,fill:ax}} axisLine={false} tickLine={false} width={40}/>
+              <Tooltip content={<Tip dark={dark} nomActuel={labelActuel} nomPrec={labelPrec}/>} cursor={{stroke:gr,strokeWidth:2}}/>
               <Area
                 type="monotone" dataKey="precedent"
                 stroke={COMPARE} strokeWidth={2} strokeOpacity={0.6}
@@ -281,7 +288,6 @@ export default function CourbeActivite() {
                 dot={false}
                 activeDot={{r:4,fill:COMPARE,stroke:"#fff",strokeWidth:2}}
               />
-              {/* Mois actuel */}
               <Area
                 type="monotone" dataKey="actuel"
                 stroke={BRAND} strokeWidth={2.5}
@@ -294,17 +300,17 @@ export default function CourbeActivite() {
         )}
       </div>
 
-      {/* Tableau semaines */}
+      {/* ── Tableau semaines ── */}
       <div className={`${card} overflow-hidden`}>
-        <div className={`px-5 py-3.5 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
-          <p className={`text-[12px] font-bold ${dark?"text-white":"text-gray-800"}`}>Récapitulatif par semaine</p>
+        <div className={`px-5 py-4 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
+          <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>Récapitulatif par semaine</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className={`border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
-                {["Semaine","Période","Total "+moisActuel,"Total "+moisPrec,"Écart","Tendance"].map(h=>(
-                  <th key={h} className={`px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider ${dark?"text-[#484f58]":"text-gray-400"}`}>{h}</th>
+                {["Semaine","Période","Total "+labelActuel,"Total "+labelPrec,"Écart","Tendance"].map(h=>(
+                  <th key={h} className={`px-5 py-3.5 text-left text-[13px] font-semibold ${dark?"text-[#484f58]":"text-gray-400"}`}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -317,33 +323,33 @@ export default function CourbeActivite() {
                 const ec  = tP>0?Math.round((tA-tP)/tP*100):0;
                 return (
                   <tr key={i} className={`border-b last:border-0 transition-colors ${dark?"border-[#21262d] hover:bg-[#0d1117]/40":"border-gray-50 hover:bg-gray-50/60"}`}>
-                    <td className={`px-5 py-3 text-[12px] font-bold ${dark?"text-white":"text-gray-800"}`}>S{i+1}</td>
-                    <td className={`px-5 py-3 text-[11px]`}>
+                    <td className={`px-5 py-4 text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>S{i+1}</td>
+                    <td className="px-5 py-4">
                       <div>
                         <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:2}}>
                           <span style={{width:6,height:6,borderRadius:99,background:BRAND,flexShrink:0,display:"inline-block"}}/>
-                          <span style={{color:dark?"#8b949e":"#374151",fontSize:11}}>
+                          <span style={{color:dark?"#8b949e":"#374151",fontSize:13}}>
                             {sl[0]?.date} → {sl[sl.length-1]?.date}
                           </span>
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:5}}>
                           <span style={{width:6,height:6,borderRadius:99,background:COMPARE,opacity:0.7,flexShrink:0,display:"inline-block"}}/>
-                          <span style={{color:dark?"#484f58":"#9ca3af",fontSize:10}}>
+                          <span style={{color:dark?"#484f58":"#9ca3af",fontSize:12}}>
                             {sl[0]?.datePrec} → {sl[sl.length-1]?.datePrec}
                           </span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-[12px] font-bold" style={{color:BRAND}}>
+                    <td className="px-5 py-4 text-[15px] font-bold" style={{color:BRAND}}>
                       {tA.toLocaleString("fr-FR")}
                     </td>
-                    <td className={`px-5 py-3 text-[12px] font-medium ${dark?"text-[#8b949e]":"text-gray-500"}`}>
+                    <td className={`px-5 py-4 text-[14px] font-medium ${dark?"text-[#8b949e]":"text-gray-500"}`}>
                       {tP.toLocaleString("fr-FR")}
                     </td>
-                    <td className={`px-5 py-3 text-[12px] font-bold ${ec>=0?"text-teal-600":"text-red-500"}`}>
+                    <td className={`px-5 py-4 text-[14px] font-bold ${ec>=0?"text-teal-600":"text-red-500"}`}>
                       {ec>=0?"+":""}{ec}%
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-4">
                       <div style={{display:"flex",alignItems:"center",gap:8}}>
                         <div className={`h-1.5 rounded-full overflow-hidden ${dark?"bg-[#21262d]":"bg-gray-100"}`} style={{width:80}}>
                           <div style={{
@@ -353,7 +359,7 @@ export default function CourbeActivite() {
                             transition:"width .4s ease"
                           }}/>
                         </div>
-                        <span style={{fontSize:10,color:ec>=0?BRAND:"#dc2626",fontWeight:700}}>
+                        <span style={{fontSize:13,color:ec>=0?BRAND:"#dc2626",fontWeight:700}}>
                           {ec>=0?"▲":"▼"}
                         </span>
                       </div>

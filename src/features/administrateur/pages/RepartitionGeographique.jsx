@@ -1,51 +1,294 @@
+import { useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS, BarElement, LinearScale, CategoryScale, Tooltip,
+} from "chart.js";
+import { brand, getSurface, getText } from "../theme";
 
-const BRAND="#0f766e";
-const VILLES=[{v:"Douala",r:"Littoral",md:18,c:2240,p:524},{v:"Yaoundé",r:"Centre",md:12,c:1540,p:367},{v:"Bafoussam",r:"Ouest",md:4,c:580,p:142},{v:"Garoua",r:"Nord",md:3,c:320,p:89},{v:"Bertoua",r:"Est",md:1,c:141,p:41}];
-const REGIONS=[{r:"Littoral",md:18,cov:94},{r:"Centre",md:12,cov:88},{r:"Ouest",md:4,cov:52},{r:"Nord",md:3,cov:31},{r:"Est",md:1,cov:18},{r:"Sud",md:0,cov:0},{r:"Adamaoua",md:0,cov:0},{r:"Extrême-N",md:0,cov:0},{r:"N-Ouest",md:0,cov:0},{r:"S-Ouest",md:0,cov:0}];
-const totC=VILLES.reduce((s,v)=>s+v.c,0);const totMd=VILLES.reduce((s,v)=>s+v.md,0);const maxC=Math.max(...VILLES.map(v=>v.c));
-function covColor(c){return c>=70?BRAND:c>=40?"#f59e0b":"#ef4444";}
-function Tip({active,payload,label,dark}){if(!active||!payload?.length)return null;return(<div className={`px-3 py-2 rounded-lg border text-xs shadow-lg ${dark?"bg-[#161b22] border-[#21262d] text-white":"bg-white border-gray-200 text-gray-800"}`}><p className="font-bold">{label}</p>{payload.map((p,i)=><p key={i} style={{color:BRAND}}>{p.value.toLocaleString("fr-FR")} consultations</p>)}</div>);}
+ChartJS.register(BarElement, LinearScale, CategoryScale, Tooltip);
 
-export default function RepartitionGeo(){
-  const {dark}=useOutletContext()||{};
-  const ax=dark?"#484f58":"#9ca3af";const gr=dark?"#21262d":"#f3f4f6";
-  return(
+const MOIS_LABELS = [
+  "Janvier","Février","Mars","Avril","Mai","Juin",
+  "Juillet","Août","Septembre","Octobre","Novembre","Décembre",
+];
+
+const ANNEES = [2024, 2025, 2026];
+
+const REGIONS_BASE = [
+  { r: "Littoral",     cov: 94 },
+  { r: "Centre",       cov: 88 },
+  { r: "Ouest",        cov: 52 },
+  { r: "Nord",         cov: 31 },
+  { r: "Est",          cov: 18 },
+  { r: "Sud",          cov: 0  },
+  { r: "Adamaoua",     cov: 0  },
+  { r: "Extrême-Nord", cov: 0  },
+  { r: "Nord-Ouest",   cov: 0  },
+  { r: "Sud-Ouest",    cov: 0  },
+];
+
+// Données déterministes pour chaque combinaison mois/année
+function getVilles(annee, mois) {
+  const base = [
+    { v:"Douala",    r:"Littoral", mdBase:15, cBase:180, pBase:42  },
+    { v:"Yaoundé",   r:"Centre",   mdBase:10, cBase:125, pBase:30  },
+    { v:"Bafoussam", r:"Ouest",    mdBase:3,  cBase:47,  pBase:11  },
+    { v:"Garoua",    r:"Nord",     mdBase:2,  cBase:26,  pBase:7   },
+    { v:"Bertoua",   r:"Est",      mdBase:1,  cBase:11,  pBase:3   },
+  ];
+  const yearBoost = (annee - 2024) * 0.08; // +8% par an
+  const seasonFactor = [0.85,0.90,0.95,1.05,1.10,1.00,0.92,0.88,0.98,1.08,1.12,1.15][mois - 1];
+  const factor = (1 + yearBoost) * seasonFactor;
+  return base.map(({ v, r, mdBase, cBase, pBase }) => ({
+    v, r,
+    md: mdBase + (annee - 2024),
+    c:  Math.round(cBase * factor),
+    p:  Math.round(pBase * factor),
+  }));
+}
+
+export default function RepartitionGeo() {
+  const { dark } = useOutletContext() || {};
+  const surface  = getSurface(dark);
+  const txt      = getText(dark);
+
+  const now = new Date();
+  const [mois,  setMois]  = useState(now.getMonth() + 1);
+  const [annee, setAnnee] = useState(now.getFullYear() <= 2026 ? now.getFullYear() : 2026);
+
+  const VILLES = useMemo(() => getVilles(annee, mois), [annee, mois]);
+
+  const REGIONS = useMemo(() => REGIONS_BASE.map(reg => {
+    const match = VILLES.find(v => v.r === reg.r);
+    return { ...reg, md: match ? match.md : 0 };
+  }), [VILLES]);
+
+  const TOTAL_MD  = VILLES.reduce((s, v) => s + v.md, 0);
+  const TOTAL_C   = VILLES.reduce((s, v) => s + v.c, 0);
+  const TOTAL_P   = VILLES.reduce((s, v) => s + v.p, 0);
+  const COUVERTES = REGIONS.filter(r => r.md > 0).length;
+
+  const axisColor = dark ? "#484f58" : "#9ca3af";
+  const gridColor = dark ? "#21262d" : "#f3f4f6";
+
+  function covColor(cov) {
+    if (cov === 0)   return dark ? "#30363d" : "#e5e7eb";
+    if (cov >= 70)   return brand.DEFAULT;
+    if (cov >= 40)   return "#f59e0b";
+    return "#ef4444";
+  }
+
+  const chartData = useMemo(() => ({
+    labels: VILLES.map(v => v.v),
+    datasets: [{
+      label: "Consultations",
+      data: VILLES.map(v => v.c),
+      backgroundColor: brand.DEFAULT,
+      borderRadius: 8,
+      maxBarThickness: 48,
+    }],
+  }), [VILLES]);
+
+  const chartOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: dark ? "#161b22" : "#ffffff",
+        borderColor:     dark ? "#21262d" : "#e5e7eb",
+        borderWidth: 1,
+        titleColor: dark ? "#e6edf3" : "#111827",
+        bodyColor:  dark ? "#8b949e" : "#6b7280",
+        padding: 12,
+        cornerRadius: 12,
+        titleFont: { size: 13, weight: "bold" },
+        bodyFont:  { size: 13 },
+        callbacks: {
+          label: (item) => ` ${item.parsed.y.toLocaleString("fr-FR")} consultations`,
+        },
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: axisColor, font: { size: 12 } }, border: { display: false } },
+      y: { grid: { color: gridColor }, ticks: { color: axisColor, font: { size: 12 } }, border: { display: false } },
+    },
+  }), [dark, axisColor, gridColor]);
+
+  const cardStyle   = { background: surface.card, borderColor: surface.border };
+  const selectStyle = {
+    background: surface.card,
+    color: txt.primary,
+    border: `1px solid ${surface.border}`,
+    borderRadius: 10,
+    padding: "7px 14px",
+    fontSize: 13,
+    fontWeight: 600,
+    outline: "none",
+    cursor: "pointer",
+    appearance: "auto",
+  };
+
+  const periodLabel = `${MOIS_LABELS[mois - 1]} ${annee}`;
+
+  return (
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
-      <div>
-        <h1 className={`text-xl md:text-2xl font-black tracking-tight ${dark?"text-white":"text-gray-900"}`}>Répartition géographique</h1>
-        <p className={`text-[12px] mt-1 ${dark?"text-[#8b949e]":"text-gray-400"}`}>Distribution des médecins au Cameroun</p>
+
+      {/* Header + filtres */}
+      <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+        <div className="flex-1">
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: txt.primary }}>
+            Répartition géographique
+          </h1>
+          <p className="text-[15px] mt-1" style={{ color: txt.muted }}>
+            Distribution des médecins au Cameroun — 10 régions
+          </p>
+        </div>
+
+        {/* Sélecteurs mois + année */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] font-semibold" style={{ color: txt.muted }}>Mois</span>
+            <select value={mois} onChange={e => setMois(Number(e.target.value))} style={selectStyle}>
+              {MOIS_LABELS.map((label, i) => (
+                <option key={i + 1} value={i + 1}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] font-semibold" style={{ color: txt.muted }}>Année</span>
+            <select value={annee} onChange={e => setAnnee(Number(e.target.value))} style={selectStyle}>
+              {ANNEES.map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[{l:"Médecins",v:totMd,c:dark?"text-white":"text-gray-900"},{l:"Consultations",v:totC.toLocaleString("fr-FR"),c:dark?"text-white":"text-gray-900"},{l:"Patients",v:VILLES.reduce((s,v)=>s+v.p,0).toLocaleString("fr-FR"),c:dark?"text-white":"text-gray-900"},{l:"Régions couvertes",v:`${REGIONS.filter(r=>r.md>0).length}/10`,c:"text-orange-500"}].map(({l,v,c})=>(
-          <div key={l} className={`rounded-2xl border px-4 py-3 ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-100 shadow-sm"}`}>
-            <p className={`text-2xl font-black ${c}`}>{v}</p>
-            <p className={`text-[11px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{l}</p>
+      {/* Alerte régions non couvertes */}
+      <div
+        className="flex items-center gap-3 px-4 py-3 rounded-2xl border"
+        style={{ background: dark ? "rgba(234,88,12,0.08)" : "#fff7ed", borderColor: dark ? "rgba(234,88,12,0.25)" : "#fed7aa" }}
+      >
+        <svg width="16" height="16" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="shrink-0">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <p className="text-[14px] font-semibold" style={{ color: "#f97316" }}>
+          {10 - COUVERTES} régions non couvertes — aucun médecin enregistré dans ces zones
+        </p>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { l: "Médecins actifs",   v: TOTAL_MD },
+          { l: "Consultations",     v: TOTAL_C.toLocaleString("fr-FR") },
+          { l: "Patients",          v: TOTAL_P.toLocaleString("fr-FR") },
+          { l: "Régions couvertes", v: `${COUVERTES}/10`, red: true },
+        ].map(({ l, v, red }) => (
+          <div key={l} className="rounded-2xl border px-5 py-4" style={cardStyle}>
+            <p className="text-3xl font-black" style={{ color: red ? "#ea580c" : txt.primary }}>{v}</p>
+            <p className="text-[13px] mt-1" style={{ color: txt.subtle }}>{l}</p>
           </div>
         ))}
       </div>
 
+      {/* Graphique + couverture */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
-        <div className={`rounded-2xl border p-5 ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-100 shadow-sm"}`}>
-          <p className={`text-[13px] font-bold mb-1 ${dark?"text-white":"text-gray-800"}`}>Consultations par ville</p>
-          <p className={`text-[11px] mb-4 ${dark?"text-[#8b949e]":"text-gray-400"}`}>5 villes actives</p>
-          <ResponsiveContainer width="100%" height={200}><BarChart data={VILLES} barSize={32}><CartesianGrid vertical={false} stroke={gr}/><XAxis dataKey="v" tick={{fontSize:10,fill:ax}} axisLine={false} tickLine={false}/><YAxis tick={{fontSize:10,fill:ax}} axisLine={false} tickLine={false} width={36}/><Tooltip content={<Tip dark={dark}/>} cursor={{fill:dark?"rgba(255,255,255,.02)":"rgba(0,0,0,.02)"}}/><Bar dataKey="c" name="Consultations" fill={BRAND} radius={[4,4,0,0]}/></BarChart></ResponsiveContainer>
+
+        {/* Consultations par ville */}
+        <div className="rounded-2xl border p-6" style={cardStyle}>
+          <p className="text-[15px] font-bold mb-1" style={{ color: txt.primary }}>Consultations par ville</p>
+          <p className="text-[13px] mb-5" style={{ color: txt.subtle }}>
+            {periodLabel} — 5 villes actives
+          </p>
+          <div style={{ height: 220 }}>
+            <Bar data={chartData} options={chartOptions} />
+          </div>
         </div>
 
-        <div className={`rounded-2xl border p-5 ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-100 shadow-sm"}`}>
-          <p className={`text-[13px] font-bold mb-4 ${dark?"text-white":"text-gray-800"}`}>Couverture par région</p>
-          {REGIONS.map(r=>(
-            <div key={r.r} className="flex items-center gap-2 mb-2 last:mb-0">
-              <span className={`text-[10px] font-semibold w-20 shrink-0 ${dark?"text-[#8b949e]":"text-gray-500"}`}>{r.r}</span>
-              <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${dark?"bg-[#21262d]":"bg-gray-100"}`}><div className="h-full rounded-full" style={{width:`${r.cov}%`,background:r.cov===0?"transparent":covColor(r.cov)}}/></div>
-              {r.md>0?<span className={`text-[9px] w-14 text-right ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.md} md</span>:<span className="text-[9px] w-14 text-right text-red-400">Non couvert</span>}
-            </div>
-          ))}
-          <p className="text-[10px] font-semibold text-orange-500 mt-4">⚠ 6 régions non couvertes</p>
+        {/* Couverture par région */}
+        <div className="rounded-2xl border p-6" style={cardStyle}>
+          <p className="text-[15px] font-bold mb-1" style={{ color: txt.primary }}>Couverture par région</p>
+          <p className="text-[13px] mb-4" style={{ color: txt.subtle }}>10 régions du Cameroun — {periodLabel}</p>
+          <div className="flex flex-col gap-3">
+            {REGIONS.map(r => (
+              <div key={r.r} className="flex items-center gap-3">
+                <span className="text-[13px] font-semibold w-28 shrink-0" style={{ color: txt.muted }}>{r.r}</span>
+                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: surface.borderSoft }}>
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${r.cov}%`, background: r.cov === 0 ? "transparent" : covColor(r.cov) }}
+                  />
+                </div>
+                {r.md > 0
+                  ? <span className="text-[12px] w-16 text-right shrink-0 font-semibold" style={{ color: txt.subtle }}>{r.md} md</span>
+                  : <span className="text-[12px] w-16 text-right shrink-0 text-red-400 font-semibold">Non couvert</span>
+                }
+              </div>
+            ))}
+          </div>
+
+          {/* Légende */}
+          <div className="flex items-center gap-4 mt-5 pt-4 border-t flex-wrap" style={{ borderColor: surface.borderSoft }}>
+            {[
+              { color: brand.DEFAULT,                label: "≥ 70%" },
+              { color: "#f59e0b",                    label: "40–70%" },
+              { color: "#ef4444",                    label: "< 40%" },
+              { color: dark ? "#30363d" : "#e5e7eb", label: "Non couvert" },
+            ].map(({ color, label }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
+                <span className="text-[12px]" style={{ color: txt.subtle }}>{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* Tableau détaillé */}
+      <div className="rounded-2xl border overflow-hidden" style={cardStyle}>
+        <div className="px-6 py-4 border-b" style={{ borderColor: surface.border }}>
+          <p className="text-[15px] font-bold" style={{ color: txt.primary }}>Détail par ville</p>
+          <p className="text-[13px] mt-0.5" style={{ color: txt.subtle }}>
+            Médecins, consultations et patients — {periodLabel}
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr style={{ background: surface.bg }}>
+                {["Ville","Région","Médecins","Consultations","Patients"].map(h => (
+                  <th key={h} className="text-left px-6 py-3 font-semibold" style={{ color: txt.muted }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {VILLES.map((v, i) => (
+                <tr
+                  key={v.v}
+                  className="border-t"
+                  style={{
+                    borderColor: surface.borderSoft,
+                    background: i % 2 === 0 ? "transparent" : (dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)"),
+                  }}
+                >
+                  <td className="px-6 py-3 font-bold"      style={{ color: txt.primary }}>{v.v}</td>
+                  <td className="px-6 py-3"                style={{ color: txt.muted }}>{v.r}</td>
+                  <td className="px-6 py-3 font-semibold"  style={{ color: brand.DEFAULT }}>{v.md}</td>
+                  <td className="px-6 py-3"                style={{ color: txt.muted }}>{v.c.toLocaleString("fr-FR")}</td>
+                  <td className="px-6 py-3"                style={{ color: txt.muted }}>{v.p.toLocaleString("fr-FR")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   );
 }

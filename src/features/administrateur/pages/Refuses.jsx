@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
+import { useAdminTheme } from "../context/useAdminTheme";
 import * as XLSX from "xlsx";
-import { Download, Trash2, X, Send, Mail, MoreVertical } from "lucide-react"; // ← ajout MoreVertical
+import { Download, Trash2, X, Send, Mail, MoreVertical } from "lucide-react";
+import { brand, getSurface, getText } from "../theme";
+import { getMedecinsRefuses, supprimerDossierRefuse, relancerMedecin as relancerMedecinApi } from "../api/adminApi";
+import {
+  TableCard, TableContainer, Th, Tr, Td, EmptyCell, PersonCell,
+  MutedText, SubtleText, StatusText, PaginationBar, PaginationSelect, PaginationButton,
+} from "../components/ui/Table";
 
-const BRAND = "#0f766e";
 const NOW   = new Date();
 const sub   = (ms) => new Date(NOW.getTime() - ms);
 const pad   = (n)  => String(n).padStart(2, "0");
@@ -18,7 +24,6 @@ function avatarColor(str) {
 
 const VILLES_CM = ["Yaoundé","Douala","Bafoussam","Garoua","Maroua","Ngaoundéré","Bertoua","Ebolowa","Buéa","Limbé"];
 
-// ── Un seul mock conservé ─────────────────────────────────────────────────────
 const MOCK = [
   { id:1, initials:"DT", nom:"Dr. Tabi Jonas",    specialite:"Pneumologue",
     cnom:"CM-2024-9999", hopital:"Clinique Alpha", ville:"Yaoundé",
@@ -28,7 +33,6 @@ const MOCK = [
     photo_url:null, relanceSent:false },
 ];
 
-// ── Modal shell ────────────────────────────────────────────────────────────────
 function Modal({ onClose, title, sub: subtitle, wide, children, footer, dark }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
@@ -36,8 +40,8 @@ function Modal({ onClose, title, sub: subtitle, wide, children, footer, dark }) 
       <div className={`w-full ${wide?"max-w-2xl":"max-w-lg"} max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
         <div className={`flex items-center justify-between px-5 py-4 border-b shrink-0 ${dark?"border-[#21262d]":"border-gray-100"}`}>
           <div>
-            <p className={`text-[13px] font-bold ${dark?"text-white":"text-gray-800"}`}>{title}</p>
-            {subtitle&&<p className={`text-[10px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{subtitle}</p>}
+            <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>{title}</p>
+            {subtitle&&<p className={`text-[14px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{subtitle}</p>}
           </div>
           <button onClick={onClose} className={`w-7 h-7 flex items-center justify-center rounded-lg ${dark?"text-[#484f58] hover:bg-[#21262d]":"text-gray-400 hover:bg-gray-100"}`}><X size={13}/></button>
         </div>
@@ -51,18 +55,18 @@ function Modal({ onClose, title, sub: subtitle, wide, children, footer, dark }) 
 function ModalePhoto({ r, onClose, dark }) {
   return (
     <Modal dark={dark} onClose={onClose} title={r.nom} sub="Photo d'identité (CNI)"
-      footer={<button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[12px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Fermer</button>}>
+      footer={<button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Fermer</button>}>
       <div className="flex flex-col items-center gap-4 py-4">
         {r.photo_url
           ? <img src={r.photo_url} alt={r.nom} className="w-36 h-36 rounded-full object-cover border-2 border-gray-200 shadow"/>
           : <div className={`w-36 h-36 rounded-full flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
               <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <span className="text-[10px] text-center px-2">Aucune photo</span>
+              <span className="text-[14px] text-center px-2">Aucune photo</span>
             </div>
         }
         <div className="text-center">
-          <p className={`text-[12px] font-bold ${dark?"text-white":"text-gray-800"}`}>{r.nom}</p>
-          <p className={`text-[10px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.specialite} · CNOM {r.cnom}</p>
+          <p className={`text-[14px] font-bold ${dark?"text-white":"text-gray-800"}`}>{r.nom}</p>
+          <p className={`text-[14px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.specialite} · CNOM {r.cnom}</p>
         </div>
       </div>
     </Modal>
@@ -73,14 +77,14 @@ function ModaleRelance({ r, onClose, onConfirm, dark }) {
   const [msg, setMsg] = useState(
     `Bonjour ${r.nom},\n\nVotre demande d'inscription sur PneumoIA a été refusée pour le motif suivant :\n\n« ${r.motif} »\n\nNous vous invitons à corriger les éléments manquants et à soumettre une nouvelle demande depuis votre espace.\n\nCordialement,\nL'équipe PneumoIA`
   );
-  const inp = `w-full text-[12px] px-3 py-2 rounded-xl border outline-none resize-none ${dark?"bg-[#0d1117] border-[#21262d] text-white":"bg-gray-50 border-gray-200 text-gray-800"}`;
+  const inp = `w-full text-[14px] px-3 py-2 rounded-xl border outline-none resize-none ${dark?"bg-[#0d1117] border-[#21262d] text-white":"bg-gray-50 border-gray-200 text-gray-800"}`;
   return (
     <Modal dark={dark} onClose={onClose} title="Relancer par e-mail" sub={`${r.nom} · ${r.email}`}
       footer={<>
-        <button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[12px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Annuler</button>
+        <button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Annuler</button>
         <button onClick={()=>onConfirm(msg)}
-          className="flex-1 py-2 rounded-xl text-[12px] font-bold text-white flex items-center justify-center gap-2"
-          style={{background:BRAND}}>
+          className="flex-1 py-2 rounded-xl text-[14px] font-bold text-white flex items-center justify-center gap-2"
+          style={{background:brand.DEFAULT}}>
           <Send size={12}/> Envoyer l'e-mail
         </button>
       </>}>
@@ -88,21 +92,21 @@ function ModaleRelance({ r, onClose, onConfirm, dark }) {
         <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
           <Mail size={14} className={dark?"text-[#484f58]":"text-gray-400"}/>
           <div>
-            <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>Destinataire</p>
-            <p className={`text-[12px] font-semibold ${dark?"text-white":"text-gray-800"}`}>{r.email}</p>
+            <p className={`text-[14px] ${dark?"text-[#484f58]":"text-gray-400"}`}>Destinataire</p>
+            <p className={`text-[14px] font-semibold ${dark?"text-white":"text-gray-800"}`}>{r.email}</p>
           </div>
         </div>
-        <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-[11px] ${dark?"bg-amber-900/20 border-amber-700/40 text-amber-300":"bg-amber-50 border-amber-200 text-amber-700"}`}>
+        <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-amber-900/20 border-amber-700/40 text-amber-300":"bg-amber-50 border-amber-200 text-amber-700"}`}>
           <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="shrink-0 mt-0.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           <span>Motif : <strong>{r.motif}</strong></span>
         </div>
         <div>
-          <label className={`block text-[11px] font-bold mb-1.5 ${dark?"text-[#8b949e]":"text-gray-600"}`}>
+          <label className={`block text-[15px] font-bold mb-1.5 ${dark?"text-[#8b949e]":"text-gray-600"}`}>
             Message <span className={`font-normal ${dark?"text-[#484f58]":"text-gray-400"}`}>(modifiable)</span>
           </label>
           <textarea value={msg} onChange={e=>setMsg(e.target.value)} rows={9} className={inp}/>
         </div>
-        <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>
+        <p className={`text-[14px] ${dark?"text-[#484f58]":"text-gray-400"}`}>
           Le médecin recevra cet e-mail et pourra corriger son dossier et soumettre à nouveau.
         </p>
       </div>
@@ -110,20 +114,9 @@ function ModaleRelance({ r, onClose, onConfirm, dark }) {
   );
 }
 
-function PagBtn({ onClick, disabled, label, dark }) {
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className={`w-8 h-8 flex items-center justify-center rounded-lg border text-[11px] transition-colors
-        ${disabled
-          ?dark?"border-[#21262d] text-[#484f58] cursor-not-allowed":"border-gray-100 text-gray-300 cursor-not-allowed"
-          :dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-600 hover:bg-gray-100"}`}>
-      {label}
-    </button>
-  );
-}
-
 export default function Refusees() {
   const { dark } = useOutletContext() || {};
+  const { searchQuery } = useAdminTheme();
   const [rows,          setRows]         = useState(MOCK);
   const [target,        setTarget]       = useState(null);
   const [modalePhoto,   setModalePhoto]  = useState(null);
@@ -134,17 +127,43 @@ export default function Refusees() {
   const [villeFiltre,   setVilleFiltre]  = useState("Toutes");
   const [motifFiltre,   setMotifFiltre]  = useState("Tous");
 
-  // ✨ État pour le menu déroulant (3 points)
   const [openMenuId, setOpenMenuId] = useState(null);
 
-  // Motifs uniques
+  useEffect(() => {
+    getMedecinsRefuses()
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setRows(data.map(m => ({
+            id:          m.id,
+            initials:    `${(m.prenom?.[0]||"").toUpperCase()}${(m.nom?.[0]||"").toUpperCase()}`,
+            nom:         `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
+            specialite:  m.specialite    || "Pneumologue",
+            hopital:     m.etablissement || "—",
+            ville:       m.adresse       || "—",
+            cnom:        m.numero_rpps   || "—",
+            email:       m.email         || "—",
+            telephone:   m.telephone     || "—",
+            dateDemande: m.created_at ? fmt(new Date(m.created_at)) : "—",
+            dateRefus:   m.refuse_le  ? fmt(new Date(m.refuse_le))  : "—",
+            motif:       m.motif_rejet   || "—",
+            refusePar:   m.refuse_par    || "Administrateur",
+            photo_url:   m.photo_url     || null,
+            relanceSent: m.relance_sent  || false,
+          })));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const motifs = ["Tous", ...new Set(rows.map(r=>r.motif))];
 
-  // Filtrage
   const filtered = rows.filter(r => {
-    const okVille = villeFiltre==="Toutes" || r.ville===villeFiltre;
-    const okMotif = motifFiltre==="Tous"   || r.motif===motifFiltre;
-    return okVille && okMotif;
+    const okVille  = villeFiltre==="Toutes" || r.ville===villeFiltre;
+    const okMotif  = motifFiltre==="Tous"   || r.motif===motifFiltre;
+    const q        = searchQuery.toLowerCase().trim();
+    const okSearch = !q || [r.nom, r.cnom, r.email, r.ville, r.hopital]
+      .some(v => v && v.toLowerCase().includes(q));
+    return okVille && okMotif && okSearch;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length/perPage));
@@ -158,7 +177,6 @@ export default function Refusees() {
     return ()=>clearTimeout(t);
   },[toast]);
 
-  // ✨ Fermer le menu déroulant au clic extérieur
   useEffect(() => {
     if (openMenuId === null) return;
     const handleClickOutside = () => setOpenMenuId(null);
@@ -171,13 +189,15 @@ export default function Refusees() {
     };
   }, [openMenuId]);
 
-  function supprimer(r) {
+  async function supprimer(r) {
+    try { await supprimerDossierRefuse(r.id); } catch {}
     setRows(p=>p.filter(x=>x.id!==r.id));
     setToast({msg:`Dossier de ${r.nom} supprimé`,type:"error"});
     setTarget(null);
   }
 
   async function handleRelance(msg) {
+    try { await relancerMedecinApi(modaleRelance.id, msg); } catch {}
     setRows(p=>p.map(r=>r.id===modaleRelance.id?{...r,relanceSent:true}:r));
     setToast({msg:`E-mail envoyé à ${modaleRelance.email}`,type:"success"});
     setModaleRelance(null);
@@ -196,220 +216,197 @@ export default function Refusees() {
     XLSX.writeFile(wb,`refusees_${new Date().toISOString().slice(0,10)}.xlsx`);
   }
 
-  const th = `px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider border-b ${dark?"text-[#484f58] border-[#21262d] bg-[#0d1117]/50":"text-gray-400 border-gray-100 bg-gray-50"}`;
-  const td = `px-4 py-3 border-b ${dark?"border-[#21262d]":"border-gray-50"}`;
-  const sel = `text-[11px] px-3 py-1.5 rounded-xl border outline-none cursor-pointer font-medium ${dark?"bg-[#161b22] border-[#21262d] text-white":"bg-white border-gray-200 text-gray-700"}`;
+  const surface = getSurface(dark);
+  const txt     = getText(dark);
+  const sel = `text-[14px] px-3 py-1.5 rounded-xl border outline-none cursor-pointer font-medium ${dark?"bg-[#161b22] border-[#21262d] text-white":"bg-white border-gray-200 text-gray-700"}`;
 
   return (
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
-          <h1 className={`text-xl md:text-2xl font-black tracking-tight ${dark?"text-white":"text-gray-900"}`}>
+          <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${dark?"text-white":"text-gray-900"}`}>
             Inscriptions refusées
           </h1>
-          <p className={`text-[12px] mt-1 ${dark?"text-[#8b949e]":"text-gray-400"}`}>
+          <p className={`text-[14px] mt-1 ${dark?"text-[#8b949e]":"text-gray-400"}`}>
             {filtered.length} dossier{filtered.length>1?"s":""} refusé{filtered.length>1?"s":""}
           </p>
         </div>
         <button onClick={exportExcel}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[12px] font-semibold transition-all border-gray-200 dark:border-[#21262d] text-gray-600 dark:text-[#8b949e]"
-          onMouseEnter={e=>{e.currentTarget.style.background=BRAND;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=BRAND;}}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all border-gray-200 dark:border-[#21262d] text-gray-600 dark:text-[#8b949e]"
+          onMouseEnter={e=>{e.currentTarget.style.background=brand.DEFAULT;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=brand.DEFAULT;}}
           onMouseLeave={e=>{e.currentTarget.style.background="";e.currentTarget.style.color="";e.currentTarget.style.borderColor="";}}>
           <Download size={13}/> Export Excel
         </button>
       </div>
 
-      {/* Filtres */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span className={`text-[11px] font-medium ${dark?"text-[#484f58]":"text-gray-400"}`}>Ville :</span>
-          <select value={villeFiltre} onChange={e=>{setVilleFiltre(e.target.value);setPage(1);}} className={sel}>
-            <option value="Toutes">Toutes les villes</option>
-            {VILLES_CM.map(v=><option key={v} value={v}>{v}</option>)}
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`text-[11px] font-medium ${dark?"text-[#484f58]":"text-gray-400"}`}>Motif :</span>
-          <select value={motifFiltre} onChange={e=>{setMotifFiltre(e.target.value);setPage(1);}} className={sel}>
-            {motifs.map(m=><option key={m} value={m}>{m==="Tous"?"Tous les motifs":m}</option>)}
-          </select>
-        </div>
-        {(villeFiltre!=="Toutes"||motifFiltre!=="Tous") && (
-          <button onClick={()=>{setVilleFiltre("Toutes");setMotifFiltre("Tous");setPage(1);}}
-            className={`text-[11px] font-medium px-3 py-1.5 rounded-xl border transition-colors ${dark?"border-[#21262d] text-[#484f58] hover:text-white":"border-gray-200 text-gray-400 hover:text-gray-700"}`}>
-            Réinitialiser
-          </button>
-        )}
-      </div>
-
-      {/* Tableau */}
-      <div className={`rounded-2xl border overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-100 shadow-sm"}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse" style={{minWidth:860}}>
-            <thead>
-              <tr>
-                <th className={th}>Médecin</th>
-                <th className={th}>CNOM</th>
-                <th className={th}>Établissement</th>
-                <th className={th}>Ville</th>
-                <th className={th}>Demande</th>
-                <th className={th}>Refus</th>
-                <th className={th}>Motif</th>
-                <th className={th}>Refusé par</th>
-                <th className={`${th} text-center`} style={{width: 80}}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.length===0
-                ? <tr><td colSpan={9} className={`${td} text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Aucun dossier</td></tr>
-                : paginated.map(r => {
-                    const isMenuOpen = openMenuId === r.id;
-                    return (
-                      <tr key={r.id} className={`transition-colors ${dark?"hover:bg-[#0d1117]/60":"hover:bg-gray-50/80"}`}>
-
-                        {/* Médecin */}
-                        <td className={td}>
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 cursor-pointer hover:opacity-75 transition-opacity"
-                              style={{background:avatarColor(r.nom)}} onClick={()=>setModalePhoto(r)} title="Voir photo CNI">
-                              {r.initials}
-                            </div>
-                            <div>
-                              <p className={`text-[12px] font-bold cursor-pointer hover:underline underline-offset-2 ${dark?"text-white":"text-gray-800"}`}
-                                onClick={()=>setModalePhoto(r)}>{r.nom}</p>
-                              <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.specialite}</p>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className={`${td} text-[11px] font-mono ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.cnom}</td>
-                        <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{r.hopital}</td>
-                        <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{r.ville}</td>
-                        <td className={`${td} text-[11px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.dateDemande}</td>
-                        <td className={`${td} text-[11px] font-semibold text-red-500`}>{r.dateRefus}</td>
-
-                        <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-600"}`} style={{maxWidth:180}}>
-                          <span className="line-clamp-2">{r.motif}</span>
-                        </td>
-
-                        <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{r.refusePar}</td>
-
-                        {/* ✨ Actions — menu déroulant 3 points */}
-                        <td className={td}>
-                          <div className="relative flex justify-center">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuId(isMenuOpen ? null : r.id);
-                              }}
-                              title="Actions"
-                              className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all
-                                ${isMenuOpen
-                                  ? (dark?"bg-[#21262d] border-[#30363d] text-white shadow-lg":"bg-gray-100 border-gray-300 text-gray-800 shadow-lg")
-                                  : (dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800")}`}
-                            >
-                              <MoreVertical size={16} />
-                            </button>
-
-                            {isMenuOpen && (
-                              <div
-                                onClick={(e) => e.stopPropagation()}
-                                className={`absolute right-0 top-full mt-1.5 z-30 min-w-[180px] rounded-xl border shadow-xl overflow-hidden
-                                  ${dark?"bg-[#161b22] border-[#30363d]":"bg-white border-gray-200"}`}
-                                style={{ transformOrigin: "top right" }}
-                              >
-                                {/* Relancer par e-mail */}
-                                <button
-                                  disabled={r.relanceSent}
-                                  onClick={() => {
-                                    setModaleRelance(r);
-                                    setOpenMenuId(null);
-                                  }}
-                                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
-                                    ${r.relanceSent
-                                      ? (dark?"text-[#484f58] cursor-not-allowed":"text-gray-300 cursor-not-allowed")
-                                      : (dark?"text-[#c9d1d9] hover:bg-[#21262d]":"text-gray-700 hover:bg-gray-50")}`}
-                                >
-                                  <Send size={14} className="shrink-0" style={{ color: r.relanceSent ? undefined : BRAND }} />
-                                  <span>Relancer par e-mail</span>
-                                  {r.relanceSent && (
-                                    <span className={`ml-auto text-[9px] px-1.5 py-0.5 rounded ${dark?"bg-[#21262d] text-[#484f58]":"bg-gray-100 text-gray-400"}`}>
-                                      Déjà fait
-                                    </span>
-                                  )}
-                                </button>
-
-                                <div className={`border-t ${dark?"border-[#21262d]":"border-gray-100"}`} />
-
-                                {/* Supprimer */}
-                                <button
-                                  onClick={() => {
-                                    setTarget(r);
-                                    setOpenMenuId(null);
-                                  }}
-                                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[12px] font-medium transition-colors
-                                    ${dark?"text-red-400 hover:bg-red-900/20":"text-red-700 hover:bg-red-50"}`}
-                                >
-                                  <Trash2 size={14} className="shrink-0" />
-                                  Supprimer
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-              }
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t text-[11px] ${dark?"border-[#21262d] text-[#484f58]":"border-gray-50 text-gray-400"}`}>
-          <span>Affichage {from} à {to} sur {filtered.length} dossier{filtered.length>1?"s":""}</span>
+      <TableCard dark={dark}>
+        <div className="flex items-center gap-3 flex-wrap px-5 py-3 border-b" style={{ borderColor: surface.border }}>
           <div className="flex items-center gap-2">
-            <span>Lignes :</span>
-            <select value={perPage} onChange={e=>{setPerPage(Number(e.target.value));setPage(1);}}
-              className={`text-[11px] px-2 py-1 rounded-lg border outline-none cursor-pointer ${dark?"bg-[#0d1117] border-[#21262d] text-white":"bg-white border-gray-200 text-gray-700"}`}>
-              {[5,10,20,50].map(n=><option key={n} value={n}>{n}</option>)}
+            <span className="text-[14px] font-medium" style={{ color: txt.subtle }}>Ville :</span>
+            <select value={villeFiltre} onChange={e=>{setVilleFiltre(e.target.value);setPage(1);}} className={sel}>
+              <option value="Toutes">Toutes les villes</option>
+              {VILLES_CM.map(v=><option key={v} value={v}>{v}</option>)}
             </select>
           </div>
-          <div className="flex items-center gap-1">
-            <PagBtn onClick={()=>setPage(1)} disabled={page===1} label="«" dark={dark}/>
-            <PagBtn onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} label="‹" dark={dark}/>
-            {Array.from({length:totalPages},(_,i)=>i+1)
-              .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
-              .reduce((acc,p,idx,arr)=>{if(idx>0&&p-arr[idx-1]>1)acc.push("…"+idx);acc.push(p);return acc;},[])
-              .map(p=>typeof p==="string"
-                ?<span key={p} className="px-1 opacity-30">…</span>
-                :<button key={p} onClick={()=>setPage(p)}
-                    className="w-7 h-7 rounded-lg border text-[11px] font-medium transition-colors"
-                    style={p===page?{background:BRAND,borderColor:BRAND,color:"#fff"}:{}}>{p}</button>
-              )}
-            <PagBtn onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} label="›" dark={dark}/>
-            <PagBtn onClick={()=>setPage(totalPages)} disabled={page===totalPages} label="»" dark={dark}/>
+          <div className="flex items-center gap-2">
+            <span className="text-[14px] font-medium" style={{ color: txt.subtle }}>Motif :</span>
+            <select value={motifFiltre} onChange={e=>{setMotifFiltre(e.target.value);setPage(1);}} className={sel}>
+              {motifs.map(m=><option key={m} value={m}>{m==="Tous"?"Tous les motifs":m}</option>)}
+            </select>
           </div>
+          {(villeFiltre!=="Toutes"||motifFiltre!=="Tous") && (
+            <button onClick={()=>{setVilleFiltre("Toutes");setMotifFiltre("Tous");setPage(1);}}
+              className="text-[14px] font-medium px-3 py-1.5 rounded-xl border transition-colors"
+              style={{ borderColor: surface.border, color: txt.subtle }}>
+              Réinitialiser
+            </button>
+          )}
         </div>
-      </div>
 
-      {/* Modal suppression */}
+        <TableContainer dark={dark}>
+          <thead>
+            <tr>
+              <Th dark={dark}>Médecin</Th>
+              <Th dark={dark}>CNOM</Th>
+              <Th dark={dark}>Établissement</Th>
+              <Th dark={dark}>Ville</Th>
+              <Th dark={dark}>Demande</Th>
+              <Th dark={dark}>Refus</Th>
+              <Th dark={dark}>Motif</Th>
+              <Th dark={dark}>Refusé par</Th>
+              <Th dark={dark} center style={{width: 80}}>Actions</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginated.length===0
+              ? <EmptyCell dark={dark} colSpan={9}>Aucun dossier</EmptyCell>
+              : paginated.map(r => {
+                  const isMenuOpen = openMenuId === r.id;
+                  return (
+                    <Tr key={r.id} dark={dark}>
+
+                      <Td dark={dark}>
+                        <PersonCell dark={dark} avatarColor={avatarColor(r.nom)} initials={r.initials}
+                          name={r.nom} subtitle={r.specialite} onClick={()=>setModalePhoto(r)} photoUrl={r.photo_url} />
+                      </Td>
+
+                      <Td dark={dark}><MutedText dark={dark} mono>{r.cnom}</MutedText></Td>
+                      <Td dark={dark}><MutedText dark={dark}>{r.hopital}</MutedText></Td>
+                      <Td dark={dark}><MutedText dark={dark}>{r.ville}</MutedText></Td>
+                      <Td dark={dark}><SubtleText dark={dark}>{r.dateDemande}</SubtleText></Td>
+                      <Td dark={dark}><StatusText color="danger">{r.dateRefus}</StatusText></Td>
+
+                      <Td dark={dark}>
+                        <span className="text-[14px] line-clamp-2" style={{ color: txt.secondary, maxWidth: 180, display: "inline-block" }}>{r.motif}</span>
+                      </Td>
+
+                      <Td dark={dark}><MutedText dark={dark}>{r.refusePar}</MutedText></Td>
+
+                      <Td dark={dark} center>
+                        <div className="relative flex justify-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(isMenuOpen ? null : r.id);
+                            }}
+                            title="Actions"
+                            className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all
+                              ${isMenuOpen
+                                ? (dark?"bg-[#21262d] border-[#30363d] text-white shadow-lg":"bg-gray-100 border-gray-300 text-gray-800 shadow-lg")
+                                : (dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800")}`}
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+
+                          {isMenuOpen && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className={`absolute right-0 top-full mt-1.5 z-30 min-w-[180px] rounded-xl border shadow-xl overflow-hidden
+                                ${dark?"bg-[#161b22] border-[#30363d]":"bg-white border-gray-200"}`}
+                              style={{ transformOrigin: "top right" }}
+                            >
+                              <button
+                                disabled={r.relanceSent}
+                                onClick={() => {
+                                  setModaleRelance(r);
+                                  setOpenMenuId(null);
+                                }}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] font-medium transition-colors
+                                  ${r.relanceSent
+                                    ? (dark?"text-[#484f58] cursor-not-allowed":"text-gray-300 cursor-not-allowed")
+                                    : (dark?"text-[#c9d1d9] hover:bg-[#21262d]":"text-gray-700 hover:bg-gray-50")}`}
+                              >
+                                <Send size={14} className="shrink-0" style={{ color: r.relanceSent ? undefined : brand.DEFAULT }} />
+                                <span>Relancer par e-mail</span>
+                                {r.relanceSent && (
+                                  <span className={`ml-auto text-[12px] px-1.5 py-0.5 rounded ${dark?"bg-[#21262d] text-[#484f58]":"bg-gray-100 text-gray-400"}`}>
+                                    Déjà fait
+                                  </span>
+                                )}
+                              </button>
+
+                              <div className={`border-t ${dark?"border-[#21262d]":"border-gray-100"}`} />
+
+                              <button
+                                onClick={() => {
+                                  setTarget(r);
+                                  setOpenMenuId(null);
+                                }}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] font-medium transition-colors
+                                  ${dark?"text-red-400 hover:bg-red-900/20":"text-red-700 hover:bg-red-50"}`}
+                              >
+                                <Trash2 size={14} className="shrink-0" />
+                                Supprimer
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </Td>
+                    </Tr>
+                  );
+                })
+            }
+          </tbody>
+        </TableContainer>
+
+      </TableCard>
+
+      <PaginationBar dark={dark}>
+        <span>Affichage {from} à {to} sur {filtered.length} dossier{filtered.length>1?"s":""}</span>
+        <div className="flex items-center gap-2">
+          <span>Lignes :</span>
+          <PaginationSelect dark={dark} value={perPage} onChange={e=>{setPerPage(Number(e.target.value));setPage(1);}} />
+        </div>
+        <div className="flex items-center gap-1">
+          <PaginationButton dark={dark} onClick={()=>setPage(1)} disabled={page===1}>«</PaginationButton>
+          <PaginationButton dark={dark} onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}>‹</PaginationButton>
+          {Array.from({length:totalPages},(_,i)=>i+1)
+            .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
+            .reduce((acc,p,idx,arr)=>{if(idx>0&&p-arr[idx-1]>1)acc.push("…"+idx);acc.push(p);return acc;},[])
+            .map(p=>typeof p==="string"
+              ? <span key={p} className="px-1 opacity-30">…</span>
+              : <PaginationButton key={p} dark={dark} onClick={()=>setPage(p)} active={p===page}>{p}</PaginationButton>
+            )}
+          <PaginationButton dark={dark} onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}>›</PaginationButton>
+          <PaginationButton dark={dark} onClick={()=>setPage(totalPages)} disabled={page===totalPages}>»</PaginationButton>
+        </div>
+      </PaginationBar>
+
       {target && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           onClick={e=>e.target===e.currentTarget&&setTarget(null)}>
           <div className={`w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
             <div className={`flex items-center justify-between px-5 py-4 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
-              <p className={`text-[13px] font-bold ${dark?"text-white":"text-gray-800"}`}>Supprimer définitivement</p>
+              <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>Supprimer définitivement</p>
               <button onClick={()=>setTarget(null)} className={`w-7 h-7 flex items-center justify-center rounded-lg ${dark?"text-[#484f58] hover:bg-[#21262d]":"text-gray-400 hover:bg-gray-100"}`}><X size={13}/></button>
             </div>
             <div className="px-5 py-4 flex flex-col gap-3">
-              <div className="flex items-start gap-2 px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-[11px]">
+              <div className="flex items-start gap-2 px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-[15px]">
                 <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="shrink-0 mt-0.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 <span>Supprimer <strong>{target.nom}</strong> ? Action irréversible.</span>
               </div>
-              <div className={`rounded-xl border px-4 py-3 text-[11px] ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
+              <div className={`rounded-xl border px-4 py-3 text-[15px] ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
                 {[{l:"Médecin",v:target.nom},{l:"CNOM",v:target.cnom},{l:"Motif",v:target.motif},{l:"Refusé le",v:target.dateRefus}].map(({l,v})=>(
                   <div key={l} className={`flex items-center justify-between py-1.5 border-b last:border-0 ${dark?"border-[#21262d]":"border-gray-100"}`}>
                     <span className={dark?"text-[#484f58]":"text-gray-400"}>{l}</span>
@@ -419,8 +416,8 @@ export default function Refusees() {
               </div>
             </div>
             <div className={`flex gap-2 px-5 py-4 border-t ${dark?"border-[#21262d]":"border-gray-100"}`}>
-              <button onClick={()=>setTarget(null)} className={`flex-1 py-2 rounded-xl text-[12px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Annuler</button>
-              <button onClick={()=>supprimer(target)} className="flex-1 py-2 rounded-xl text-[12px] font-bold bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-1.5">
+              <button onClick={()=>setTarget(null)} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Annuler</button>
+              <button onClick={()=>supprimer(target)} className="flex-1 py-2 rounded-xl text-[14px] font-bold bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-1.5">
                 <Trash2 size={12}/> Supprimer
               </button>
             </div>
@@ -432,7 +429,7 @@ export default function Refusees() {
       {modaleRelance && <ModaleRelance  r={modaleRelance} dark={dark} onClose={()=>setModaleRelance(null)} onConfirm={handleRelance}/>}
 
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[12px] font-semibold text-white ${toast.type==="success"?"bg-teal-600":"bg-red-600"}`}>
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white ${toast.type==="success"?"bg-teal-600":"bg-red-600"}`}>
           {toast.type==="success"?<Mail size={13}/>:<Trash2 size={13}/>} {toast.msg}
         </div>
       )}

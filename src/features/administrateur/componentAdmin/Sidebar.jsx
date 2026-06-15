@@ -39,7 +39,7 @@ function getNav(counts) {
     {
       section: "Inscriptions",
       items: [
-        { to: "/administrateur/demandes", icon: UserPlus,  label: "Nouvelles demandes", badge: counts.demandes, badgeColor: "orange" },
+        { to: "/administrateur/demandes", icon: UserPlus,  label: "Nouvelles demandes" },
         { to: "/administrateur/validees", icon: UserCheck, label: "Validées ce mois" },
         { to: "/administrateur/refusees", icon: UserX,     label: "Refusées" },
       ]
@@ -49,14 +49,13 @@ function getNav(counts) {
       items: [
         { to: "/administrateur/medecins",  icon: Stethoscope, label: "Médecins actifs", badge: counts.actifs,    badgeColor: "teal"   },
         { to: "/administrateur/suspendus", icon: UserMinus,   label: "Suspendus" },
-        { to: "/administrateur/faq",       icon: HelpCircle,  label: "FAQ Médecins",    badge: counts.faq,       badgeColor: "orange" },
+        { to: "/administrateur/faq",       icon: HelpCircle,  label: "FAQ Médecins" },
       ]
     },
     {
       section: "Analyse",
       items: [
         { to: "/administrateur/activite",     icon: LineChart, label: "Courbe d'activité"   },
-        { to: "/administrateur/stats",        icon: BarChart2, label: "Stats consultations" },
         { to: "/administrateur/performances", icon: Brain,     label: "Performances IA"     },
         { to: "/administrateur/geo",          icon: MapPin,    label: "Répartition géo"     },
       ]
@@ -64,7 +63,7 @@ function getNav(counts) {
     {
       section: "Système",
       items: [
-        { to: "/administrateur/commentaires", icon: MessageCircle, label: "Commentaires",   badge: counts.commentaires, badgeColor: "orange" },
+        { to: "/administrateur/commentaires", icon: MessageCircle, label: "Commentaires" },
         { to: "/administrateur/audit",        icon: FileSearch,    label: "Journal d'audit" },
         { to: "/administrateur/parametres",   icon: Settings,      label: "Paramètres"      },
       ]
@@ -92,11 +91,11 @@ export default function Sidebar({ dark }) {
   const navigate = useNavigate();
   const [open,       setOpen]       = useState(false);
   const [showLogout, setShowLogout] = useState(false);
-  const [counts,     setCounts]     = useState({ demandes:0, actifs:0, faq:0, commentaires:0 });
+  const [counts, setCounts] = useState({ actifs: 0 });
 
   useEffect(() => {
-    // TODO: remplacer par getCounts().then(setCounts)
-    setCounts({ demandes: 4, actifs: 38, faq: 3, commentaires: 5 });
+    // TODO: remplacer par getMedecinsActifs().then(data => setCounts({ actifs: data.length }))
+    setCounts({ actifs: 38 });
   }, []);
 
   function confirmLogout() {

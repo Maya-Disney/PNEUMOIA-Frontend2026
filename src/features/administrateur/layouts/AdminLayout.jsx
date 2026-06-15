@@ -3,16 +3,18 @@ import '../admin.css';
 import { AdminThemeProvider, useAdminTheme } from "../context/useAdminTheme";
 import Sidebar from "../componentAdmin/Sidebar";
 import Topbar from "../componentAdmin/Topbar";
+import { getSurface } from "../theme";
 
 function AdminLayoutInner() {
   const { dark, setDark } = useAdminTheme();
+  const surface = getSurface(dark);
 
   return (
-    <div className={`admin-theme flex h-screen overflow-hidden ${dark ? "bg-[#0d1117]" : "bg-[#f5f7f6]"}`} style={{ minWidth: 0 }}>
+    <div className="admin-theme flex h-screen overflow-hidden" style={{ minWidth: 0, background: surface.bg }}>
       <Sidebar dark={dark} />
       <div className="flex flex-col flex-1 overflow-hidden" style={{ minWidth: 0 }}>
         <Topbar dark={dark} setDark={setDark} />
-        <main className={`flex-1 overflow-y-auto p-4 md:p-6 ${dark ? "bg-[#0d1117]" : "bg-[#f5f7f6]"}`}>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6" style={{ background: surface.bg }}>
           <Outlet context={{ dark }} />
         </main>
       </div>
