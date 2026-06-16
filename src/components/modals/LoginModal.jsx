@@ -207,7 +207,7 @@ export default function LoginModal({ isOpen, onClose }) {
 
       setRole('aide'); setAideId(dataAide.aide_id); setOtp('');
       setOtpTrigger(n => n + 1); setStep('otp');
-      toast.info('Code OTP envoyé à votre email. Valable 5 minutes.', { title: 'Code envoyé ✉️' });
+      toast.info('Code OTP envoyé à votre email. Valable 5 minutes.', { title: 'Code envoyé ' });
 
     } catch (err) {
       if (err.name === 'TimeoutError' || err.name === 'AbortError')

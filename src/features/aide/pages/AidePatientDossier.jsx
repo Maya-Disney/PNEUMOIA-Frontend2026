@@ -9,8 +9,6 @@ import {
 } from 'lucide-react';
 import { getPatientAide, updatePatientAide } from '../../../services/patientsApi';
 
-const BLUE = '#2563EB';
-
 function calculerAge(dateStr) {
   if (!dateStr) return null;
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -31,7 +29,7 @@ function InfoRow({ icon: Icon, label, value, color = 'text-(--t3)' }) {
   );
 }
 
-const inp = "w-full px-3 py-2.5 border border-(--ln) rounded-xl bg-(--sf2) text-(--t1) text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 transition-all placeholder:text-(--t4)";
+const inp = "w-full px-3 py-2.5 border border-(--ln) rounded-xl bg-(--sf2) text-(--t1) text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all placeholder:text-(--t4)";
 const GROUPES = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
 
 export default function AidePatientDossier() {
@@ -89,7 +87,7 @@ export default function AidePatientDossier() {
 
   if (loading) return (
     <div className="flex justify-center py-20">
-      <Loader2 className="w-8 h-8 animate-spin" style={{ color: RED }} />
+      <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
     </div>
   );
 
@@ -126,20 +124,18 @@ export default function AidePatientDossier() {
           )}
           {canEdit && !editing && (
             <button onClick={() => setEditing(true)}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-white rounded-xl transition-all"
-              style={{ backgroundColor: RED }}>
-              <Edit3 size={14} /> Modifier
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors">
+              <Edit3 size={14} />Modifier
             </button>
           )}
           {editing && (
             <>
               <button onClick={() => { setEditing(false); setForm(patient); }}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold border border-(--ln) text-(--t2) rounded-xl hover:bg-(--sf2) transition-all">
-                <X size={14} /> Annuler
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold border border-(--ln) text-(--t2) rounded-xl hover:bg-(--sf2) transition-colors">
+                <X size={14} />Annuler
               </button>
               <button onClick={handleSave} disabled={saving}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition-all"
-                style={{ backgroundColor: RED }}>
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl disabled:opacity-40 transition-colors">
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 Sauvegarder
               </button>
@@ -151,12 +147,11 @@ export default function AidePatientDossier() {
       {/* Header patient */}
       <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }}
         className="bg-(--sf) border border-(--ln) rounded-2xl p-5 flex items-center gap-4">
-        <div className="w-16 h-16 rounded-2xl text-white text-xl font-black flex items-center justify-center shrink-0 shadow-lg"
-          style={{ background:`linear-gradient(135deg,${RED},#991B1B)` }}>
+        <div className="w-16 h-16 rounded-2xl text-white text-xl font-bold flex items-center justify-center shrink-0 shadow-lg bg-linear-to-br from-emerald-500 to-emerald-700">
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xl font-black text-(--t1)">
+          <p className="text-xl font-bold text-(--t1)">
             {patient?.civilite && <span className="text-(--t3) font-medium mr-1">{patient.civilite}.</span>}
             {patient?.prenom} {patient?.nom}
           </p>
@@ -172,9 +167,8 @@ export default function AidePatientDossier() {
         </div>
         {canConsult && (
           <button onClick={() => navigate(`/aide/consultation?patient_id=${patient.id}`)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white rounded-xl transition-all shrink-0"
-            style={{ backgroundColor: RED }}>
-            <Stethoscope size={15} /> Consultation
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shrink-0">
+            <Stethoscope size={15} />Consultation
           </button>
         )}
       </motion.div>
@@ -196,8 +190,8 @@ export default function AidePatientDossier() {
         <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.05 }}
           className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-(--ln) bg-(--sf2)">
-            <User size={14} className="text-red-500" />
-            <span className="text-xs font-black uppercase tracking-widest text-red-500">Identité</span>
+            <User size={14} className="text-emerald-500" />
+            <span className="text-sm font-semibold text-(--t1)">Identité</span>
           </div>
           <div className="p-5">
             {editing ? (
@@ -274,8 +268,8 @@ export default function AidePatientDossier() {
         <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.08 }}
           className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-(--ln) bg-(--sf2)">
-            <Phone size={14} className="text-blue-500" />
-            <span className="text-xs font-black uppercase tracking-widest text-blue-500">Contact</span>
+            <Phone size={14} className="text-emerald-500" />
+            <span className="text-sm font-semibold text-(--t1)">Contact</span>
           </div>
           <div className="p-5">
             {editing ? (
@@ -311,7 +305,7 @@ export default function AidePatientDossier() {
           className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-(--ln) bg-(--sf2)">
             <Heart size={14} className="text-amber-500" />
-            <span className="text-xs font-black uppercase tracking-widest text-amber-500">Contact d'urgence</span>
+            <span className="text-sm font-semibold text-(--t1)">Contact d'urgence</span>
           </div>
           <div className="p-5">
             {editing ? (
@@ -342,7 +336,7 @@ export default function AidePatientDossier() {
           className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-(--ln) bg-(--sf2)">
             <ClipboardList size={14} className="text-purple-500" />
-            <span className="text-xs font-black uppercase tracking-widest text-purple-500">Informations médicales</span>
+            <span className="text-sm font-semibold text-(--t1)">Informations médicales</span>
           </div>
           <div className="p-5">
             {editing ? (

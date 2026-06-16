@@ -42,7 +42,7 @@ const NAV_COMMUNITY = [
 ];
 const NAV_ACCOUNT = [
   { path: '/medecin/historique',    icon: History,  label: 'Historique'     },
-  { path: '/medecin/notifications', icon: Bell,     label: 'Notifications', badge: 5 },
+  { path: '/medecin/notifications', icon: Bell,     label: 'Notifications' },
   { path: '/medecin/recherche',     icon: Search,   label: 'Recherche'      },
   { path: '/medecin/profil',        icon: User,     label: 'Mon profil'     },
   { path: '/medecin/parametres',    icon: Settings, label: 'Paramètres'     },
@@ -58,10 +58,27 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, onCollapsedChange
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDesktop,   setIsDesktop]   = useState(window.innerWidth >= 1024);
   const [badge,       setBadge]       = useState(0);
+  const [notifCount,  setNotifCount]  = useState(0);
 
   useEffect(() => {
     fetchPartageBadge().then(setBadge);
     const t = setInterval(() => fetchPartageBadge().then(setBadge), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const fetchNotifCount = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      try {
+        const r = await fetch(`${API_URL}/notifications/count`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (r.ok) { const d = await r.json(); setNotifCount(d.count || 0); }
+      } catch {}
+    };
+    fetchNotifCount();
+    const t = setInterval(fetchNotifCount, 30_000);
     return () => clearInterval(t);
   }, []);
 
@@ -85,12 +102,12 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, onCollapsedChange
 
   /* ─── Classe nav item ─────────────────────────────────────────── */
   const itemCls = (active) => [
-    'relative flex items-center gap-3 rounded-xl text-[13.5px] font-semibold',
+    'relative flex items-center gap-3 rounded-xl text-[13px] font-medium',
     'transition-all duration-200 border-l-[3px]',
-    expanded ? 'px-3 py-2.5' : 'justify-center px-0 py-3 mx-auto w-11 h-11',
+    expanded ? 'px-3 py-2' : 'justify-center px-0 py-2.5 mx-auto w-10 h-10',
     active
       ? 'border-white text-white'
-      : 'border-transparent text-white/70 hover:text-white',
+      : 'border-transparent text-white/65 hover:text-white',
   ].join(' ');
 
   /* ─── Contenu interne ─────────────────────────────────────────── */
@@ -162,7 +179,11 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, onCollapsedChange
             <div className="space-y-0.5">
               {items.map((item) => {
                 const Icon = item.icon;
-                const itemBadge = item.path === '/medecin/partage' ? badge || null : item.badge;
+                const itemBadge = item.path === '/medecin/partage'
+                  ? (badge || null)
+                  : item.path === '/medecin/notifications'
+                  ? (notifCount || null)
+                  : null;
                 return (
                   <NavLink
                     key={item.path}
@@ -175,7 +196,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, onCollapsedChange
                       <>
                         <Icon
                           size={18}
-                          strokeWidth={3}
+                          strokeWidth={2}
                           style={{ color: '#fff', flexShrink: 0 }}
                         />
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { TablePagination } from '../../../components/ui/TablePagination';
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,7 +12,7 @@ import {
   MoreHorizontal, ChevronDown, Lock, UserCheck,
   ClipboardList, Microscope, ArrowUpRight, Zap,
   LogOut, Moon, Sun, Filter, SlidersHorizontal,
-  Home, Brain, Hospital, Info
+  Home, Brain, Hospital, Info, RefreshCw
 } from "lucide-react";
 import { motion } from 'framer-motion';
 
@@ -1408,21 +1408,30 @@ function DetailPanel({ patient, onClose, onStatusChange, onStatutCliniqueChange,
           className="inline-flex items-center gap-1.5 px-3 py-2 bg-(--sf) border border-(--ln) text-(--t2) text-xs font-bold rounded-lg hover:bg-(--sf2) transition-colors">
           <Edit3 size={13} />Modifier
         </motion.button>
-        <motion.button whileHover={{ scale: 1.05 }}
+        <motion.button whileHover={{ scale: patient.derniere_consultation_id ? 1.05 : 1 }}
+          disabled={!patient.derniere_consultation_id}
+          title={patient.derniere_consultation_id ? 'Télécharger le bilan PDF' : 'Aucune consultation disponible'}
           onClick={async () => {
+            const consId = patient.derniere_consultation_id;
+            if (!consId) return;
             const token = localStorage.getItem('token') || localStorage.getItem('access_token');
             const BASE  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-            const res   = await fetch(`${BASE}/consultations/${patient.id}/pdf`, {
+            const res   = await fetch(`${BASE}/consultations/${consId}/pdf`, {
               headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
               const blob = await res.blob();
               const url  = URL.createObjectURL(blob);
               const a    = document.createElement('a');
-              a.href = url; a.download = `dossier_${patient.id}.pdf`; a.click();
+              a.href = url; a.download = `bilan_${patient.nom}_${patient.prenom}.pdf`; a.click();
+              URL.revokeObjectURL(url);
             }
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-2 bg-(--sf) border border-(--ln) text-(--t2) text-xs font-bold rounded-lg hover:bg-(--sf2) transition-colors">
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors border ${
+            patient.derniere_consultation_id
+              ? 'bg-(--sf) border-(--ln) text-(--t2) hover:bg-(--sf2)'
+              : 'bg-(--sf2) border-(--ln) text-(--t4) cursor-not-allowed opacity-50'
+          }`}>
           <Download size={13} />Télécharger
         </motion.button>
         <motion.button whileHover={{ scale: 1.1 }} onClick={() => setShowDeleteModal(true)}
@@ -1779,14 +1788,16 @@ function Toast({ toasts, remove }) {
 // ─── MAIN APP ──────────────────────────────────────────────────────────
 
 export default function PatientsPage() {
-  const [patients,  setPatients]  = useState({});
-  const [selected,  setSelected]  = useState(null);
-  const [filter,    setFilter]    = useState("all");
-  const [search,    setSearch]    = useState("");
-  const [toasts,    setToasts]    = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState(null);
-  let toastId = useRef(0);
+  const [patients,   setPatients]   = useState({});
+  const [selected,   setSelected]   = useState(null);
+  const [filter,     setFilter]     = useState("all");
+  const [search,     setSearch]     = useState("");
+  const [toasts,     setToasts]     = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error,      setError]      = useState(null);
+  let toastId       = useRef(0);
+  const loadRef     = useRef(null);
 
   const addToast = (type, title, msg) => {
     const id = ++toastId.current;
@@ -1855,6 +1866,7 @@ export default function PatientsPage() {
         setLoading(false);
       }
     };
+    loadRef.current = load;
     load();
   }, []);
 
@@ -2064,9 +2076,18 @@ export default function PatientsPage() {
   });
 
   const [patPage,     setPatPage]     = useState(1);
-  const [patPageSize, setPatPageSize] = useState(10);
+  const [patPageSize, setPatPageSize] = useState(() => { try { return Number(JSON.parse(localStorage.getItem('medecin_prefs') || '{}').itemsPerPage) || 10; } catch { return 10; } });
   const patFrom          = (patPage - 1) * patPageSize;
   const paginatedPatients = filteredPatients.slice(patFrom, patFrom + patPageSize);
+
+  useEffect(() => {
+    const onPrefs = (e) => {
+      const d = e.detail || {};
+      if (d.itemsPerPage) { setPatPageSize(Number(d.itemsPerPage) || 10); setPatPage(1); }
+    };
+    window.addEventListener('pneumoia-prefs-updated', onPrefs);
+    return () => window.removeEventListener('pneumoia-prefs-updated', onPrefs);
+  }, []);
 
   const currentPatient = selected ? patients[selected] : null;
 
@@ -2130,6 +2151,10 @@ export default function PatientsPage() {
                 ))}
               </div>
               <div className="flex gap-2">
+                <motion.button whileHover={{ scale: 1.05 }} onClick={async () => { setRefreshing(true); await loadRef.current?.(); setRefreshing(false); }} disabled={refreshing}
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-(--t2) bg-(--sf) border border-(--ln) rounded-lg hover:bg-(--sf2) transition-all shadow-sm disabled:opacity-50">
+                  <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />Actualiser
+                </motion.button>
                 <motion.button whileHover={{ scale: 1.05 }} className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-(--t2) bg-(--sf) border border-(--ln) rounded-lg hover:bg-(--sf2) transition-all shadow-sm">
                   <Download size={14} />Exporter CSV
                 </motion.button>

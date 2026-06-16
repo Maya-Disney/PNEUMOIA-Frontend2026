@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Eye, Download, Globe, BookMarked, BarChart2,
@@ -185,6 +185,7 @@ export default function MesPublications() {
   const [showModal, setShowModal]   = useState(false);
   const [tab, setTab]               = useState('toutes');
 
+  const intervalRef = useRef(null);
   const addToast = (msg, type = 'success') => setToast({ message: msg, type });
 
   const charger = useCallback(async () => {
@@ -200,7 +201,11 @@ export default function MesPublications() {
     }
   }, []);
 
-  useEffect(() => { charger(); }, [charger]);
+  useEffect(() => {
+    charger();
+    intervalRef.current = setInterval(charger, 30_000);
+    return () => clearInterval(intervalRef.current);
+  }, [charger]);
 
   const togglePublie = async (id) => {
     setBusy(id);

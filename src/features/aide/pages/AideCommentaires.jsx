@@ -1,4 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${localStorage.getItem('token')}`,
+});
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageCircle, ThumbsUp, Reply, Trash2, Send,
@@ -6,7 +12,7 @@ import {
   ChevronDown, ChevronUp, Clock,
   X, Heart, Pin, Star,
   Users, Stethoscope, Eye, Info,
-  Loader2,
+  Loader2, RotateCcw, RefreshCw,
 } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
 
@@ -16,79 +22,17 @@ const TABS = [
   { id: 'medecins', label: 'Posts des médecins', icon: Stethoscope, desc: 'Consultez et réagissez aux publications des médecins' },
 ];
 
-// ─── Mock data équipe ──────────────────────────────────────────────────────────
-const MOCK_EQUIPE = [
-  {
-    id: 1,
-    author: { name: 'Dr. Merlin', avatar: 'DM', role: 'Médecin référent', isDoctor: true },
-    text: 'Rappel important : bien documenter les saturations en O₂ lors des visites du matin. Le suivi spirométrique du patient PNEU-004821 doit être mis à jour avant vendredi.',
-    time: '2026-06-11T09:00:00', likes: 4, liked: false, pinned: true, type: 'info',
-    replies: [
-      { id: 101, author: { name: 'Marie Nguessie', avatar: 'MN', role: 'Aide soignante' }, text: 'Compris, je m\'en occupe dès ce matin.', time: '2026-06-11T09:30:00', likes: 1, liked: false },
-    ],
-  },
-  {
-    id: 2,
-    author: { name: 'Marie Nguessie', avatar: 'MN', role: 'Aide soignante', isDoctor: false },
-    text: 'Le patient TAGNE Bernard (chambre 12) a présenté une dyspnée ce matin vers 7h30. J\'ai pris ses constantes : SpO2 88%, FR 22/min. Le Dr. Merlin a été alerté.',
-    time: '2026-06-12T08:00:00', likes: 2, liked: false, pinned: false, type: 'alerte',
-    replies: [
-      { id: 201, author: { name: 'Dr. Merlin', avatar: 'DM', role: 'Médecin référent' }, text: 'Merci. Je passerai en visite urgente à 9h. Mettez-lui l\'O₂ à 2L/min en attendant.', time: '2026-06-12T08:15:00', likes: 3, liked: false },
-    ],
-  },
-  {
-    id: 3,
-    author: { name: 'Tagne Daril', avatar: 'TD', role: 'Aide soignant', isDoctor: false, isMe: true },
-    text: 'Pansement du patient chambre 8 refait ce matin, RAS. Prochain pansement prévu samedi.',
-    time: '2026-06-12T07:00:00', likes: 0, liked: false, pinned: false, type: 'rapport',
-    replies: [],
-  },
-];
-
-// ─── Mock data posts médecins ──────────────────────────────────────────────────
-const MOCK_MEDECINS = [
-  {
-    id: 1,
-    casTitle: 'BPCO stade avancé — Mise à jour protocole',
-    casId: 'CAS-2026-041',
-    author: { name: 'Dr. Merlin', avatar: 'DM', specialty: 'Pneumologue', hospital: 'CHU Douala' },
-    text: 'Mise à jour du protocole BPCO : désormais utiliser la combinaison LABA/LAMA pour les stades 3 et 4. Merci de noter ce changement pour les nouveaux patients. La double bronchodilatation réduit les exacerbations de 25%.',
-    time: '2026-06-10T16:00:00', likes: 6, liked: false, pinned: true, type: 'feedback',
-    replies: [
-      { id: 101, author: { name: 'Marie Nguessie', avatar: 'MN', role: 'Aide soignante' }, text: 'Bien noté, merci pour l\'information. Nous allons mettre à jour nos fiches de suivi.', time: '2026-06-10T17:00:00', likes: 1, liked: false },
-    ],
-  },
-  {
-    id: 2,
-    casTitle: 'Formation spirométrie — Vendredi 9h',
-    casId: 'INFO-2026-012',
-    author: { name: 'Dr. Merlin', avatar: 'DM', specialty: 'Pneumologue', hospital: 'CHU Douala' },
-    text: 'La formation sur la réalisation et l\'interprétation des spirométries est prévue vendredi prochain à 9h en salle de formation. Présence très fortement recommandée pour toutes les aides soignantes.',
-    time: '2026-06-08T11:00:00', likes: 3, liked: true, pinned: false, type: 'question',
-    replies: [],
-  },
-  {
-    id: 3,
-    casTitle: 'Pneumonie bactérienne — Précautions contact',
-    casId: 'CAS-2026-038',
-    author: { name: 'Dr. Nkoa', avatar: 'DN', specialty: 'Pneumologue', hospital: 'Clinique La Paix' },
-    text: 'Le patient chambre 5 est positif au pneumocoque résistant. Précautions contact niveau 2 obligatoires : blouse, gants, masque FFP2. Merci d\'en informer toute l\'équipe soignante.',
-    time: '2026-06-07T14:30:00', likes: 5, liked: false, pinned: false, type: 'question',
-    replies: [],
-  },
-];
-
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const typeConfigEquipe = {
-  rapport: { label: 'Rapport',  color: 'bg-blue-50 text-blue-700',   icon: BookOpen },
-  alerte:  { label: 'Alerte',   color: 'bg-red-50 text-red-700',     icon: AlertCircle },
-  info:    { label: 'Info',     color: 'bg-amber-50 text-amber-700', icon: Star },
+  rapport: { label: 'Rapport',  color: 'bg-emerald-50 text-emerald-700',   icon: BookOpen },
+  alerte:  { label: 'Alerte',   color: 'bg-red-50 text-red-700',           icon: AlertCircle },
+  info:    { label: 'Info',     color: 'bg-amber-50 text-amber-700',       icon: Star },
 };
 
 const typeConfigMedecin = {
-  feedback:   { label: 'Avis',       color: 'bg-blue-50 text-blue-700',    icon: Star },
-  question:   { label: 'Question',   color: 'bg-amber-50 text-amber-700',  icon: AlertCircle },
-  suggestion: { label: 'Suggestion', color: 'bg-purple-50 text-purple-700',icon: BookOpen },
+  feedback:   { label: 'Avis',       color: 'bg-emerald-50 text-emerald-700',  icon: Star },
+  question:   { label: 'Question',   color: 'bg-amber-50 text-amber-700',      icon: AlertCircle },
+  suggestion: { label: 'Suggestion', color: 'bg-purple-50 text-purple-700',    icon: BookOpen },
 };
 
 function formatTime(iso) {
@@ -107,7 +51,8 @@ function OngletEquipe({ toast }) {
   const aideNom = localStorage.getItem('aide_nom') || 'Aide soignant';
   const initials = aideNom.trim().split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
 
-  const [messages, setMessages]       = useState(MOCK_EQUIPE);
+  const [messages, setMessages]       = useState([]);
+  const [loading, setLoading]         = useState(true);
   const [searchTerm, setSearchTerm]   = useState('');
   const [filterType, setFilterType]   = useState('all');
   const [expandedReplies, setExpanded]= useState({});
@@ -117,7 +62,56 @@ function OngletEquipe({ toast }) {
   const [newText, setNewText]         = useState('');
   const [newType, setNewType]         = useState('rapport');
 
+  const loadMessages = () => {
+    setLoading(true);
+    fetch(`${API_URL}/equipe/messages`, { headers: authHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setMessages(Array.isArray(data) ? data : []))
+      .catch(() => setMessages([]))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { loadMessages(); }, []);
+
+  const handleLikeAPI = async (mid) => {
+    try {
+      const res = await fetch(`${API_URL}/equipe/messages/${mid}/like`, { method: 'POST', headers: authHeaders() });
+      const d = await res.json();
+      setMessages(prev => prev.map(m => m.id === mid ? { ...m, liked: d.liked, likes: d.likes_count } : m));
+    } catch {
+      setMessages(prev => prev.map(m => m.id === mid ? { ...m, liked: !m.liked, likes: m.liked ? m.likes - 1 : m.likes + 1 } : m));
+    }
+  };
+
+  const handlePostAPI = async (text, type) => {
+    try {
+      const res = await fetch(`${API_URL}/equipe/messages`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ contenu: text, type_msg: type }),
+      });
+      return await res.json();
+    } catch {
+      return { id: Date.now(), author: { name: aideNom, avatar: initials, role: 'Aide soignant (moi)', isDoctor: false, isMe: true }, text, time: new Date().toISOString(), likes: 0, liked: false, pinned: false, type, replies: [], isMe: true };
+    }
+  };
+
+  const handleReplyAPI = async (mid, text) => {
+    try {
+      const res = await fetch(`${API_URL}/equipe/messages/${mid}/reply`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ contenu: text }),
+      });
+      return await res.json();
+    } catch {
+      return { id: Date.now(), author: { name: aideNom, avatar: initials, role: 'Aide soignant (moi)' }, text, time: new Date().toISOString(), likes: 0, liked: false };
+    }
+  };
+
+  const handleDeleteAPI = async (mid) => {
+    try { await fetch(`${API_URL}/equipe/messages/${mid}`, { method: 'DELETE', headers: authHeaders() }); } catch {}
+  };
+
   const handleLike = (mid, rid = null) => {
+    if (rid === null) { handleLikeAPI(mid); return; }
     setMessages(prev => prev.map(m => {
       if (m.id !== mid) return m;
       if (rid !== null) return { ...m, replies: m.replies.map(r => r.id === rid ? { ...r, liked: !r.liked, likes: r.liked ? r.likes - 1 : r.likes + 1 } : r) };
@@ -125,33 +119,20 @@ function OngletEquipe({ toast }) {
     }));
   };
 
-  const handleReply = (mid) => {
+  const handleReply = async (mid) => {
     if (!replyText.trim()) return;
-    const reply = {
-      id: Date.now(),
-      author: { name: aideNom, avatar: initials, role: 'Aide soignant (moi)' },
-      text: replyText.trim(),
-      time: new Date().toISOString(),
-      likes: 0,
-      liked: false,
-    };
-    setMessages(prev => prev.map(m => m.id === mid ? { ...m, replies: [...m.replies, reply] } : m));
+    const reply = await handleReplyAPI(mid, replyText.trim());
+    setMessages(prev => prev.map(m => m.id === mid ? { ...m, replies: [...(m.replies || []), reply] } : m));
     setExpanded(prev => ({ ...prev, [mid]: true }));
     setReplyText('');
     setReplyingTo(null);
     toast.success('Réponse publiée');
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!newText.trim()) { toast.warning('Rédigez votre message'); return; }
-    setMessages(prev => [{
-      id: Date.now(),
-      author: { name: aideNom, avatar: initials, role: 'Aide soignant (moi)', isMe: true },
-      text: newText.trim(),
-      time: new Date().toISOString(),
-      likes: 0, liked: false, pinned: false, type: newType,
-      replies: [],
-    }, ...prev]);
+    const msg = await handlePostAPI(newText.trim(), newType);
+    setMessages(prev => [msg, ...prev]);
     setNewText('');
     setShowNew(false);
     toast.success('Message publié');
@@ -166,11 +147,11 @@ function OngletEquipe({ toast }) {
   return (
     <div className="space-y-5">
       {/* Info banner */}
-      <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-        <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+        <Info className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-semibold text-blue-800">Canal d'équipe</p>
-          <p className="text-xs text-blue-700 mt-0.5">
+          <p className="text-sm font-semibold text-emerald-800">Canal d'équipe</p>
+          <p className="text-xs text-emerald-700 mt-0.5">
             Vous pouvez écrire à votre médecin référent et aux aides soignants partageant le même médecin. Vos messages sont visibles uniquement par votre équipe.
           </p>
         </div>
@@ -179,7 +160,7 @@ function OngletEquipe({ toast }) {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Messages',       value: messages.length,                       icon: MessageCircle, color: 'text-blue-600' },
+          { label: 'Messages',       value: messages.length,                       icon: MessageCircle, color: 'text-emerald-600' },
           { label: 'J\'aimes reçus', value: messages.reduce((s, m) => s + m.likes, 0), icon: Heart,         color: 'text-pink-600' },
           { label: 'Épinglés',       value: messages.filter(m => m.pinned).length, icon: Pin,           color: 'text-amber-600' },
           { label: 'Alertes',        value: messages.filter(m => m.type === 'alerte').length, icon: AlertCircle, color: 'text-red-600' },
@@ -201,17 +182,21 @@ function OngletEquipe({ toast }) {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--t4)" />
           <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Rechercher..."
-            className="w-full pl-10 pr-4 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="w-full pl-10 pr-4 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
         <div className="flex gap-2 flex-wrap">
           {[{ key: 'all', label: 'Tous' }, { key: 'rapport', label: 'Rapports' }, { key: 'alerte', label: 'Alertes' }, { key: 'info', label: 'Info' }].map(f => (
             <button key={f.key} onClick={() => setFilterType(f.key)}
-              className={`px-3 py-2 text-sm font-medium rounded-xl transition-colors ${filterType === f.key ? 'bg-blue-600 text-white' : 'bg-(--sf) border border-(--ln) text-(--t3) hover:bg-(--sf2)'}`}>
+              className={`px-3 py-2 text-sm font-medium rounded-xl transition-colors ${filterType === f.key ? 'bg-emerald-600 text-white' : 'bg-(--sf) border border-(--ln) text-(--t3) hover:bg-(--sf2)'}`}>
               {f.label}
             </button>
           ))}
+          <button onClick={loadMessages} disabled={loading}
+            className="p-2 rounded-xl border border-(--ln) text-(--t3) hover:text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 transition-colors" title="Actualiser">
+            <RotateCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
           <button onClick={() => setShowNew(!showNew)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors">
             <MessageCircle className="w-4 h-4" />Nouveau
           </button>
         </div>
@@ -231,17 +216,17 @@ function OngletEquipe({ toast }) {
                 const Icon = v.icon;
                 return (
                   <button key={k} onClick={() => setNewType(k)}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${newType === k ? 'bg-blue-600 text-white border-blue-600' : 'border-(--ln) text-(--t3) hover:bg-(--sf2)'}`}>
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${newType === k ? 'bg-emerald-600 text-white border-emerald-600' : 'border-(--ln) text-(--t3) hover:bg-(--sf2)'}`}>
                     <Icon className="w-3.5 h-3.5" />{v.label}
                   </button>
                 );
               })}
             </div>
             <textarea value={newText} onChange={e => setNewText(e.target.value)} placeholder="Rédigez votre message à l'équipe..." rows={3}
-              className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+              className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none" />
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowNew(false)} className="px-4 py-2 text-sm text-(--t3) hover:bg-(--sf2) rounded-xl">Annuler</button>
-              <button onClick={handlePost} className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700">
+              <button onClick={handlePost} className="flex items-center gap-2 px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700">
                 <Send className="w-4 h-4" />Publier
               </button>
             </div>
@@ -287,7 +272,7 @@ function OngletEquipe({ toast }) {
                 <p className="text-sm text-(--t2) leading-relaxed">{m.text}</p>
                 <div className="flex items-center gap-1 mt-4 pt-3 border-t border-(--ln)">
                   <button onClick={() => handleLike(m.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${m.liked ? 'text-blue-600 bg-blue-50' : 'text-(--t3) hover:bg-(--sf2)'}`}>
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${m.liked ? 'text-emerald-600 bg-emerald-50' : 'text-(--t3) hover:bg-(--sf2)'}`}>
                     <ThumbsUp className="w-4 h-4" />{m.likes}
                   </button>
                   <button onClick={() => { setReplyingTo(replyingTo === m.id ? null : m.id); setReplyText(''); }}
@@ -302,7 +287,7 @@ function OngletEquipe({ toast }) {
                     </button>
                   )}
                   {m.author.isMe && (
-                    <button onClick={() => { setMessages(prev => prev.filter(x => x.id !== m.id)); toast.info('Message supprimé'); }}
+                    <button onClick={async () => { await handleDeleteAPI(m.id); setMessages(prev => prev.filter(x => x.id !== m.id)); toast.info('Message supprimé'); }}
                       className="ml-auto p-1.5 rounded-lg text-(--t4) hover:text-red-500 hover:bg-red-50 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -316,9 +301,9 @@ function OngletEquipe({ toast }) {
                       <div className="flex-1 flex gap-2">
                         <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleReply(m.id)}
                           placeholder="Écrire une réponse..." autoFocus
-                          className="flex-1 px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          className="flex-1 px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                         <button onClick={() => handleReply(m.id)} disabled={!replyText.trim()}
-                          className="px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-40 transition-colors">
+                          className="px-3 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-40 transition-colors">
                           <Send className="w-4 h-4" />
                         </button>
                       </div>
@@ -341,7 +326,7 @@ function OngletEquipe({ toast }) {
                           </div>
                           <p className="text-sm text-(--t2)">{r.text}</p>
                           <button onClick={() => handleLike(m.id, r.id)}
-                            className={`flex items-center gap-1 mt-2 text-xs font-medium transition-colors ${r.liked ? 'text-blue-600' : 'text-(--t4) hover:text-(--t2)'}`}>
+                            className={`flex items-center gap-1 mt-2 text-xs font-medium transition-colors ${r.liked ? 'text-emerald-600' : 'text-(--t4) hover:text-(--t2)'}`}>
                             <ThumbsUp className="w-3 h-3" />{r.likes}
                           </button>
                         </div>
@@ -363,35 +348,49 @@ function OngletMedecins({ toast }) {
   const aideNom = localStorage.getItem('aide_nom') || 'Aide soignant';
   const initials = aideNom.trim().split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
 
-  const [posts, setPosts]             = useState(MOCK_MEDECINS);
+  const [posts, setPosts]             = useState([]);
+  const [loadingPosts, setLoadingPosts]= useState(true);
   const [searchTerm, setSearchTerm]   = useState('');
   const [expandedReplies, setExpanded]= useState({});
   const [replyingTo, setReplyingTo]   = useState(null);
   const [replyText, setReplyText]     = useState('');
 
+  const loadPosts = () => {
+    setLoadingPosts(true);
+    fetch(`${API_URL}/ressources?limite=50`, { headers: authHeaders() })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setPosts(Array.isArray(data?.data) ? data.data : []))
+      .catch(() => setPosts([]))
+      .finally(() => setLoadingPosts(false));
+  };
+  useEffect(() => { loadPosts(); }, []);
+
   const handleLike = (pid, rid = null) => {
     setPosts(prev => prev.map(p => {
       if (p.id !== pid) return p;
-      if (rid !== null) return { ...p, replies: p.replies.map(r => r.id === rid ? { ...r, liked: !r.liked, likes: r.liked ? r.likes - 1 : r.likes + 1 } : r) };
+      if (rid !== null) return { ...p, replies: (p.replies || []).map(r => r.id === rid ? { ...r, liked: !r.liked, likes: r.liked ? r.likes - 1 : r.likes + 1 } : r) };
       return { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 };
     }));
   };
 
-  const handleReply = (pid) => {
+  const handleReply = async (pid) => {
     if (!replyText.trim()) return;
-    const reply = {
-      id: Date.now(),
-      author: { name: aideNom, avatar: initials, role: 'Aide soignant' },
-      text: replyText.trim(),
-      time: new Date().toISOString(),
-      likes: 0,
-      liked: false,
-    };
-    setPosts(prev => prev.map(p => p.id === pid ? { ...p, replies: [...p.replies, reply] } : p));
+    let reply;
+    try {
+      const res = await fetch(`${API_URL}/publications/${pid}/commentaires`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ contenu: replyText.trim() }),
+      });
+      const c = await res.json();
+      reply = { id: c.id, author: { name: aideNom, avatar: initials, role: 'Aide soignant' }, text: c.text || replyText.trim(), time: c.time || new Date().toISOString(), likes: 0, liked: false };
+    } catch {
+      reply = { id: Date.now(), author: { name: aideNom, avatar: initials, role: 'Aide soignant' }, text: replyText.trim(), time: new Date().toISOString(), likes: 0, liked: false };
+    }
+    setPosts(prev => prev.map(p => p.id === pid ? { ...p, replies: [...(p.replies || []), reply] } : p));
     setExpanded(prev => ({ ...prev, [pid]: true }));
     setReplyText('');
     setReplyingTo(null);
-    toast.success('Réponse publiée');
+    toast.success('Commentaire publié');
   };
 
   const filtered = posts.filter(p => {
@@ -415,7 +414,7 @@ function OngletMedecins({ toast }) {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
-          { label: 'Publications',      value: posts.length,                       icon: MessageCircle, color: 'text-blue-600' },
+          { label: 'Publications',      value: posts.length,                       icon: MessageCircle, color: 'text-emerald-600' },
           { label: 'J\'aimes reçus',    value: posts.reduce((s, p) => s + p.likes, 0), icon: Heart,         color: 'text-pink-600' },
           { label: 'Épinglés',          value: posts.filter(p => p.pinned).length, icon: Pin,           color: 'text-amber-600' },
         ].map((s, i) => {
@@ -432,10 +431,16 @@ function OngletMedecins({ toast }) {
       </div>
 
       {/* Recherche */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--t4)" />
-        <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Rechercher dans les posts..."
-          className="w-full pl-10 pr-4 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--t4)" />
+          <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Rechercher dans les posts..."
+            className="w-full pl-10 pr-4 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+        <button onClick={loadPosts} disabled={loadingPosts}
+          className="p-2 rounded-xl border border-(--ln) text-(--t3) hover:text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 transition-colors" title="Actualiser">
+          <RotateCcw className={`w-4 h-4 ${loadingPosts ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {/* Liste */}
@@ -456,7 +461,7 @@ function OngletMedecins({ toast }) {
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div className="flex items-center gap-2 min-w-0">
                     {p.pinned && <Pin className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
-                    <span className="text-xs text-blue-600 font-medium truncate">{p.casTitle}</span>
+                    <span className="text-xs text-emerald-600 font-medium truncate">{p.casTitle}</span>
                     <span className="text-xs text-(--t4) shrink-0 hidden sm:block">{p.casId}</span>
                   </div>
                   <span className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full shrink-0 ${tc.color}`}>
@@ -478,18 +483,18 @@ function OngletMedecins({ toast }) {
                 <p className="text-sm text-(--t2) leading-relaxed">{p.text}</p>
                 <div className="flex items-center gap-1 mt-4 pt-3 border-t border-(--ln)">
                   <button onClick={() => handleLike(p.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${p.liked ? 'text-blue-600 bg-blue-50' : 'text-(--t3) hover:bg-(--sf2)'}`}>
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${p.liked ? 'text-emerald-600 bg-emerald-50' : 'text-(--t3) hover:bg-(--sf2)'}`}>
                     <ThumbsUp className="w-4 h-4" />{p.likes}
                   </button>
                   <button onClick={() => { setReplyingTo(replyingTo === p.id ? null : p.id); setReplyText(''); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-(--t3) hover:bg-(--sf2) transition-colors">
                     <Reply className="w-4 h-4" />Commenter
                   </button>
-                  {p.replies.length > 0 && (
+                  {(p.replies || []).length > 0 && (
                     <button onClick={() => setExpanded(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-(--t3) hover:bg-(--sf2) transition-colors">
                       {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      {p.replies.length} commentaire{p.replies.length > 1 ? 's' : ''}
+                      {(p.replies || []).length} commentaire{(p.replies || []).length > 1 ? 's' : ''}
                     </button>
                   )}
                 </div>
@@ -501,9 +506,9 @@ function OngletMedecins({ toast }) {
                       <div className="flex-1 flex gap-2">
                         <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleReply(p.id)}
                           placeholder="Donner votre avis..." autoFocus
-                          className="flex-1 px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          className="flex-1 px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                         <button onClick={() => handleReply(p.id)} disabled={!replyText.trim()}
-                          className="px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-40 transition-colors">
+                          className="px-3 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-40 transition-colors">
                           <Send className="w-4 h-4" />
                         </button>
                       </div>
@@ -512,10 +517,10 @@ function OngletMedecins({ toast }) {
                 </AnimatePresence>
               </div>
               <AnimatePresence>
-                {open && p.replies.length > 0 && (
+                {open && (p.replies || []).length > 0 && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                     className="border-t border-(--ln) bg-(--sf2) px-5 py-4 space-y-4 overflow-hidden">
-                    {p.replies.map(r => (
+                    {(p.replies || []).map(r => (
                       <div key={r.id} className="flex gap-3">
                         <div className="w-8 h-8 rounded-full bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shrink-0">{r.author.avatar}</div>
                         <div className="flex-1">
@@ -526,7 +531,7 @@ function OngletMedecins({ toast }) {
                           </div>
                           <p className="text-sm text-(--t2)">{r.text}</p>
                           <button onClick={() => handleLike(p.id, r.id)}
-                            className={`flex items-center gap-1 mt-2 text-xs font-medium transition-colors ${r.liked ? 'text-blue-600' : 'text-(--t4) hover:text-(--t2)'}`}>
+                            className={`flex items-center gap-1 mt-2 text-xs font-medium transition-colors ${r.liked ? 'text-emerald-600' : 'text-(--t4) hover:text-(--t2)'}`}>
                             <ThumbsUp className="w-3 h-3" />{r.likes}
                           </button>
                         </div>
@@ -546,18 +551,38 @@ function OngletMedecins({ toast }) {
 // ─── Page principale ───────────────────────────────────────────────────────────
 export default function AideCommentaires() {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState('equipe');
+  const [activeTab,   setActiveTab]   = useState('equipe');
+  const [refreshKey,  setRefreshKey]  = useState(0);
+  const [refreshing,  setRefreshing]  = useState(false);
+  const intervalRef = useRef(null);
   const current = TABS.find(t => t.id === activeTab);
 
+  useEffect(() => {
+    intervalRef.current = setInterval(() => setRefreshKey(k => k + 1), 30_000);
+    return () => clearInterval(intervalRef.current);
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setRefreshKey(k => k + 1);
+    setTimeout(() => setRefreshing(false), 800);
+  };
+
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6">
+    <div className="w-full max-w-6xl mx-auto space-y-6">
 
       {/* En-tête */}
-      <div>
-        <h1 className="text-2xl font-bold text-(--t1)">Espace de communication</h1>
-        <p className="text-sm text-(--t3) mt-1">
-          Messages équipe · Réactions aux posts des médecins
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-(--t1)">Espace de communication</h1>
+          <p className="text-sm text-(--t3) mt-1">
+            Messages équipe · Réactions aux posts des médecins
+          </p>
+        </div>
+        <button onClick={handleRefresh} disabled={refreshing}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-(--t2) border border-(--ln) rounded-xl hover:bg-(--sf2) transition-colors disabled:opacity-50">
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />Actualiser
+        </button>
       </div>
 
       {/* Onglets */}
@@ -570,10 +595,10 @@ export default function AideCommentaires() {
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                 className={`flex flex-col items-center gap-1.5 px-4 py-4 text-xs font-semibold border-b-2 transition-all ${
                   active
-                    ? 'border-blue-600 text-blue-700 bg-blue-50'
+                    ? 'border-emerald-600 text-emerald-700 bg-emerald-50'
                     : 'border-transparent text-(--t3) hover:text-(--t1) hover:bg-(--sf2)'
                 }`}>
-                <Icon className={`w-5 h-5 ${active ? 'text-blue-600' : ''}`} />
+                <Icon className={`w-5 h-5 ${active ? 'text-emerald-600' : ''}`} />
                 <span className="leading-tight text-center">{tab.label}</span>
               </button>
             );
@@ -591,7 +616,7 @@ export default function AideCommentaires() {
         {/* Contenu */}
         <div className="p-5">
           <AnimatePresence mode="wait">
-            <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            <motion.div key={`${activeTab}-${refreshKey}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
               {activeTab === 'equipe'   && <OngletEquipe   toast={toast} />}
               {activeTab === 'medecins' && <OngletMedecins toast={toast} />}
             </motion.div>
