@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { X } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
 import { getTopMedecinsConcordance } from "../api/adminapi";
 
@@ -92,6 +93,7 @@ export default function PerformancesIA() {
 
   const [parMed,      setParMed]      = useState(() => getParMedecin(mois, annee));
   const [loadingMed,  setLoadingMed]  = useState(false);
+  const [photoZoom,   setPhotoZoom]   = useState(null);
 
   useEffect(() => {
     setLoadingMed(true);
@@ -263,7 +265,8 @@ export default function PerformancesIA() {
                 <span className="text-[9px] font-black" style={{ color: txt.subtle }}>#{i + 1}</span>
                 {m.photo_url
                   ? <img src={m.photo_url} alt={m.nom}
-                      className="w-6 h-6 rounded-full object-cover shrink-0 border border-gray-200"
+                      className="w-6 h-6 rounded-full object-cover shrink-0 border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setPhotoZoom(m)}
                       onError={e => { e.currentTarget.style.display="none"; e.currentTarget.nextSibling.style.display="flex"; }} />
                   : null}
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-black text-white shrink-0"
@@ -283,6 +286,25 @@ export default function PerformancesIA() {
           ))}
         </div>
       </div>
+
+      {photoZoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={e => e.target === e.currentTarget && setPhotoZoom(null)}>
+          <div className="w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden" style={cardStyle}>
+            <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: surface.border }}>
+              <div>
+                <p className="text-[15px] font-bold" style={{ color: txt.primary }}>{photoZoom.nom}</p>
+                <p className="text-[13px] mt-0.5" style={{ color: txt.subtle }}>Photo d'identité (CNI)</p>
+              </div>
+              <button onClick={() => setPhotoZoom(null)} className="w-8 h-8 flex items-center justify-center rounded-lg"
+                style={{ color: txt.subtle }}><X size={15}/></button>
+            </div>
+            <div className="px-5 py-6 flex justify-center">
+              <img src={photoZoom.photo_url} alt={photoZoom.nom} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow" />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

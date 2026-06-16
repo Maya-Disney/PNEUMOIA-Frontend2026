@@ -9,10 +9,13 @@
       "Bash(curl -s http://localhost:5174/src/App.jsx)",
       "Bash(taskkill /f /im node.exe)",
       "PowerShell(Get-Process -Name \"node\" -ErrorAction SilentlyContinue)",
-      "Bash(curl -s http://localhost:5173)"
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(./venv/Scripts/alembic.exe revision *)",
+      "Bash(./venv/Scripts/alembic.exe upgrade *)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\DELL\\PNEUMOIA-Frontend2026\\node_modules\\.vite"
+      "c:\\Users\\DELL\\PNEUMOIA-Frontend2026\\node_modules\\.vite",
+      "C:\\Users\\DELL\\PNEUMOIA-Backend\\alembic\\versions"
     ]
   }
 }

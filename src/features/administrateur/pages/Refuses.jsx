@@ -10,8 +10,6 @@ import {
   MutedText, SubtleText, StatusText, PaginationBar, PaginationSelect, PaginationButton,
 } from "../components/ui/Table";
 
-const NOW   = new Date();
-const sub   = (ms) => new Date(NOW.getTime() - ms);
 const pad   = (n)  => String(n).padStart(2, "0");
 function fmt(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`; }
 
@@ -23,15 +21,6 @@ function avatarColor(str) {
 }
 
 const VILLES_CM = ["Yaoundé","Douala","Bafoussam","Garoua","Maroua","Ngaoundéré","Bertoua","Ebolowa","Buéa","Limbé"];
-
-const MOCK = [
-  { id:1, initials:"DT", nom:"Dr. Tabi Jonas",    specialite:"Pneumologue",
-    cnom:"CM-2024-9999", hopital:"Clinique Alpha", ville:"Yaoundé",
-    email:"tabi.jonas@clinique.cm", telephone:"+237 699 001 002",
-    dateDemande:fmt(sub(5*24*3600000)), dateRefus:fmt(sub(4*24*3600000)),
-    motif:"N° CNOM invalide ou introuvable", refusePar:"Administrateur",
-    photo_url:null, relanceSent:false },
-];
 
 function Modal({ onClose, title, sub: subtitle, wide, children, footer, dark }) {
   return (
@@ -54,12 +43,12 @@ function Modal({ onClose, title, sub: subtitle, wide, children, footer, dark }) 
 
 function ModalePhoto({ r, onClose, dark }) {
   return (
-    <Modal dark={dark} onClose={onClose} title={r.nom} sub="Photo d'identité (CNI)"
+    <Modal dark={dark} onClose={onClose} title={r.nom} sub="Photo d'identité (CNI)" wide
       footer={<button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Fermer</button>}>
-      <div className="flex flex-col items-center gap-4 py-4">
+      <div className="flex flex-col items-center gap-4">
         {r.photo_url
-          ? <img src={r.photo_url} alt={r.nom} className="w-36 h-36 rounded-full object-cover border-2 border-gray-200 shadow"/>
-          : <div className={`w-36 h-36 rounded-full flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
+          ? <img src={r.photo_url} alt={r.nom} className="w-full max-h-[65vh] rounded-xl object-contain border border-gray-200 shadow"/>
+          : <div className={`w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
               <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               <span className="text-[14px] text-center px-2">Aucune photo</span>
             </div>
@@ -117,7 +106,7 @@ function ModaleRelance({ r, onClose, onConfirm, dark }) {
 export default function Refusees() {
   const { dark } = useOutletContext() || {};
   const { searchQuery } = useAdminTheme();
-  const [rows,          setRows]         = useState(MOCK);
+  const [rows,          setRows]         = useState([]);
   const [target,        setTarget]       = useState(null);
   const [modalePhoto,   setModalePhoto]  = useState(null);
   const [modaleRelance, setModaleRelance]= useState(null);
@@ -139,12 +128,12 @@ export default function Refusees() {
             nom:         `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
             specialite:  m.specialite    || "Pneumologue",
             hopital:     m.etablissement || "—",
-            ville:       m.adresse       || "—",
+            ville:       m.ville || m.adresse || "—",
             cnom:        m.numero_rpps   || "—",
             email:       m.email         || "—",
             telephone:   m.telephone     || "—",
-            dateDemande: m.created_at ? fmt(new Date(m.created_at)) : "—",
-            dateRefus:   m.refuse_le  ? fmt(new Date(m.refuse_le))  : "—",
+            dateDemande: m.date_demande || (m.created_at ? fmt(new Date(m.created_at)) : "—"),
+            dateRefus:   m.date_refus   || (m.updated_at ? fmt(new Date(m.updated_at)) : "—"),
             motif:       m.motif_rejet   || "—",
             refusePar:   m.refuse_par    || "Administrateur",
             photo_url:   m.photo_url     || null,
@@ -338,7 +327,7 @@ export default function Refusees() {
                                     : (dark?"text-[#c9d1d9] hover:bg-[#21262d]":"text-gray-700 hover:bg-gray-50")}`}
                               >
                                 <Send size={14} className="shrink-0" style={{ color: r.relanceSent ? undefined : brand.DEFAULT }} />
-                                <span>Relancer par e-mail</span>
+                                <span>Relancer</span>
                                 {r.relanceSent && (
                                   <span className={`ml-auto text-[12px] px-1.5 py-0.5 rounded ${dark?"bg-[#21262d] text-[#484f58]":"bg-gray-100 text-gray-400"}`}>
                                     Déjà fait

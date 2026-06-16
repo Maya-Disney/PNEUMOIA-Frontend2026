@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
-import { adminLogout } from "../api/adminApi";
+import { adminLogout, getMedecinsActifs } from "../api/adminApi";
 import logo from "../../../assets/images/logo.png";
 import {
   LayoutDashboard, UserPlus, UserCheck, UserX,
@@ -94,8 +94,9 @@ export default function Sidebar({ dark }) {
   const [counts, setCounts] = useState({ actifs: 0 });
 
   useEffect(() => {
-    // TODO: remplacer par getMedecinsActifs().then(data => setCounts({ actifs: data.length }))
-    setCounts({ actifs: 38 });
+    getMedecinsActifs()
+      .then(data => setCounts({ actifs: Array.isArray(data) ? data.length : 0 }))
+      .catch(() => setCounts({ actifs: 0 }));
   }, []);
 
   function confirmLogout() {

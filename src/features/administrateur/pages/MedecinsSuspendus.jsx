@@ -17,27 +17,14 @@ import {
   MutedText, SubtleText, StatusText, PaginationBar, PaginationSelect, PaginationButton,
 } from "../components/ui/Table";
 
-const NOW   = new Date();
-const sub   = (ms) => new Date(NOW.getTime() - ms);
 const pad   = (n)  => String(n).padStart(2, "0");
 function fmtDT(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 
-const MOCK = [
-  {
-    id: 1, initials: "DM", nom: "Dr. Mbang",
-    specialite: "Pneumologue", hopital: "Clinique Sud, Douala",
-    cnom: "CM-2020-0345", email: "mbang@clinique.cm",
-    raison: "Signalement d'un confrère — comportement non conforme à la déontologie",
-    duree: "30 jours", dureeType: "limitee",
-    suspenduLe: sub(24*3600000), suspenduPar: "Super Admin",
-  },
-];
-
-function Modal({ onClose, title, sub: subtitle, children, footer, dark }) {
+function Modal({ onClose, title, sub: subtitle, children, footer, dark, wide }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
       onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className={`w-full max-w-sm rounded-2xl border shadow-2xl flex flex-col max-h-[90vh] ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
+      <div className={`w-full ${wide ? "max-w-lg" : "max-w-sm"} rounded-2xl border shadow-2xl flex flex-col max-h-[90vh] ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
         <div className={`flex items-center justify-between px-5 py-4 border-b shrink-0 ${dark?"border-[#21262d]":"border-gray-100"}`}>
           <div>
             <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>{title}</p>
@@ -56,15 +43,18 @@ function Modal({ onClose, title, sub: subtitle, children, footer, dark }) {
 
 function ModalePhoto({ m, onClose, dark }) {
   return (
-    <Modal dark={dark} onClose={onClose} title={m.nom} sub="Photo d'identité (CNI)"
+    <Modal dark={dark} onClose={onClose} title={m.nom} sub="Photo d'identité (CNI)" wide
       footer={<button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Fermer</button>}>
-      <div className="flex flex-col items-center gap-4 py-4">
-        <div className={`w-36 h-36 rounded-full flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
-          <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-          <span className="text-[14px] text-center px-2">Photo soumise à l'adhésion</span>
-        </div>
+      <div className="flex flex-col items-center gap-4">
+        {m.photo_url
+          ? <img src={m.photo_url} alt={m.nom} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow"/>
+          : <div className={`w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
+              <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span className="text-[14px] text-center px-2">Aucune photo disponible</span>
+            </div>
+        }
         <div className="text-center">
           <p className={`text-[14px] font-bold ${dark?"text-white":"text-gray-800"}`}>{m.nom}</p>
           <p className={`text-[14px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.specialite} · CNOM {m.cnom}</p>
@@ -78,7 +68,7 @@ export default function MedecinsSuspendus() {
   const { dark } = useOutletContext() || {};
   const { searchQuery } = useAdminTheme();
 
-  const [suspendus,      setSuspendus]      = useState(MOCK);
+  const [suspendus,      setSuspendus]      = useState([]);
   const [loadingData,    setLoadingData]    = useState(true);
   const [modaleReactiver,setModaleReactiver]= useState(null);
   const [modaleSuppr,    setModaleSuppr]    = useState(null);
@@ -117,6 +107,7 @@ export default function MedecinsSuspendus() {
             dureeType:   m.suspension_duree === "Indéfinie" ? "indefinie" : "limitee",
             suspenduLe:  m.suspension_le ? new Date(m.suspension_le) : new Date(),
             suspenduPar: m.suspension_par || "Administrateur",
+            ville:       m.ville || m.adresse || "—",
             photo_url:   m.photo_url || null,
           })));
         }

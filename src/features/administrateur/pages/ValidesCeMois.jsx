@@ -36,86 +36,7 @@ function formatValidation(d) {
   return `${d.getDate()} ${MOIS_COURT[d.getMonth()]}`;
 }
 
-const NOW = new Date();
-const sub = (ms) => new Date(NOW.getTime() - ms);
 
-const MOCK = [
-  {
-    id:1, initials:"AS", avatarBg:"#1D9E75",
-    name:"Dr. Aminata Sow", specialite:"Pneumologue",
-    hopital:"H. Laquintinie, Douala", ville:"Douala",
-    email:"aminata.sow@pneumo.cm", telephone:"+237 699 001 122",
-    cnom:"CM-2024-1122", patients:87, consultations:1243, concordanceIA:82,
-    rangCommunaute:"#14/38", casPartages:"64 cas publiés", statut:"Actif",
-    creeLE:formatFull(sub(3*3600*1000)), valideLE:formatFull(sub(47*60*1000)),
-    dateDemande:sub(3*3600*1000), dateValidation:sub(47*60*1000),
-    validePar:"Super Admin",
-    documents:[
-      {label:"Diplôme de spécialisation en pneumologie", status:"verified"},
-      {label:"Diplôme de docteur en médecine",           status:"verified"},
-      {label:"Inscription à l'ordre des médecins",       status:"verified"},
-      {label:"Autorisation d'exercice",                  status:"verified"},
-      {label:"Carte professionnelle de médecin",         status:"verified"},
-      {label:"Carte nationale d'identité (CNI)",         status:"verified"},
-    ],
-    activiteRecente:[
-      {texte:"Compte activé sur PneumoIA CEMAC", quand:"Auj."},
-      {texte:"Dossier validé par Super Admin",   quand:"Auj."},
-    ],
-  },
-  {
-    id:2, initials:"FK", avatarBg:"#854F0B",
-    name:"Dr. Fatou Konaté", specialite:"Pneumologue",
-    hopital:"H. Central, Bafoussam", ville:"Bafoussam",
-    email:"fatou.konate@hcb.cm", telephone:"+237 687 200 510",
-    cnom:"CM-2022-0765", patients:112, consultations:2087, concordanceIA:76,
-    rangCommunaute:"#9/38", casPartages:"132 cas publiés", statut:"Actif",
-    creeLE:formatFull(sub(13*24*3600*1000)), valideLE:formatFull(sub(11*24*3600*1000)),
-    dateDemande:sub(13*24*3600*1000), dateValidation:sub(11*24*3600*1000),
-    validePar:"Super Admin",
-    documents:[
-      {label:"Diplôme de spécialisation en pneumologie", status:"verified"},
-      {label:"Diplôme de docteur en médecine",           status:"verified"},
-      {label:"Inscription à l'ordre des médecins",       status:"verified"},
-      {label:"Autorisation d'exercice",                  status:"verified"},
-      {label:"Carte professionnelle de médecin",         status:"verified"},
-      {label:"Carte nationale d'identité (CNI)",         status:"verified"},
-    ],
-    activiteRecente:[
-      {texte:"Cas #132 partagé sur la communauté", quand:"Il y a 2j"},
-      {texte:"Rapport mensuel soumis",             quand:"Il y a 5j"},
-    ],
-  },
-  {
-    id:3, initials:"MB", avatarBg:"#185FA5",
-    name:"Dr. Martin Biya", specialite:"Pneumologue",
-    hopital:"Clinique Bleue, Douala", ville:"Douala",
-    email:"martin.biya@pneumo.cm", telephone:"+237 673 104 488",
-    cnom:"CM-2021-0543", patients:145, consultations:3102, concordanceIA:91,
-    rangCommunaute:"#4/38", casPartages:"218 cas publiés", statut:"Actif",
-    creeLE:formatFull(sub(16*24*3600*1000)), valideLE:formatFull(sub(14*24*3600*1000)),
-    dateDemande:sub(16*24*3600*1000), dateValidation:sub(14*24*3600*1000),
-    validePar:"Super Admin",
-    documents:[
-      {label:"Diplôme de spécialisation en pneumologie", status:"verified"},
-      {label:"Diplôme de docteur en médecine",           status:"verified"},
-      {label:"Inscription à l'ordre des médecins",       status:"verified"},
-      {label:"Autorisation d'exercice",                  status:"verified"},
-      {label:"Carte professionnelle de médecin",         status:"verified"},
-      {label:"Carte nationale d'identité (CNI)",         status:"verified"},
-    ],
-    activiteRecente:[
-      {texte:"Consultation #145 enregistrée",      quand:"Hier"},
-      {texte:"Cas #218 partagé sur la communauté", quand:"Il y a 3j"},
-    ],
-  },
-];
-
-const DOC_CFG = {
-  verified: { label:"Vérifié",    cls:"bg-teal-100 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-700/40" },
-  pending:  { label:"En attente", cls:"bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-700/40" },
-  missing:  { label:"Manquant",   cls:"bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-700/40" },
-};
 
 const RAISONS = ["— Choisir une raison —","Signalement d'un confrère","Comportement non conforme","Vérification d'identité requise","Incohérence dans les documents","Inactivité prolongée","Autre"];
 
@@ -147,19 +68,24 @@ function Modal({ onClose, title, sub: subtitle, wide, children, footer, dark }) 
 
 function ModalePhoto({ doc: m, onClose, dark }) {
   return (
-    <Modal dark={dark} onClose={onClose} title={m.name} sub="Photo d'identité (CNI)"
+    <Modal dark={dark} onClose={onClose} title={m.name} sub="Photo d'identité (CNI)" wide
       footer={
         <button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border transition-colors ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-[#21262d]" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
           Fermer
         </button>
       }>
-      <div className="flex flex-col items-center gap-4 py-4">
-        <div className={`w-32 h-32 rounded-full flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark ? "border-[#21262d] bg-[#0d1117] text-[#484f58]" : "border-gray-200 bg-gray-50 text-gray-300"}`}>
-          <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-          <span className="text-[14px] text-center px-2">Photo soumise à l'adhésion</span>
-        </div>
+      <div className="flex flex-col items-center gap-4">
+        {m.photo_url
+          ? <img src={m.photo_url} alt={m.name} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow-md" />
+          : (
+            <div className={`w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark ? "border-[#21262d] bg-[#0d1117] text-[#484f58]" : "border-gray-200 bg-gray-50 text-gray-300"}`}>
+              <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span className="text-[14px] text-center px-2">Aucune photo disponible</span>
+            </div>
+          )
+        }
         <div className="text-center">
           <p className={`text-[14px] font-bold ${dark ? "text-white" : "text-gray-800"}`}>{m.name}</p>
           <p className={`text-[14px] mt-0.5 ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{m.specialite} · CNOM {m.cnom}</p>
@@ -221,19 +147,14 @@ function ModaleDossier({ doc: m, onClose, dark }) {
           <p className={`text-[14px] font-bold uppercase tracking-wider ${dark ? "text-[#484f58]" : "text-gray-400"}`}>
             Pièces justificatives
           </p>
-          <span className="text-[14px] font-bold text-teal-600">{m.documents.length}/6 vérifiées</span>
         </div>
 
         <div className={`rounded-xl border overflow-hidden ${dark ? "bg-[#0d1117] border-[#21262d]" : "bg-gray-50 border-gray-100"}`}>
           {m.documents.map((d, i) => {
-            const cfg = DOC_CFG[d.status] || DOC_CFG.missing;
             return (
               <div key={i} className={`flex items-center gap-3 px-4 py-3 border-b last:border-0 ${dark ? "border-[#21262d]" : "border-gray-100"}`}>
                 <span className={`text-[14px] font-bold w-5 shrink-0 ${dark ? "text-[#484f58]" : "text-gray-300"}`}>{i+1}</span>
                 <span className={`text-[15px] font-medium flex-1 ${dark ? "text-[#8b949e]" : "text-gray-600"}`}>{d.label}</span>
-                <span className={`text-[15px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${cfg.cls}`}>
-                  {cfg.label}
-                </span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button onClick={() => handleVoir(d)} title="Voir le document"
                     className={`flex items-center gap-1 px-2 py-1 text-[14px] font-bold rounded-lg border transition-colors
@@ -394,8 +315,9 @@ export default function ValideesCeMois() {
   const { dark } = useOutletContext() || {};
   const { searchQuery } = useAdminTheme();
 
-  const [rows,       setRows]       = useState(MOCK);
+  const [rows,       setRows]       = useState([]);
   const [loading,    setLoading]    = useState(true);
+  const [erreur,     setErreur]     = useState(null);
   const [moisSelec,  setMoisSelec]  = useState(new Date().getMonth() + 1);
   const [anneeSelec, setAnneeSelec] = useState(new Date().getFullYear());
   const [page,       setPage]       = useState(1);
@@ -411,38 +333,41 @@ export default function ValideesCeMois() {
 
   useEffect(() => {
     setLoading(true);
+    setErreur(null);
     getMedecinsValides(moisSelec, anneeSelec)
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setRows(data.map(m => ({
-            id:              m.id,
-            initials:        `${(m.prenom?.[0]||"").toUpperCase()}${(m.nom?.[0]||"").toUpperCase()}`,
-            name:            `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
-            specialite:      m.specialite || "Pneumologue",
-            hopital:         m.etablissement || "—",
-            ville:           "—",
-            email:           m.email,
-            telephone:       m.telephone || "—",
-            cnom:            m.numero_rpps || "—",
-            photo_url:       m.photo_url || null,
-            avatarBg:        ["#1D9E75","#185FA5","#7C3AED","#DC2626","#D97706","#0891B2"][Math.abs(m.id?.charCodeAt(0)||0) % 6],
-            patients:        0,
-            consultations:   0,
-            concordanceIA:   0,
-            statut:          "Actif",
-            rangCommunaute:  "—",
-            casPartages:     "—",
-            creeLE:          m.created_at ? new Date(m.created_at).toLocaleString("fr-FR") : "—",
-            valideLE:        m.valide_le  ? new Date(m.valide_le).toLocaleString("fr-FR")  : "—",
-            dateDemande:     m.created_at ? new Date(m.created_at) : new Date(),
-            dateValidation:  m.valide_le  ? new Date(m.valide_le)  : new Date(),
-            validePar:       m.valide_par || "Administrateur",
-            documents:       (m.documents || []).map(d => ({ label: d.label, url: d.url, status: "verified" })),
-            activiteRecente: [],
-          })));
-        }
+        const liste = Array.isArray(data) ? data : (data?.items ?? data?.medecins ?? []);
+        setRows(liste.map(m => ({
+          id:              m.id,
+          initials:        `${(m.prenom?.[0]||"").toUpperCase()}${(m.nom?.[0]||"").toUpperCase()}`,
+          name:            `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
+          specialite:      m.specialite || "Pneumologue",
+          hopital:         m.etablissement || "—",
+          ville:           m.ville || m.adresse || "—",
+          email:           m.email,
+          telephone:       m.telephone || "—",
+          cnom:            m.numero_rpps || "—",
+          photo_url:       m.photo_url || null,
+          avatarBg:        ["#1D9E75","#185FA5","#7C3AED","#DC2626","#D97706","#0891B2"][Math.abs(m.id?.charCodeAt(0)||0) % 6],
+          patients:        m.nb_patients     ?? 0,
+          consultations:   m.nb_consultations ?? 0,
+          concordanceIA:   m.concordance_ia  ?? 0,
+          statut:          "Actif",
+          rangCommunaute:  m.rang_communaute  || "—",
+          casPartages:     m.cas_partages     || "—",
+          creeLE:          m.created_at ? new Date(m.created_at).toLocaleString("fr-FR") : "—",
+          valideLE:        m.valide_le  ? new Date(m.valide_le).toLocaleString("fr-FR")  : "—",
+          dateDemande:     m.created_at ? new Date(m.created_at) : new Date(),
+          dateValidation:  m.valide_le  ? new Date(m.valide_le)  : new Date(),
+          validePar:       m.valide_par || "Administrateur",
+          documents:       (m.documents || []).map(d => ({ label: d.label, url: d.url })),
+          activiteRecente: m.activite_recente || [],
+        })));
       })
-      .catch(() => {})
+      .catch(err => {
+        console.error("[ValidesCeMois] erreur API:", err);
+        setErreur(err.message || "Impossible de charger les données.");
+      })
       .finally(() => setLoading(false));
   }, [moisSelec, anneeSelec]);
 
@@ -556,6 +481,10 @@ export default function ValideesCeMois() {
           <tbody>
             {loading ? (
               <EmptyCell dark={dark} colSpan={8}>Chargement…</EmptyCell>
+            ) : erreur ? (
+              <EmptyCell dark={dark} colSpan={8}>
+                <span className="text-red-500">{erreur}</span>
+              </EmptyCell>
             ) : paginated.length === 0 ? (
               <EmptyCell dark={dark} colSpan={8}>Aucune validation ce mois</EmptyCell>
             ) : paginated.map(doc => {

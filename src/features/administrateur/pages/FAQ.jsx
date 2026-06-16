@@ -826,7 +826,7 @@ export default function FAQ() {
       {modalePhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           onClick={e=>e.target===e.currentTarget&&setModalePhoto(null)}>
-          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
+          <div className={`w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
             <div className={`flex items-center justify-between px-5 py-4 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
               <div>
                 <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>{modalePhoto.medecin}</p>
@@ -834,10 +834,10 @@ export default function FAQ() {
               </div>
               <button onClick={()=>setModalePhoto(null)} className={`w-7 h-7 flex items-center justify-center rounded-lg ${dark?"text-[#484f58] hover:bg-[#21262d]":"text-gray-400 hover:bg-gray-100"}`}><X size={13}/></button>
             </div>
-            <div className="px-5 py-8 flex flex-col items-center gap-4">
+            <div className="px-5 py-6 flex flex-col items-center gap-4">
               {modalePhoto.photo_url
-                ? <img src={modalePhoto.photo_url} alt={modalePhoto.medecin} className="w-32 h-32 rounded-full object-cover border-2 border-gray-200 shadow"/>
-                : <div className={`w-32 h-32 rounded-full flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
+                ? <img src={modalePhoto.photo_url} alt={modalePhoto.medecin} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow"/>
+                : <div className={`w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
                     <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     <span className="text-[14px] text-center px-4">Aucune photo disponible</span>
                   </div>

@@ -7,6 +7,10 @@ import {
   Clock, CheckCircle, AlertCircle,
   ChevronRight, CheckCheck, BellOff, Trash2
 } from 'lucide-react';
+import {
+  getNotifications, marquerNotifLue, marquerToutesLues,
+  supprimerNotif, supprimerNotifsLues
+} from '../services/api';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
@@ -18,112 +22,43 @@ export default function Notifications() {
     loadNotifications();
   }, []);
 
-  const loadNotifications = () => {
-    const mockNotifications = [
-      {
-        id: 1,
-        type: 'consultation',
-        title: 'Nouvelle consultation',
-        message: 'Dr. Martin a programmé une consultation avec Tamo Bernard',
-        time: '2026-04-08T10:00:00',
-        read: false,
-        icon: 'Stethoscope',
-        actionLink: '/medecin/consultation',
-        actionType: 'consultation'
-      },
-      {
-        id: 2,
-        type: 'patient',
-        title: 'Patient critique',
-        message: "KAMGA Jean - Suivi dépassé depuis 9 jours",
-        time: '2026-04-08T08:30:00',
-        read: false,
-        icon: 'AlertCircle',
-        actionLink: '/medecin/patients',
-        actionType: 'patient'
-      },
-      {
-        id: 3,
-        type: 'message',
-        title: 'Nouveau message',
-        message: "Dr. Nkoa a commenté votre cas clinique #124",
-        time: '2026-04-08T07:15:00',
-        read: false,
-        icon: 'MessageCircle',
-        actionLink: '/medecin/messagerie',
-        actionType: 'message'
-      },
-      {
-        id: 4,
-        type: 'community',
-        title: 'Cas partagé',
-        message: "Votre cas 'BPCO stade avancé' a été partagé 5 fois",
-        time: '2026-04-07T16:45:00',
-        read: true,
-        icon: 'Users',
-        actionLink: '/medecin/cas-cliniques',
-        actionType: 'cas'
-      },
-      {
-        id: 5,
-        type: 'achievement',
-        title: 'Badge débloqué',
-        message: "Expert en pneumonie - 50 cas partagés",
-        time: '2026-04-07T10:30:00',
-        read: true,
-        icon: 'Award',
-        actionLink: '/medecin/profil',
-        actionType: 'profil'
-      },
-      {
-        id: 6,
-        type: 'consultation',
-        title: 'Consultation terminée',
-        message: "Rapport disponible pour Fouda Marie",
-        time: '2026-04-06T15:20:00',
-        read: true,
-        icon: 'CheckCircle',
-        actionLink: '/medecin/historique',
-        actionType: 'consultation'
-      }
-    ];
+  const MOCK_NOTIFS = [
+    { id: 1, type: 'consultation', title: 'Nouvelle consultation', message: 'Dr. Martin a programmé une consultation avec Tamo Bernard', time: '2026-04-08T10:00:00', read: false, icon: 'Stethoscope', actionLink: '/medecin/consultation', actionType: 'consultation' },
+    { id: 2, type: 'patient',      title: 'Patient critique',      message: 'KAMGA Jean - Suivi dépassé depuis 9 jours',                time: '2026-04-08T08:30:00', read: false, icon: 'AlertCircle', actionLink: '/medecin/patients',      actionType: 'patient'       },
+    { id: 3, type: 'message',      title: 'Nouveau message',       message: 'Dr. Nkoa a commenté votre cas clinique #124',             time: '2026-04-08T07:15:00', read: false, icon: 'MessageCircle', actionLink: '/medecin/messagerie',  actionType: 'message'       },
+  ];
 
-    const savedNotifications = localStorage.getItem('notifications');
-    if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
-    } else {
-      setNotifications(mockNotifications);
+  const loadNotifications = async () => {
+    try {
+      const data = await getNotifications();
+      setNotifications(Array.isArray(data) ? data : data.items ?? []);
+    } catch {
+      setNotifications(MOCK_NOTIFS);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const saveNotifications = (updatedNotifications) => {
-    setNotifications(updatedNotifications);
-    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+  const markAsRead = async (notificationId, actionLink) => {
+    setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
+    try { await marquerNotifLue(notificationId); } catch { /* optimistic */ }
+    if (actionLink) navigate(actionLink);
   };
 
-  const markAsRead = (notificationId, actionLink) => {
-    const updatedNotifications = notifications.map(notif =>
-      notif.id === notificationId ? { ...notif, read: true } : notif
-    );
-    saveNotifications(updatedNotifications);
-    navigate(actionLink);
+  const markAllAsRead = async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    try { await marquerToutesLues(); } catch { /* optimistic */ }
   };
 
-  const markAllAsRead = () => {
-    const updatedNotifications = notifications.map(notif => ({ ...notif, read: true }));
-    saveNotifications(updatedNotifications);
-  };
-
-  const deleteNotification = (notificationId, e) => {
+  const deleteNotification = async (notificationId, e) => {
     e.stopPropagation();
-    const updatedNotifications = notifications.filter(notif => notif.id !== notificationId);
-    saveNotifications(updatedNotifications);
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    try { await supprimerNotif(notificationId); } catch { /* optimistic */ }
   };
 
-  const clearReadNotifications = () => {
-    const updatedNotifications = notifications.filter(notif => !notif.read);
-    saveNotifications(updatedNotifications);
+  const clearReadNotifications = async () => {
+    setNotifications(prev => prev.filter(n => !n.read));
+    try { await supprimerNotifsLues(); } catch { /* optimistic */ }
   };
 
   const formatTime = (dateString) => {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Card from "./Card";
+import { X } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
 import { getTopMedecinsConcordance } from "../api/adminapi";
 
@@ -41,7 +42,7 @@ function genMockTop5(mois, annee) {
 }
 
 // ── Avatar : photo de profil ou initiales ────────────────────────────────────
-function Avatar({ doc }) {
+function Avatar({ doc, onClick }) {
   const [err, setErr] = useState(false);
   const initiales     = `${doc.prenom[0]}${doc.nom[0]}`.toUpperCase();
 
@@ -50,7 +51,8 @@ function Avatar({ doc }) {
       src={doc.photo_url}
       alt={`${doc.prenom} ${doc.nom}`}
       onError={() => setErr(true)}
-      className="w-10 h-10 flex-shrink-0 rounded-full object-cover"
+      onClick={onClick}
+      className="w-10 h-10 flex-shrink-0 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
       style={{ border: `2px solid ${brand.DEFAULT}44` }}
     />
   ) : (
@@ -78,6 +80,7 @@ export default function DashTop5Medecins({ dark }) {
   const [data,       setData]       = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [photoZoom,  setPhotoZoom]  = useState(null);
   const timerRef = useRef(null);
 
   const yearList = Array.from(
@@ -181,7 +184,7 @@ export default function DashTop5Medecins({ dark }) {
               </span>
 
               {/* Photo de profil */}
-              <Avatar doc={m} />
+              <Avatar doc={m} onClick={() => m.photo_url && setPhotoZoom(m)} />
 
               {/* Nom + barre concordance */}
               <div className="flex-1 min-w-0">
@@ -221,6 +224,25 @@ export default function DashTop5Medecins({ dark }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {photoZoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={e => e.target === e.currentTarget && setPhotoZoom(null)}>
+          <div className="w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden" style={{ background: surface.card, borderColor: surface.border }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: surface.border }}>
+              <div>
+                <p className="text-[15px] font-bold" style={{ color: txt.primary }}>Dr. {photoZoom.prenom} {photoZoom.nom}</p>
+                <p className="text-[13px] mt-0.5" style={{ color: txt.subtle }}>Photo d'identité (CNI)</p>
+              </div>
+              <button onClick={() => setPhotoZoom(null)} className="w-8 h-8 flex items-center justify-center rounded-lg"
+                style={{ color: txt.subtle }}><X size={15}/></button>
+            </div>
+            <div className="px-5 py-6 flex justify-center">
+              <img src={photoZoom.photo_url} alt={`${photoZoom.prenom} ${photoZoom.nom}`} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow" />
+            </div>
+          </div>
         </div>
       )}
     </Card>

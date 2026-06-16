@@ -65,7 +65,7 @@ function ModaleProfil({ doc: m, onClose, dark }) {
   const surface = getSurface(dark);
   const txt     = getText(dark);
   return (
-    <Modal dark={dark} onClose={onClose} title={m.name} sub="Photo d'identité (CNI)"
+    <Modal dark={dark} onClose={onClose} title={m.name} sub="Photo d'identité (CNI)" wide
       footer={
         <button onClick={onClose} className="flex-1 py-2 rounded-xl text-[14px] font-semibold border transition-colors"
           style={{ borderColor: surface.border, color: txt.muted }}
@@ -74,11 +74,11 @@ function ModaleProfil({ doc: m, onClose, dark }) {
           Fermer
         </button>
       }>
-      <div className="flex flex-col items-center gap-4 py-4">
+      <div className="flex flex-col items-center gap-4">
         {m.photo_url
           ? <img src={m.photo_url} alt={m.name}
-              className="w-36 h-36 rounded-full object-cover border-2 border-gray-200 shadow" />
-          : <div className="w-36 h-36 rounded-full flex flex-col items-center justify-center gap-2 border-2 border-dashed"
+              className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow" />
+          : <div className="w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed"
               style={{ borderColor: surface.border, background: surface.bg, color: txt.subtle }}>
               <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>

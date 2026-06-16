@@ -15,7 +15,6 @@ import {
 } from "../components/ui/Table";
 
 const NOW   = new Date();
-const sub   = (ms) => new Date(NOW.getTime() - ms);
 const pad   = (n)  => String(n).padStart(2, "0");
 
 function fmt(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`; }
@@ -38,51 +37,12 @@ function joursInactivite(derniereActivite) {
   return Math.floor((NOW - new Date(derniereActivite)) / (1000 * 3600 * 24));
 }
 
-const MOCK = [
-  { id:1, initials:"JD", avatarColor:brand.DEFAULT,
-    nom:"Dr. Jean Dupont",  specialite:"Pneumologue", cnom:"CM-2019-0847",
-    hopital:"H. Général Douala", ville:"Douala",
-    email:"j.dupont@hgd.cm", telephone:"+237 699 123 456",
-    patients:134, consultations:4821, concordanceIA:88,
-    rangCommunaute:"#7/38", casPartages:"247 cas publiés",
-    derniereActivite: sub(2*3600000).toISOString(),
-    activiteRecente:[{texte:"Consultation #247 enregistrée",quand:"Auj. 14:22"}],
-    creeLE:fmt(sub(180*24*3600000)), valideLE:fmt(sub(177*24*3600000)) },
-  { id:2, initials:"DK", avatarColor:"#185FA5",
-    nom:"Dr. Kamto Diane", specialite:"Pneumologue", cnom:"CM-2017-0432",
-    hopital:"CHU Yaoundé", ville:"Yaoundé",
-    email:"d.kamto@chu.cm", telephone:"+237 677 234 567",
-    patients:198, consultations:3201, concordanceIA:92,
-    rangCommunaute:"#3/38", casPartages:"312 cas publiés",
-    derniereActivite: sub(30*60000).toISOString(),
-    activiteRecente:[{texte:"Consultation #198 enregistrée",quand:"Auj. 09:10"}],
-    creeLE:fmt(sub(90*24*3600000)), valideLE:fmt(sub(88*24*3600000)) },
-  { id:3, initials:"DN", avatarColor:"#7C3AED",
-    nom:"Dr. Nkoa",        specialite:"Pneumologue", cnom:"CM-2018-0521",
-    hopital:"H. Général Douala", ville:"Douala",
-    email:"nkoa@hgd.cm", telephone:"+237 699 345 678",
-    patients:176, consultations:2847, concordanceIA:74,
-    rangCommunaute:"#5/38", casPartages:"189 cas publiés",
-    derniereActivite: sub(20*24*3600000).toISOString(),
-    activiteRecente:[],
-    creeLE:fmt(sub(120*24*3600000)), valideLE:fmt(sub(118*24*3600000)) },
-  { id:4, initials:"DB", avatarColor:"#D97706",
-    nom:"Dr. Barry",       specialite:"Pneumologue", cnom:"CM-2020-0612",
-    hopital:"H. Régional Garoua", ville:"Garoua",
-    email:"barry@hrg.cm", telephone:"+237 655 456 789",
-    patients:89, consultations:1234, concordanceIA:61,
-    rangCommunaute:"#12/38", casPartages:"74 cas publiés",
-    derniereActivite: sub(30*24*3600000).toISOString(),
-    activiteRecente:[],
-    creeLE:fmt(sub(200*24*3600000)), valideLE:fmt(sub(197*24*3600000)) },
-];
-
 export default function MedecinsActifs() {
   const { dark } = useOutletContext() || {};
   const { searchQuery } = useAdminTheme();
   const navigate = useNavigate();
 
-  const [medecins,    setMedecins]    = useState(MOCK);
+  const [medecins,    setMedecins]    = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [filtre,      setFiltre]      = useState("Tous");
   const [villeFiltre, setVilleFiltre] = useState("Toutes");
@@ -324,7 +284,7 @@ export default function MedecinsActifs() {
       {modalePhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           onClick={e=>e.target===e.currentTarget&&setModalePhoto(null)}>
-          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
+          <div className={`w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
             <div className={`flex items-center justify-between px-5 py-4 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
               <div>
                 <p className={`text-[15px] font-semibold ${dark?"text-white":"text-gray-800"}`}>{modalePhoto.nom}</p>
@@ -332,10 +292,10 @@ export default function MedecinsActifs() {
               </div>
               <button onClick={()=>setModalePhoto(null)} className={`w-7 h-7 flex items-center justify-center rounded-lg ${dark?"text-[#484f58] hover:bg-[#21262d]":"text-gray-400 hover:bg-gray-100"}`}><X size={13}/></button>
             </div>
-            <div className="px-5 py-8 flex flex-col items-center gap-4">
+            <div className="px-5 py-6 flex flex-col items-center gap-4">
               {modalePhoto.photo_url
-                ? <img src={modalePhoto.photo_url} alt={modalePhoto.nom} className="w-32 h-32 rounded-full object-cover border-2 border-gray-200 shadow"/>
-                : <div className={`w-32 h-32 rounded-full flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
+                ? <img src={modalePhoto.photo_url} alt={modalePhoto.nom} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow"/>
+                : <div className={`w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
                     <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     <span className="text-[14px] text-center px-4">Aucune photo disponible</span>
                   </div>

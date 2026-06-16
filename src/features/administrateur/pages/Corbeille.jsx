@@ -9,7 +9,6 @@ import {
 } from "../components/ui/Table";
 
 const NOW = new Date();
-const sub = (ms) => new Date(NOW.getTime() - ms);
 const pad = (n) => String(n).padStart(2, "0");
 function fmt(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`; }
 
@@ -34,16 +33,6 @@ function couleurJours(jours) {
   return             { bg:"#f0fdf4", color:"#16a34a", border:"#bbf7d0" };
 }
 
-// ── Un seul mock conservé (fallback si API indisponible) ─────────────────────
-const MOCK = [
-  { id:1, initials:"DT", nom:"Dr. Tabi Jonas",   specialite:"Pneumologue",
-    cnom:"CM-2024-9999", hopital:"Clinique Alpha", ville:"Yaoundé",
-    email:"tabi.jonas@clinique.cm",
-    ancienStatut:"rejete", dateSuppression:sub(2*24*3600000),
-    supprimePar:"Administrateur", motifSuppression:"Dossier refusé — N° CNOM invalide",
-    photo_url: null },
-];
-
 function mapCorbeille(m) {
   return {
     id:               m.id,
@@ -51,10 +40,10 @@ function mapCorbeille(m) {
     nom:              `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
     specialite:       m.specialite    || "Pneumologue",
     hopital:          m.etablissement || "—",
-    ville:            m.adresse       || "—",
+    ville:            m.ville || m.adresse || "—",
     cnom:             m.numero_rpps   || "—",
     email:            m.email         || "—",
-    ancienStatut:     m.ancien_statut || m.statut || "rejete",
+    ancienStatut:     m.statut_precedent || m.ancien_statut || m.statut || "rejete",
     dateSuppression:  m.supprime_le   ? new Date(m.supprime_le) : new Date(),
     supprimePar:      m.supprime_par  || "Administrateur",
     motifSuppression: m.motif_suppression || m.motif_rejet || "—",
@@ -86,14 +75,42 @@ function Modal({ onClose, title, sub: subtitle, children, footer, dark }) {
   );
 }
 
+function ModalePhoto({ r, onClose, dark }) {
+  const surface = getSurface(dark);
+  const txt     = getText(dark);
+  return (
+    <Modal dark={dark} onClose={onClose} title={r.nom} sub="Photo d'identité (CNI)"
+      footer={<button onClick={onClose} className="flex-1 py-2 rounded-xl text-[14px] font-semibold border"
+        style={{ borderColor: surface.border, color: txt.muted }}>Fermer</button>}>
+      <div className="flex flex-col items-center gap-4">
+        {r.photo_url
+          ? <img src={r.photo_url} alt={r.nom} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow"/>
+          : <div className="w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed"
+              style={{ borderColor: surface.border, background: surface.bg, color: txt.subtle }}>
+              <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span className="text-[14px] text-center px-2">Aucune photo disponible</span>
+            </div>
+        }
+        <div className="text-center">
+          <p className="text-[14px] font-bold" style={{ color: txt.primary }}>{r.nom}</p>
+          <p className="text-[14px] mt-0.5" style={{ color: txt.subtle }}>{r.specialite} · CNOM {r.cnom}</p>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export default function Corbeille() {
   const { dark } = useOutletContext() || {};
   const surface = getSurface(dark);
   const txt     = getText(dark);
 
-  const [rows,          setRows]         = useState(MOCK);
+  const [rows,          setRows]         = useState([]);
   const [modaleRestore, setModaleRestore] = useState(null);
   const [modaleDelete,  setModaleDelete]  = useState(null);
+  const [modalePhoto,   setModalePhoto]   = useState(null);
   const [toast,         setToast]         = useState(null);
   const [page,          setPage]          = useState(1);
   const [perPage,       setPerPage]       = useState(10);
@@ -273,7 +290,7 @@ export default function Corbeille() {
                       <Td dark={dark}>
                         <div className="opacity-60">
                           <PersonCell dark={dark} avatarColor={avatarColor(r.nom)} initials={r.initials}
-                            name={r.nom} subtitle={r.specialite} photoUrl={r.photo_url} />
+                            name={r.nom} subtitle={r.specialite} onClick={()=>setModalePhoto(r)} photoUrl={r.photo_url} />
                         </div>
                       </Td>
 
@@ -453,6 +470,8 @@ export default function Corbeille() {
           </div>
         </Modal>
       )}
+
+      {modalePhoto && <ModalePhoto r={modalePhoto} dark={dark} onClose={()=>setModalePhoto(null)} />}
 
       {/* ── Toast ── */}
       {toast && (

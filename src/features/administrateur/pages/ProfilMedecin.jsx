@@ -127,15 +127,17 @@ export default function ProfilMedecin() {
   const [toast,       setToast]       = useState(null);
 
   useEffect(() => {
-    // Priorité 1 : données passées via navigate(state) depuis MedecinsActifs
+    // Affichage instantané avec les données passées via navigate(state) depuis MedecinsActifs,
+    // en attendant la réponse fraîche de l'API (qui remplacera cet état ci-dessous).
     const fromState = location.state?.medecin;
-    if (fromState?.email) { setM(fromState); return; }
+    if (fromState?.email) setM(fromState);
 
-    // Priorité 2 : charge depuis l'API backend (profil complet + stats)
+    // Toujours recharger depuis le backend pour avoir les stats à jour (rang, concordance, etc.)
     getMedecinById(id)
       .then(data => setM(normaliserMedecin(data)))
       .catch(() => {
-        // Fallback MOCK si l'API est absente ou retourne 404
+        // Fallback MOCK si l'API est absente ou retourne 404, sauf si on a déjà un affichage valide
+        if (fromState?.email) return;
         const mock = MOCK[Number(id)];
         if (mock) setM(mock);
         else navigate("/administrateur/medecins");
@@ -313,7 +315,7 @@ export default function ProfilMedecin() {
                 {label:"Patients",       value:m.patients?m.patients.toLocaleString("fr-FR"):"0",       color:"#0f766e"},
                 {label:"Consultations",  value:m.consultations?m.consultations.toLocaleString("fr-FR"):"0",color:"#185FA5"},
                 {label:"Rang",           value:m.rangCommunaute||"—",                                    color:"#7C3AED"},
-                {label:"Cas partagés",   value:m.casPartages?m.casPartages.replace(" cas publiés",""):"—", color:"#D97706"},
+                {label:"Cas partagés",   value:m.casPartages?(m.casPartages.match(/\d+/)?.[0] ?? "—"):"—", color:"#D97706"},
               ].map(({label,value,color})=>(
                 <div key={label} className={`rounded-xl p-4 text-center ${dark?"bg-[#0d1117]":"bg-gray-50"}`}>
                   <p className={`text-[14px] uppercase tracking-wider font-medium mb-1.5 ${tx3}`}>{label}</p>
@@ -347,7 +349,7 @@ export default function ProfilMedecin() {
       {modalePhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           onClick={e=>e.target===e.currentTarget&&setModalePhoto(false)}>
-          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
+          <div className={`w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
             <div className={`flex items-center justify-between px-5 py-4 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
               <div>
                 <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>{m.nom}</p>
@@ -357,10 +359,10 @@ export default function ProfilMedecin() {
                 <X size={13}/>
               </button>
             </div>
-            <div className="px-5 py-8 flex flex-col items-center gap-4">
+            <div className="px-5 py-6 flex flex-col items-center gap-4">
               {m.photo_url
-                ? <img src={m.photo_url} alt={m.nom} className="w-36 h-36 rounded-full object-cover border-2 border-gray-200 shadow-lg"/>
-                : <div className={`w-36 h-36 rounded-full flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
+                ? <img src={m.photo_url} alt={m.nom} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow-lg"/>
+                : <div className={`w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
                     <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
                     </svg>

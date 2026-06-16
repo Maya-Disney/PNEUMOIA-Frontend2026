@@ -11,12 +11,12 @@ import { useToast } from '../../contexts/ToastContext';
 const API_URL = 'http://localhost:8000/api/v1';
 
 const DOCUMENTS_REQUIS = [
-  { id: 'diplome_specialisation', label: 'Diplôme de spécialisation en pneumologie',      accept: '.pdf,.jpg,.jpeg,.png,.docx' },
-  { id: 'diplome_medecine',       label: 'Diplôme de docteur en médecine',                 accept: '.pdf,.jpg,.jpeg,.png,.docx' },
-  { id: 'inscription_ordre',      label: "Inscription à l'ordre / registre des médecins",  accept: '.pdf,.jpg,.jpeg,.png,.docx' },
-  { id: 'autorisation_exercice',  label: "Autorisation d'exercice en pneumologie",         accept: '.pdf,.jpg,.jpeg,.png,.docx' },
-  { id: 'carte_professionnelle',  label: 'Carte professionnelle de médecin',               accept: '.pdf,.jpg,.jpeg,.png,.docx' },
-  { id: 'cni',                    label: "Carte nationale d'identité (CNI)",               accept: '.pdf,.jpg,.jpeg,.png,.docx' },
+  { id: 'diplome_specialisation', label: 'Diplôme de spécialisation en pneumologie',      accept: '*' },
+  { id: 'diplome_medecine',       label: 'Diplôme de docteur en médecine',                 accept: '*' },
+  { id: 'inscription_ordre',      label: "Inscription à l'ordre / registre des médecins",  accept: '*' },
+  { id: 'autorisation_exercice',  label: "Autorisation d'exercice en pneumologie",         accept: '*' },
+  { id: 'carte_professionnelle',  label: 'Carte professionnelle de médecin',               accept: '*' },
+  { id: 'cni',                    label: "Carte nationale d'identité (CNI)",               accept: '*' },
 ];
 
 const MAX_MB = 5;
@@ -505,7 +505,7 @@ export default function RegisterModal({ isOpen, onClose }) {
                     {role === 'medecin' && step === 3 && (
                       <>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {uploadedCount}/{DOCUMENTS_REQUIS.length} documents · PDF, JPG, PNG, DOCX · max {MAX_MB} Mo
+                          {uploadedCount}/{DOCUMENTS_REQUIS.length} documents · Tous formats acceptés · max {MAX_MB} Mo
                         </p>
                         <div className="space-y-2">
                           {DOCUMENTS_REQUIS.map(doc => {
