@@ -23,3 +23,6 @@ uploads/
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code local config (not to be shared/pushed)
+.claude/
