@@ -9,8 +9,6 @@ import {
 } from 'lucide-react';
 import { createPatientAide } from '../../../services/patientsApi';
 
-const BLUE = '#2563EB';
-
 function calculerAge(dateStr) {
   if (!dateStr) return null;
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -21,7 +19,7 @@ function calculerAge(dateStr) {
 function SectionCard({ icon: Icon, label, color = 'red', children, delay = 0 }) {
   const palette = {
     red:   { bg: 'bg-red-50 dark:bg-red-500/10',     text: 'text-red-600 dark:text-red-400'   },
-    blue:  { bg: 'bg-blue-50 dark:bg-blue-500/10',   text: 'text-blue-600 dark:text-blue-400' },
+    blue:  { bg: 'bg-emerald-50 dark:bg-emerald-500/10',   text: 'text-emerald-600 dark:text-emerald-400' },
     amber: { bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400' },
   };
   const c = palette[color] || palette.red;
@@ -32,7 +30,7 @@ function SectionCard({ icon: Icon, label, color = 'red', children, delay = 0 }) 
         <div className={`w-8 h-8 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
           <Icon size={15} className={c.text} />
         </div>
-        <span className={`text-xs font-black uppercase tracking-[0.15em] ${c.text}`}>{label}</span>
+        <span className={`text-sm font-semibold text-(--t1)`}>{label}</span>
       </div>
       <div className="p-5">{children}</div>
     </motion.div>
@@ -40,7 +38,7 @@ function SectionCard({ icon: Icon, label, color = 'red', children, delay = 0 }) 
 }
 
 function Field({ label, required, color = 'blue', children }) {
-  const star = color === 'red' ? 'text-red-500' : 'text-blue-500';
+  const star = color === 'red' ? 'text-red-500' : 'text-emerald-500';
   return (
     <div>
       <label className="block text-xs font-semibold text-(--t3) mb-1.5 uppercase tracking-wide">
@@ -103,7 +101,7 @@ export default function AideNouveauPatient() {
     }
   };
 
-  const inp = "w-full px-3 py-2.5 border border-(--ln) rounded-xl bg-(--sf) text-(--t1) text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all placeholder:text-(--t4)";
+  const inp = "w-full px-3 py-2.5 border border-(--ln) rounded-xl bg-(--sf) text-(--t1) text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all placeholder:text-(--t4)";
   const sel = `${inp} cursor-pointer`;
 
   const age      = calculerAge(form.date_naissance);
@@ -113,22 +111,27 @@ export default function AideNouveauPatient() {
   return (
     <div className="w-full max-w-6xl mx-auto space-y-5">
 
-      {/* ── En-tête ─────────────────────────────────────────────────── */}
-      <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }}
-        className="flex items-center gap-4">
-        <motion.button whileHover={{ scale:1.08 }} whileTap={{ scale:0.95 }}
-          type="button" onClick={() => navigate('/aide/patients')}
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-(--ln) bg-(--sf) text-(--t2) hover:text-(--t1) transition-all shrink-0">
-          <ArrowLeft size={17} />
-        </motion.button>
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <div className="w-1 h-4 rounded-full" style={{ backgroundColor: BLUE }} />
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: BLUE }}>
-              Nouveau patient
-            </span>
+      {/* ── HERO ─────────────────────────────────────────────────────── */}
+      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
+        className="rounded-2xl overflow-hidden shadow-lg"
+        style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)' }}>
+        <div className="relative p-5 overflow-hidden">
+          <div className="absolute -right-8 -top-8 w-48 h-48 rounded-full opacity-15 pointer-events-none"
+            style={{ background: 'radial-gradient(circle, #059669, transparent)' }} />
+          <div className="relative flex items-center gap-4">
+            <motion.button whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.95 }}
+              type="button" onClick={() => navigate('/aide/patients')}
+              className="w-10 h-10 flex items-center justify-center rounded-xl border border-white/15 text-white/70 hover:bg-white/10 transition-all shrink-0">
+              <ArrowLeft size={17} />
+            </motion.button>
+            <div className="w-12 h-12 rounded-xl bg-linear-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shrink-0">
+              <UserPlus className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Nouveau patient</h1>
+              <p className="text-slate-400 text-sm mt-0.5">Créer un dossier patient complet</p>
+            </div>
           </div>
-          <h1 className="text-xl font-bold text-(--t1) leading-tight">Créer un dossier patient</h1>
         </div>
       </motion.div>
 
@@ -157,18 +160,18 @@ export default function AideNouveauPatient() {
                         <motion.label key={opt.val} whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
                           className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${
                             form.civilite === opt.val
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
-                              : 'border-(--ln) hover:border-blue-300 hover:bg-(--sf2)'
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10'
+                              : 'border-(--ln) hover:border-emerald-300 hover:bg-(--sf2)'
                           }`}>
                           <input type="radio" name="civilite" value={opt.val}
                             checked={form.civilite === opt.val} onChange={() => set('civilite', opt.val)} className="sr-only" />
                           <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                            form.civilite === opt.val ? 'border-blue-500' : 'border-(--ln)'
+                            form.civilite === opt.val ? 'border-emerald-500' : 'border-(--ln)'
                           }`}>
-                            {form.civilite === opt.val && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                            {form.civilite === opt.val && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
                           </div>
                           <div>
-                            <div className={`text-sm font-bold ${form.civilite === opt.val ? 'text-blue-700 dark:text-blue-300' : 'text-(--t1)'}`}>{opt.label}</div>
+                            <div className={`text-sm font-bold ${form.civilite === opt.val ? 'text-emerald-700 dark:text-emerald-300' : 'text-(--t1)'}`}>{opt.label}</div>
                             <div className="text-xs text-(--t4)">{opt.sub}</div>
                           </div>
                         </motion.label>
@@ -294,15 +297,14 @@ export default function AideNouveauPatient() {
                 className="bg-(--sf) rounded-2xl border border-(--ln) shadow-sm overflow-hidden sticky top-20">
 
                 <div className="px-5 py-4 border-b border-(--ln) bg-(--sf2)">
-                  <span className="text-xs font-black uppercase tracking-[0.15em] text-(--t4)">Aperçu du dossier</span>
+                  <span className="text-sm font-semibold text-(--t1)">Aperçu du dossier</span>
                 </div>
 
                 <div className="p-5">
                   {/* Avatar */}
                   <div className="flex flex-col items-center mb-5">
                     <motion.div key={initials} initial={{ scale:0.85 }} animate={{ scale:1 }}
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg mb-3"
-                      style={{ background:`linear-gradient(135deg, ${BLUE}, #1D4ED8)`, boxShadow:`0 8px 24px ${BLUE}33` }}>
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg mb-3 bg-linear-to-br from-emerald-500 to-emerald-700">
                       {initials || <User size={24} className="opacity-60" />}
                     </motion.div>
                     <div className="text-center">
@@ -345,9 +347,9 @@ export default function AideNouveauPatient() {
                   {/* Badge allergies */}
                   {form.allergies_text.trim() && (
                     <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }}
-                      className="mt-3 flex items-start gap-2 p-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
-                      <Syringe size={12} className="text-blue-500 shrink-0 mt-0.5" />
-                      <span className="text-[11px] text-blue-800 dark:text-blue-300 font-semibold leading-relaxed">
+                      className="mt-3 flex items-start gap-2 p-2.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
+                      <Syringe size={12} className="text-emerald-500 shrink-0 mt-0.5" />
+                      <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold leading-relaxed">
                         Allergies : {form.allergies_text}
                       </span>
                     </motion.div>
@@ -356,9 +358,9 @@ export default function AideNouveauPatient() {
                   {/* Badge groupe sanguin spécial */}
                   {(form.groupe_sanguin === 'O-' || form.groupe_sanguin === 'AB+') && (
                     <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }}
-                      className="mt-2 flex items-center gap-2 p-2.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
-                      <Droplets size={12} className="text-blue-500 shrink-0" />
-                      <span className="text-[11px] text-blue-800 dark:text-blue-300 font-semibold">
+                      className="mt-2 flex items-center gap-2 p-2.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
+                      <Droplets size={12} className="text-emerald-500 shrink-0" />
+                      <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold">
                         {form.groupe_sanguin === 'O-' ? 'Donneur universel' : 'Receveur universel'}
                       </span>
                     </motion.div>
@@ -378,8 +380,7 @@ export default function AideNouveauPatient() {
 
                   <motion.button whileHover={canSubmit ? { scale:1.02 } : {}} whileTap={canSubmit ? { scale:0.98 } : {}}
                     type="submit" disabled={!canSubmit}
-                    className="w-full flex items-center justify-center gap-2 py-3 text-white text-sm font-bold rounded-xl shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
-                    style={{ backgroundColor: BLUE, boxShadow: canSubmit ? `0 4px 14px ${BLUE}44` : 'none' }}>
+                    className="w-full flex items-center justify-center gap-2 py-3 text-white text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
                     {loading
                       ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       : <UserPlus size={15} />}

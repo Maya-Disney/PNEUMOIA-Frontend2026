@@ -13,28 +13,28 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
   const [searchQuery,  setSearchQuery]  = useState('');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [notifCount,   setNotifCount]   = useState(0);
   const userMenuRef = useRef(null);
   const navigate    = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { profil }  = useProfil();
 
   useEffect(() => {
-    const fetchPending = async () => {
+    const fetchNotifCount = async () => {
       const token = localStorage.getItem('token');
       if (!token) return;
       try {
-        const res = await fetch(`${API_URL}/patients/access-requests/recues`, {
+        const res = await fetch(`${API_URL}/notifications/count`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
-          setPendingCount(Array.isArray(data) ? data.length : 0);
+          setNotifCount(data.count || 0);
         }
       } catch {}
     };
-    fetchPending();
-    const interval = setInterval(fetchPending, 60_000);
+    fetchNotifCount();
+    const interval = setInterval(fetchNotifCount, 30_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -126,9 +126,6 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
                 placeholder="Rechercher un patient, un cas…"
                 className="w-full bg-transparent text-sm text-[var(--t2)] placeholder:text-[var(--t4)] focus:outline-none"
               />
-              <kbd className="text-[10px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
-                ⌘K
-              </kbd>
             </form>
 
             {/* Bouton recherche — mobile */}
@@ -146,9 +143,9 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
               title="Notifications"
             >
               <Bell className="w-5 h-5 text-[var(--t3)] group-hover:text-blue-600 transition-colors" />
-              {pendingCount > 0 && (
+              {notifCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-[var(--sf)]">
-                  {pendingCount > 9 ? '9+' : pendingCount}
+                  {notifCount > 9 ? '9+' : notifCount}
                 </span>
               )}
             </Link>

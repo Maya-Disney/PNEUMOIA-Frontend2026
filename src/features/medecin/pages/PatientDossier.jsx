@@ -621,14 +621,31 @@ export default function PatientDossier() {
 
           {/* Consultations */}
           <div>
-            <h2 className="text-base font-bold text-(--t1) mb-3 flex items-center gap-2">
-              <Stethoscope className="w-4 h-4 text-blue-500" />
-              Consultations
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-bold text-(--t1) flex items-center gap-2">
+                <Stethoscope className="w-4 h-4 text-blue-500" />
+                Consultations
+              </h2>
+              <button
+                onClick={() => navigate(`/medecin/consultations?patient_id=${patientId}`)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+              >
+                <Stethoscope className="w-3.5 h-3.5" />
+                Nouvelle consultation
+              </button>
+            </div>
             {consultations.length === 0 ? (
               <div className="bg-(--sf) border border-(--ln) rounded-2xl p-10 text-center">
                 <Stethoscope className="w-10 h-10 text-(--t4) mx-auto mb-3" />
-                <p className="text-sm text-(--t3)">Aucune consultation enregistrée</p>
+                <p className="text-sm font-medium text-(--t2) mb-1">Aucune consultation enregistrée</p>
+                <p className="text-xs text-(--t4) mb-4">Ce patient a été créé par l'aide soignant. Démarrez la première consultation pour saisir les symptômes et lancer le diagnostic IA.</p>
+                <button
+                  onClick={() => navigate(`/medecin/consultations?patient_id=${patientId}`)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+                >
+                  <Stethoscope className="w-4 h-4" />
+                  Démarrer la consultation
+                </button>
               </div>
             ) : (
               <div className="space-y-3">

@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react';
 import {
   X, ChevronLeft, ChevronRight, Upload, Camera, CheckCircle,
-  Trash2, AlertCircle, Stethoscope, Users
+  Trash2, AlertCircle, Stethoscope, Users, Eye, EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmationModal from './ConfirmationModal';
@@ -51,6 +51,8 @@ export default function RegisterModal({ isOpen, onClose }) {
   const [apiError,         setApiError]         = useState('');
   const [inputKeys,        setInputKeys]        = useState({});
   const [codeReferentInfo, setCodeReferentInfo] = useState(null);
+  const [showPwd,          setShowPwd]          = useState(false);
+  const [showConfirmPwd,   setShowConfirmPwd]   = useState(false);
   const photoRef = useRef(null);
 
   const [form, setForm] = useState({
@@ -391,7 +393,12 @@ export default function RegisterModal({ isOpen, onClose }) {
                       <>
                         <div>
                           <label className={labelClass}>Mot de passe *</label>
-                          <input type="password" value={form.motDePasse} onChange={e => upd('motDePasse', e.target.value)} placeholder="••••••••" className={inputClass} />
+                          <div className="relative">
+                            <input type={showPwd ? 'text' : 'password'} value={form.motDePasse} onChange={e => upd('motDePasse', e.target.value)} placeholder="••••••••" className={`${inputClass} pr-10`} />
+                            <button type="button" onClick={() => setShowPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                              {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                           {form.motDePasse && (() => {
                             const s = getPasswordStrength(form.motDePasse);
                             return (
@@ -408,7 +415,12 @@ export default function RegisterModal({ isOpen, onClose }) {
                         </div>
                         <div>
                           <label className={labelClass}>Confirmation du mot de passe *</label>
-                          <input type="password" value={form.confirmationMdp} onChange={e => upd('confirmationMdp', e.target.value)} placeholder="••••••••" className={inputClass} />
+                          <div className="relative">
+                            <input type={showConfirmPwd ? 'text' : 'password'} value={form.confirmationMdp} onChange={e => upd('confirmationMdp', e.target.value)} placeholder="••••••••" className={`${inputClass} pr-10`} />
+                            <button type="button" onClick={() => setShowConfirmPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                              {showConfirmPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                           {form.confirmationMdp && (
                             <p className={`text-xs mt-1 ${form.motDePasse === form.confirmationMdp ? 'text-emerald-600' : 'text-red-500'}`}>
                               {form.motDePasse === form.confirmationMdp ? '✓ Les mots de passe correspondent' : '✗ Les mots de passe ne correspondent pas'}
@@ -560,7 +572,12 @@ export default function RegisterModal({ isOpen, onClose }) {
                         </div>
                         <div>
                           <label className={labelClass}>Mot de passe *</label>
-                          <input type="password" value={form.motDePasse} onChange={e => upd('motDePasse', e.target.value)} placeholder="••••••••" className={inputClass} />
+                          <div className="relative">
+                            <input type={showPwd ? 'text' : 'password'} value={form.motDePasse} onChange={e => upd('motDePasse', e.target.value)} placeholder="••••••••" className={`${inputClass} pr-10`} />
+                            <button type="button" onClick={() => setShowPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                              {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                           {form.motDePasse && (() => {
                             const s = getPasswordStrength(form.motDePasse);
                             return (
@@ -585,7 +602,12 @@ export default function RegisterModal({ isOpen, onClose }) {
                         </div>
                         <div>
                           <label className={labelClass}>Confirmation du mot de passe *</label>
-                          <input type="password" value={form.confirmationMdp} onChange={e => upd('confirmationMdp', e.target.value)} placeholder="••••••••" className={inputClass} />
+                          <div className="relative">
+                            <input type={showConfirmPwd ? 'text' : 'password'} value={form.confirmationMdp} onChange={e => upd('confirmationMdp', e.target.value)} placeholder="••••••••" className={`${inputClass} pr-10`} />
+                            <button type="button" onClick={() => setShowConfirmPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                              {showConfirmPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                           {form.confirmationMdp && (
                             <p className={`text-xs mt-1 ${form.motDePasse === form.confirmationMdp ? 'text-emerald-600' : 'text-red-500'}`}>
                               {form.motDePasse === form.confirmationMdp ? '✓ Les mots de passe correspondent' : '✗ Les mots de passe ne correspondent pas'}

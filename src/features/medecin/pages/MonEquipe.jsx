@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users2, Copy, RefreshCw, CheckCircle, X, Shield,
@@ -82,7 +82,9 @@ export default function MonEquipe() {
   const [motif,         setMotif]         = useState('');
   const [refuseLoading, setRefuseLoading] = useState(false);
 
-  const [toast, setToast] = useState(null);
+  const [toast,      setToast]      = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const intervalRef  = useRef(null);
   const showToast = (msg, type = 'success') => setToast({ msg, type });
 
   const hdrs = () => ({
@@ -103,7 +105,17 @@ export default function MonEquipe() {
     finally   { setLoading(false); }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    loadData();
+    intervalRef.current = setInterval(loadData, 30_000);
+    return () => clearInterval(intervalRef.current);
+  }, [loadData]);
 
   // Filtres calculés
   const filtered = aides.filter(a => {
@@ -189,6 +201,15 @@ export default function MonEquipe() {
       <AnimatePresence>
         {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
       </AnimatePresence>
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-(--t1)">Mon Équipe</h1>
+        <button onClick={handleRefresh} disabled={refreshing}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-(--t2) border border-(--ln) rounded-lg hover:bg-(--sf2) transition-colors disabled:opacity-50">
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />Actualiser
+        </button>
+      </div>
 
       {/* ── Ligne supérieure : stats + code référent ── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">

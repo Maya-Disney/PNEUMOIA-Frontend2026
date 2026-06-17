@@ -37,7 +37,7 @@ export default function Navbar() {
         className="fixed top-0 left-0 right-0 bg-[var(--sf)] z-50 border-b border-[var(--ln)] transition-colors duration-300"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-17">
             {/* Logo - lien vers accueil */}
             <Link to="/" className="shrink-0">
               <motion.div 
@@ -49,21 +49,21 @@ export default function Navbar() {
                 <img 
                   src={logo} 
                   alt="PneumoDiag" 
-                  className="w-18 h-18 object-contain"
+                  className="w-23 h-23 object-contain"
                 />
               </motion.div>
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
+            <div className="hidden md:flex items-center gap-10">
               {navItems.map((item) => (
                 <Link
                   key={item.id}
                   to={item.path}
-                  className={`relative px-2 py-2 text-sm font-medium transition-colors ${
+                  className={`relative px-2 py-2 text-base font-semibold transition-colors ${
                       activeNav === item.id
                         ? 'text-blue-600'
-                        : 'text-[var(--t2)] hover:text-blue-600'
+                        : 'text-(--t2) hover:text-blue-600'
                     }`}
                 >
                   {item.label}
@@ -79,12 +79,12 @@ export default function Navbar() {
             </div>
 
             {/* Desktop Buttons */}
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-4">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsLoginOpen(true)}
-                className="px-5 py-2 text-[var(--t2)] hover:text-blue-600 transition-colors font-medium"
+                className="px-6 py-2.5 text-base text-(--t2) hover:text-blue-600 transition-colors font-semibold"
               >
                 Connexion
               </motion.button>
@@ -92,7 +92,7 @@ export default function Navbar() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsRegisterOpen(true)}
-                className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm text-base font-semibold"
               >
                 Inscription
               </motion.button>
