@@ -23,7 +23,7 @@ const PATHOLOGIES = [
 
 const MEDECINS = [
   { ini: "DK", nom: "Dr. Kamto Diane",  baseT: 92, baseTotal: 198, bg: "bg-blue-100 text-blue-700"   },
-  { ini: "JD", nom: "Dr. Jean Dupont",  baseT: 88, baseTotal: 134, bg: "bg-teal-100 text-teal-700"   },
+  { ini: "JD", nom: "Dr. Jean Dupont",  baseT: 88, baseTotal: 134, bg: "bg-blue-100 text-blue-800"   },
   { ini: "AS", nom: "Dr. Aminata Sow",  baseT: 82, baseTotal: 87,  bg: "bg-purple-100 text-purple-700"},
   { ini: "DM", nom: "Dr. Mbang",        baseT: 74, baseTotal: 62,  bg: "bg-amber-100 text-amber-700" },
 ];

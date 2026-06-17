@@ -181,7 +181,7 @@ function OngletPublications({ dark }) {
           : filtrees.map(pub=>{
             const isS=pub.statut==="suspendu", isR=pub.statut==="signale";
             const bg=isS?(dark?"bg-orange-950/20 border-orange-800/30":"bg-orange-50 border-orange-100"):isR?(dark?"bg-red-950/20 border-red-800/30":"bg-red-50 border-red-100"):(dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-200");
-            const iconBg=isS?(dark?"bg-orange-900/30":"bg-orange-100"):isR?(dark?"bg-red-900/30":"bg-red-100"):(dark?"bg-teal-900/30":"bg-teal-50");
+            const iconBg=isS?(dark?"bg-orange-900/30":"bg-orange-100"):isR?(dark?"bg-red-900/30":"bg-red-100"):(dark?"bg-teal-900/30":"bg-blue-50");
             return (
               <div key={pub.id} className={`rounded-xl border p-4 ${bg}`}>
                 <div className="flex items-start gap-3">
@@ -195,13 +195,13 @@ function OngletPublications({ dark }) {
                         <p className={`text-[15px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{pub.auteur} · {pub.meta}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <span className={`text-[15px] font-bold ${isS?"text-orange-500":isR?"text-red-500":"text-teal-600"}`}>
+                        <span className={`text-[15px] font-bold ${isS?"text-orange-500":isR?"text-red-500":"text-blue-700"}`}>
                           {isS?"Suspendu":isR?"Signalé":"Actif"}
                         </span>
                         <div className="flex gap-1.5">
                           {pub.statut==="publie"   && <><button onClick={()=>suspendre(pub.id)} className="text-[15px] px-2.5 py-1 rounded-lg border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 hover:bg-orange-50 transition-colors">Suspendre</button></>}
-                          {pub.statut==="signale"  && <><button onClick={()=>suspendre(pub.id)} className="text-[15px] px-2.5 py-1 rounded-lg border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 hover:bg-orange-50 transition-colors">Suspendre</button><button onClick={()=>reactiver(pub.id)} className="text-[15px] px-2.5 py-1 rounded-lg border border-teal-400 dark:border-teal-700 text-teal-600 dark:text-teal-400 hover:bg-teal-50 transition-colors">Ignorer</button></>}
-                          {pub.statut==="suspendu" && <><button onClick={()=>reactiver(pub.id)} className="text-[15px] px-2.5 py-1 rounded-lg border border-teal-400 dark:border-teal-700 text-teal-600 dark:text-teal-400 hover:bg-teal-50 transition-colors">Réactiver</button><button onClick={()=>supprimer(pub.id)} className="text-[15px] px-2.5 py-1 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 transition-colors">Supprimer</button></>}
+                          {pub.statut==="signale"  && <><button onClick={()=>suspendre(pub.id)} className="text-[15px] px-2.5 py-1 rounded-lg border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 hover:bg-orange-50 transition-colors">Suspendre</button><button onClick={()=>reactiver(pub.id)} className="text-[15px] px-2.5 py-1 rounded-lg border border-blue-400 dark:border-teal-700 text-blue-700 dark:text-blue-400 hover:bg-blue-50 transition-colors">Ignorer</button></>}
+                          {pub.statut==="suspendu" && <><button onClick={()=>reactiver(pub.id)} className="text-[15px] px-2.5 py-1 rounded-lg border border-blue-400 dark:border-teal-700 text-blue-700 dark:text-blue-400 hover:bg-blue-50 transition-colors">Réactiver</button><button onClick={()=>supprimer(pub.id)} className="text-[15px] px-2.5 py-1 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 transition-colors">Supprimer</button></>}
                         </div>
                       </div>
                     </div>

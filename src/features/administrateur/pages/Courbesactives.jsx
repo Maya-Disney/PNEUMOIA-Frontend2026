@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import { getConsultationsSemaine, getConsultationsTotal } from "../api/adminApi";
 
-const BRAND   = "#0f766e";
+const BRAND = "#1e40af";
 const COMPARE = "#8b5cf6";
 const NOW     = new Date();
 const pad     = (n) => String(n).padStart(2, "0");
@@ -225,14 +225,14 @@ export default function CourbeActivite() {
             value: moyActuel.toLocaleString("fr-FR"),
             sub:   `vs ${moyPrec.toLocaleString("fr-FR")} (${labelPrec})`,
             subColor: dark?"#484f58":"#9ca3af",
-            color: "text-teal-600",
+            color: "text-blue-700",
           },
           {
             label: `Pic — ${picActuel.date||""}`,
             value: picActuel.actuel?.toLocaleString("fr-FR") || "—",
             sub:   labelActuel,
             subColor: dark?"#484f58":"#9ca3af",
-            color: "text-teal-600",
+            color: "text-blue-700",
           },
         ].map(({ label, value, sub, subColor, color }) => (
           <div key={label} className={`${card} px-5 py-4`}>
@@ -369,7 +369,7 @@ export default function CourbeActivite() {
                     <td className={`px-5 py-4 text-[14px] font-medium ${dark?"text-[#8b949e]":"text-gray-500"}`}>
                       {tP.toLocaleString("fr-FR")}
                     </td>
-                    <td className={`px-5 py-4 text-[14px] font-bold ${ec>=0?"text-teal-600":"text-red-500"}`}>
+                    <td className={`px-5 py-4 text-[14px] font-bold ${ec>=0?"text-blue-700":"text-red-500"}`}>
                       {ec>=0?"+":""}{ec}%
                     </td>
                     <td className="px-5 py-4">

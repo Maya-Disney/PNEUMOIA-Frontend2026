@@ -26,7 +26,7 @@ const MOCK_VILLES = [
 ];
 const MOCK_TOP = [
   {ini:"DK", nom:"Dr. Kamto Diane", c:3201, ia:92, bg:"bg-blue-100 text-blue-700"},
-  {ini:"JD", nom:"Dr. Jean Dupont", c:4821, ia:88, bg:"bg-teal-100 text-teal-700"},
+  {ini:"JD", nom:"Dr. Jean Dupont", c:4821, ia:88, bg:"bg-blue-100 text-blue-800"},
   {ini:"AS", nom:"Dr. Aminata Sow", c:1243, ia:82, bg:"bg-purple-100 text-purple-700"},
   {ini:"DM", nom:"Dr. Mbang",       c:987,  ia:74, bg:"bg-amber-100 text-amber-700"},
 ];
@@ -64,7 +64,7 @@ const VUES = [
 
 const BG_COLORS = [
   "bg-blue-100 text-blue-700",
-  "bg-teal-100 text-teal-700",
+  "bg-blue-100 text-blue-800",
   "bg-purple-100 text-purple-700",
   "bg-amber-100 text-amber-700",
   "bg-rose-100 text-rose-700",
@@ -198,7 +198,7 @@ export default function Statistiques() {
       {/* ── KPIs ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon:Users,      l:"Médecins actifs",  v: String(kpis.medecins_actifs ?? 38),                                s:"+3 ce mois",     ibg:"bg-teal-50 dark:bg-teal-900/20",    ic:"text-teal-600"   },
+          { icon:Users,      l:"Médecins actifs",  v: String(kpis.medecins_actifs ?? 38),                                s:"+3 ce mois",     ibg:"bg-blue-50 dark:bg-blue-900/20",    ic:"text-blue-700"   },
           { icon:Activity,   l:"Consultations",    v: (kpis.consultations_total ?? 4821).toLocaleString("fr-FR"),       s:"+247 ce mois",   ibg:"bg-blue-50 dark:bg-blue-900/20",     ic:"text-blue-500"   },
           { icon:Brain,      l:"Précision IA",     v: `${kpis.precision_ia ?? 94}%`,                                     s:"+1.2% ce mois",  ibg:"bg-purple-50 dark:bg-purple-900/20", ic:"text-purple-500" },
           { icon:TrendingUp, l:"Concordance moy.", v: `${kpis.concordance_moy ?? 84}%`,                                  s:"Médecins actifs", ibg:"bg-amber-50 dark:bg-amber-900/20",  ic:"text-amber-500"  },

@@ -60,6 +60,22 @@ export const lancerDiagnostic = (data) =>
 export const envoyerFeedback = (id, data) =>
   apiFetch(`/diagnostic/${id}/feedback`, { method: 'POST', body: JSON.stringify(data) });
 
+// ── Notifications ─────────────────────────────────────────────
+export const getNotifications = () =>
+  apiFetch('/notifications');
+
+export const marquerNotifLue = (id) =>
+  apiFetch(`/notifications/${id}/lire`, { method: 'PATCH' });
+
+export const marquerToutesLues = () =>
+  apiFetch('/notifications/tout-lire', { method: 'PATCH' });
+
+export const supprimerNotif = (id) =>
+  apiFetch(`/notifications/${id}`, { method: 'DELETE' });
+
+export const supprimerNotifsLues = () =>
+  apiFetch('/notifications', { method: 'DELETE' });
+
 // ── PDF ───────────────────────────────────────────────────────
 export const telechargerPDF = async (consultationId) => {
   const res = await fetch(`${BASE_URL}/consultations/${consultationId}/pdf`, {

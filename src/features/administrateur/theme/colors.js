@@ -1,23 +1,23 @@
 /**
  * colors.js — Palette de couleurs PneumoIA Admin
  *
- * Couleur brand : #009e82 (vert médical)
+ * Couleur brand : #1e40af (bleu foncé royal)
  * Toutes les pages/composants importent depuis ce fichier.
  * Ne JAMAIS écrire de couleurs hexadécimales en dur dans les pages.
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BRAND — Vert médical #009e82
+// BRAND — Bleu foncé royal
 // ─────────────────────────────────────────────────────────────────────────────
 export const brand = {
-  DEFAULT: "#009e82",   // Couleur principale
-  light:   "#e6f7f4",   // Fond subtil (badges, hover)
-  lighter: "#ccefe9",   // Fond plus visible
-  dark:    "#007a64",   // Hover / texte sur fond clair
-  darker:  "#005c4b",   // Gradient profond / texte fort
+  DEFAULT: "#1e40af",   // Couleur principale
+  light:   "#eff6ff",   // Fond subtil (badges, hover)
+  lighter: "#dbeafe",   // Fond plus visible
+  dark:    "#1e3a8a",   // Hover / texte sur fond clair
+  darker:  "#172554",   // Gradient profond / texte fort
 
   // Gradient pour bannières (WelcomeBanner, headers de modal)
-  gradient: "linear-gradient(135deg, #005c4b 0%, #009e82 55%, #00c2a0 100%)",
+  gradient: "linear-gradient(135deg, #172554 0%, #1e40af 55%, #2563eb 100%)",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,18 +36,18 @@ export const status = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const surface = {
   light: {
-    bg:        "#f9fafb",   // Fond général de page
+    bg:        "#f8faff",   // Fond général de page (légère teinte bleue)
     card:      "#ffffff",   // Cartes / tableaux
-    border:    "#e5e7eb",   // Bordures
-    borderSoft:"#f3f4f6",   // Bordures très subtiles
-    hover:     "#f9fafb",   // Hover ligne tableau
+    border:    "#e2e8f0",   // Bordures
+    borderSoft:"#f1f5f9",   // Bordures très subtiles
+    hover:     "#f8faff",   // Hover ligne tableau
   },
   dark: {
-    bg:        "#0d1117",
-    card:      "#161b22",
-    border:    "#21262d",
-    borderSoft:"#1c2128",
-    hover:     "rgba(0,158,130,0.06)",
+    bg:        "#0b0f1a",
+    card:      "#111827",
+    border:    "#1f2937",
+    borderSoft:"#161d2c",
+    hover:     "rgba(30,64,175,0.06)",
   },
 };
 
@@ -56,16 +56,16 @@ export const surface = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const text = {
   light: {
-    primary:   "#111827",   // Titres, texte fort
-    secondary: "#374151",   // Texte normal
-    muted:     "#6b7280",   // Texte secondaire
-    subtle:    "#9ca3af",   // Texte très discret
+    primary:   "#0f172a",   // Titres, texte fort
+    secondary: "#1e293b",   // Texte normal
+    muted:     "#64748b",   // Texte secondaire
+    subtle:    "#94a3b8",   // Texte très discret
   },
   dark: {
-    primary:   "#f3f4f6",
-    secondary: "#e6edf3",
-    muted:     "#8b949e",
-    subtle:    "#484f58",
+    primary:   "#f1f5f9",
+    secondary: "#e2e8f0",
+    muted:     "#94a3b8",
+    subtle:    "#475569",
   },
 };
 
@@ -76,22 +76,22 @@ export const sidebar = {
   light: {
     bg:        "#ffffff",
     itemText:  "#374151",
-    activeBg:  "rgba(0,158,130,0.10)",
+    activeBg:  "rgba(30,64,175,0.08)",
     activeText:brand.dark,
-    hoverBg:   "rgba(0,158,130,0.05)",
-    sectionLbl:"#9ca3af",
+    hoverBg:   "rgba(30,64,175,0.04)",
+    sectionLbl:"#94a3b8",
     border:    "rgba(0,0,0,0.06)",
     accentBar: brand.DEFAULT,
   },
   dark: {
-    bg:        "#0a1a18",
+    bg:        "#0a0f1e",
     itemText:  "rgba(255,255,255,0.72)",
-    activeBg:  "rgba(0,158,130,0.18)",
-    activeText:"#5eead4",
-    hoverBg:   "rgba(255,255,255,0.09)",
+    activeBg:  "rgba(59,130,246,0.15)",
+    activeText:"#93c5fd",
+    hoverBg:   "rgba(255,255,255,0.07)",
     sectionLbl:"rgba(255,255,255,0.35)",
     border:    "rgba(255,255,255,0.08)",
-    accentBar: "#5eead4",
+    accentBar: "#60a5fa",
   },
 };
 

@@ -429,7 +429,7 @@ export default function Refusees() {
       {modaleRelance && <ModaleRelance  r={modaleRelance} dark={dark} onClose={()=>setModaleRelance(null)} onConfirm={handleRelance}/>}
 
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white ${toast.type==="success"?"bg-teal-600":"bg-red-600"}`}>
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white ${toast.type==="success"?"bg-blue-700":"bg-red-600"}`}>
           {toast.type==="success"?<Mail size={13}/>:<Trash2 size={13}/>} {toast.msg}
         </div>
       )}

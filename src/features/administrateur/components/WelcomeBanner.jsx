@@ -9,8 +9,8 @@ const MESSAGES = [
 ];
 
 const ADMIN_WORD  = "Administrateur";
-// Vert vif frappant, contraste fort sur le dégradé vert foncé
-const ADMIN_COLOR = "#00ffcc";
+// Bleu clair vif, contraste fort sur le dégradé bleu foncé
+const ADMIN_COLOR = "#7dd3fc";
 
 const TYPE_SPEED  = 70;   // ms / lettre
 const ERASE_SPEED = 35;   // ms / lettre (effacement plus rapide)

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Eye, Download, Globe, BookMarked, BarChart2,
   Trash2, Loader2, AlertCircle, CheckCircle,
-  EyeOff, Tag, Clock, RefreshCw,
+  EyeOff, Tag, Clock, RefreshCw, X,
 } from 'lucide-react';
 import NouvellePublicationModal from './NouvellePublicationModal';
 
@@ -156,6 +156,7 @@ function PublicationCard({ r, onToggle, onDelete, busy }) {
               <button
                 onClick={() => onDelete(r.id)}
                 disabled={isBusy}
+                title="Supprimer"
                 className="p-1.5 rounded-lg text-(--t4) hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all disabled:opacity-40"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -184,6 +185,7 @@ export default function MesPublications() {
   const [toast, setToast]           = useState(null);
   const [showModal, setShowModal]   = useState(false);
   const [tab, setTab]               = useState('toutes');
+  const [confirmId, setConfirmId]   = useState(null);
 
   const intervalRef = useRef(null);
   const addToast = (msg, type = 'success') => setToast({ message: msg, type });
@@ -218,14 +220,13 @@ export default function MesPublications() {
   };
 
   const supprimer = async (id) => {
-    if (!window.confirm('Supprimer cette ressource définitivement ?')) return;
     setBusy(id);
     try {
       await apiFetch(`/ressources/medecin/${id}`, { method: 'DELETE' });
       setRessources(rs => rs.filter(r => r.id !== id));
       addToast('Ressource supprimée');
     } catch (e) { addToast(e.message || 'Erreur', 'error'); }
-    finally { setBusy(null); }
+    finally { setBusy(null); setConfirmId(null); }
   };
 
   const publiees   = ressources.filter(r => r.publie);
@@ -345,7 +346,7 @@ export default function MesPublications() {
                 className="space-y-3">
                 <AnimatePresence>
                   {displayed.map(r => (
-                    <PublicationCard key={r.id} r={r} onToggle={togglePublie} onDelete={supprimer} busy={busy} />
+                    <PublicationCard key={r.id} r={r} onToggle={togglePublie} onDelete={setConfirmId} busy={busy} />
                   ))}
                 </AnimatePresence>
               </motion.div>
@@ -366,13 +367,54 @@ export default function MesPublications() {
         </>
       )}
 
-      {/* Modal */}
+      {/* Modal nouvelle publication */}
       {showModal && (
         <NouvellePublicationModal
           onClose={() => setShowModal(false)}
           onCreated={() => { setShowModal(false); charger(); addToast('Publication créée !'); }}
         />
       )}
+
+      {/* Modal confirmation suppression */}
+      <AnimatePresence>
+        {confirmId && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 8 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }}
+              className="bg-(--sf) rounded-2xl border border-(--ln) shadow-2xl w-full max-w-sm p-6"
+            >
+              <div className="flex items-start gap-4 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-(--t1) text-sm">Supprimer la publication</h3>
+                  <p className="text-sm text-(--t3) mt-1">Cette action est définitive et ne peut pas être annulée.</p>
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setConfirmId(null)}
+                  className="px-4 py-2 text-sm font-semibold text-(--t2) bg-(--sf2) border border-(--ln) rounded-xl hover:bg-(--sf3) transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => supprimer(confirmId)}
+                  disabled={busy === confirmId}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-colors disabled:opacity-60"
+                >
+                  {busy === confirmId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  Supprimer
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {toast && <Toast key="t" message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

@@ -5,7 +5,7 @@ import { AlertTriangle, ArrowLeft, Trash2, X, FileDown, Cpu, Calendar, User, Pau
 import { brand, getSurface, getText } from "../theme";
 
 const MOCK = {
-  1: { id:1, initials:"JD", avatarColor:"#0f766e", photo_url:null, nom:"Dr. Jean Dupont", specialite:"Pneumologue", cnom:"CM-2019-0847", hopital:"H. Général Douala", ville:"Douala", email:"j.dupont@hgd.cm", telephone:"+237 699 123 456", patients:134, consultations:4821, concordanceIA:88, statut:"Actif", derniereActivite:"2026-06-05T14:22:00", creeLE:"14/08/2025", valideLE:"17/08/2025", rangCommunaute:"#7/38", casPartages:"247 cas publiés", activiteRecente:[{texte:"Consultation #247 enregistrée",quand:"Auj. 14:22"},{texte:"Cas #241 partagé sur la communauté",quand:"Hier"},{texte:"3 consultations Pneumonie",quand:"15 mars"}] },
+  1: { id:1, initials:"JD", avatarColor:"#1e40af", photo_url:null, nom:"Dr. Jean Dupont", specialite:"Pneumologue", cnom:"CM-2019-0847", hopital:"H. Général Douala", ville:"Douala", email:"j.dupont@hgd.cm", telephone:"+237 699 123 456", patients:134, consultations:4821, concordanceIA:88, statut:"Actif", derniereActivite:"2026-06-05T14:22:00", creeLE:"14/08/2025", valideLE:"17/08/2025", rangCommunaute:"#7/38", casPartages:"247 cas publiés", activiteRecente:[{texte:"Consultation #247 enregistrée",quand:"Auj. 14:22"},{texte:"Cas #241 partagé sur la communauté",quand:"Hier"},{texte:"3 consultations Pneumonie",quand:"15 mars"}] },
   2: { id:2, initials:"DK", avatarColor:"#185FA5", photo_url:null, nom:"Dr. Kamto Diane", specialite:"Pneumologue", cnom:"CM-2017-0432", hopital:"CHU Yaoundé", ville:"Yaoundé", email:"d.kamto@chu.cm", telephone:"+237 677 234 567", patients:198, consultations:3201, concordanceIA:92, statut:"Actif", derniereActivite:"2026-06-05T09:10:00", creeLE:"02/03/2026", valideLE:"04/03/2026", rangCommunaute:"#3/38", casPartages:"312 cas publiés", activiteRecente:[{texte:"Consultation #198 enregistrée",quand:"Auj. 09:10"},{texte:"Rapport mensuel soumis",quand:"Il y a 2j"}] },
   3: { id:3, initials:"DN", avatarColor:"#7C3AED", photo_url:null, nom:"Dr. Nkoa", specialite:"Pneumologue", cnom:"CM-2018-0521", hopital:"H. Général Douala", ville:"Douala", email:"nkoa@hgd.cm", telephone:"+237 699 345 678", patients:176, consultations:2847, concordanceIA:74, statut:"Inactif", derniereActivite:"2026-05-25T10:00:00", creeLE:"07/02/2026", valideLE:"09/02/2026", rangCommunaute:"#5/38", casPartages:"189 cas publiés", activiteRecente:[{texte:"Nouveau patient enregistré",quand:"Hier"}] },
   4: { id:4, initials:"DB", avatarColor:"#D97706", photo_url:null, nom:"Dr. Barry", specialite:"Pneumologue", cnom:"CM-2020-0612", hopital:"H. Régional Garoua", ville:"Garoua", email:"barry@hrg.cm", telephone:"+237 655 456 789", patients:89, consultations:1234, concordanceIA:61, statut:"Inactif", derniereActivite:"2026-05-29T08:00:00", creeLE:"20/11/2025", valideLE:"23/11/2025", rangCommunaute:"#12/38", casPartages:"74 cas publiés", activiteRecente:[{texte:"Consultation #89 enregistrée",quand:"Il y a 7j"}] },
@@ -26,7 +26,7 @@ function normaliserMedecin(data) {
   return {
     id:               data.id,
     initials,
-    avatarColor:      "#0f766e",
+    avatarColor:      "#1e40af",
     photo_url:        data.photo_url || null,
     nom:              `${data.civilite || "Dr."} ${data.prenom} ${data.nom}`,
     specialite:       data.specialite       || "Pneumologue",
@@ -195,7 +195,7 @@ export default function ProfilMedecin() {
         ? <span style={{display:"inline-block",padding:"2px 10px",borderRadius:99,fontSize:13,fontWeight:500,
             background:value==="Actif"?"#ecfdf5":"#fef9c3",color:value==="Actif"?"#065f46":"#854d0e",
             border:value==="Actif"?"0.5px solid #6ee7b7":"0.5px solid #fde68a"}}>{value}</span>
-        : <p className={`text-[14px] font-medium ${mono?"font-mono":""} ${teal?"text-teal-700":tx1}`}>{value||"—"}</p>
+        : <p className={`text-[14px] font-medium ${mono?"font-mono":""} ${teal?"text-blue-800":tx1}`}>{value||"—"}</p>
       }
     </div>
   );
@@ -294,7 +294,7 @@ export default function ProfilMedecin() {
           </div>
 
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <KpiCard bg="#f0fdf4" bdr="#bbf7d0" iconBg="#0f766e" icon={<User size={17}/>}
+            <KpiCard bg="#f0fdf4" bdr="#bbf7d0" iconBg="#1e40af" icon={<User size={17}/>}
               label="Statut" labelColor="#059669" value={m.statut} valueColor="#065f46"/>
             <KpiCard bg="#fff7ed" bdr="#fed7aa" iconBg="#f97316" icon={<Cpu size={17}/>}
               label="Concordance IA" labelColor="#ea580c"
@@ -310,7 +310,7 @@ export default function ProfilMedecin() {
             <p className={`text-[14px] font-medium mb-4 ${tx1}`}>Statistiques d'activité</p>
             <div className="grid grid-cols-2 gap-4">
               {[
-                {label:"Patients",       value:m.patients?m.patients.toLocaleString("fr-FR"):"0",       color:"#0f766e"},
+                {label:"Patients",       value:m.patients?m.patients.toLocaleString("fr-FR"):"0",       color:"#1e40af"},
                 {label:"Consultations",  value:m.consultations?m.consultations.toLocaleString("fr-FR"):"0",color:"#185FA5"},
                 {label:"Rang",           value:m.rangCommunaute||"—",                                    color:"#7C3AED"},
                 {label:"Cas partagés",   value:m.casPartages?m.casPartages.replace(" cas publiés",""):"—", color:"#D97706"},

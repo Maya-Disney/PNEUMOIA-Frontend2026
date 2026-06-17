@@ -9,21 +9,21 @@ import {
   Menu, X, HelpCircle, MessageCircle
 } from "lucide-react";
 
-const BRAND    = "#007185";   // Couleur WelcomeBanner — utilisée pour avatar + accents
+const BRAND    = "#1e40af";   // Couleur brand — bleu foncé royal
 const BG_LIGHT = "#ffffff";   // Fond sidebar — blanc
-const BG_DARK  = "#0a1a18";   // Fond sidebar — mode sombre (logique de base)
+const BG_DARK  = "#0a0f1e";   // Fond sidebar — mode sombre bleu nuit
 
-const ACTIVE_BG_L = "rgba(0,113,133,0.10)";   // Item actif — teal clair sur blanc
-const ACTIVE_TX_L = "#005f6e";
-const ACTIVE_BG_D = "rgba(0,113,133,0.18)";
-const ACTIVE_TX_D = "#67e8f9";
+const ACTIVE_BG_L = "rgba(30,64,175,0.08)";   // Item actif — bleu clair sur blanc
+const ACTIVE_TX_L = "#1e3a8a";
+const ACTIVE_BG_D = "rgba(59,130,246,0.15)";
+const ACTIVE_TX_D = "#93c5fd";
 
 const ITEM_TX_L  = "#374151";
 const ITEM_TX_D  = "rgba(255,255,255,0.72)";
-const HOVER_BG_L = "rgba(0,113,133,0.05)";
-const HOVER_BG_D = "rgba(255,255,255,0.09)";
+const HOVER_BG_L = "rgba(30,64,175,0.04)";
+const HOVER_BG_D = "rgba(255,255,255,0.07)";
 
-const SEC_L    = "#9ca3af";
+const SEC_L    = "#94a3b8";
 const SEC_D    = "rgba(255,255,255,0.35)";
 const BORDER_L = "rgba(0,0,0,0.06)";
 const BORDER_D = "rgba(255,255,255,0.08)";
@@ -74,14 +74,14 @@ function getNav(counts) {
 function getBadgeStyle(color, dark) {
   const styles = {
     light: {
-      teal:   { background: "rgba(0,113,133,0.10)",   color: "#005f6e", border: "1px solid rgba(0,113,133,0.20)" },
+      teal:   { background: "rgba(30,64,175,0.08)",   color: "#1e3a8a", border: "1px solid rgba(30,64,175,0.20)" },
       red:    { background: "rgba(254,226,226,0.90)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.25)" },
       orange: { background: "rgba(255,237,213,0.90)", color: "#c2410c", border: "1px solid rgba(234,88,12,0.25)" },
     },
     dark: {
-      teal:   { background: "rgba(0,113,133,.15)",   color: "#67e8f9", border: "1px solid rgba(0,113,133,.2)"    },
-      red:    { background: "rgba(239,68,68,.15)",   color: "#fca5a5", border: "1px solid rgba(239,68,68,.2)"     },
-      orange: { background: "rgba(251,146,60,.15)",  color: "#fdba74", border: "1px solid rgba(251,146,60,.2)"    },
+      teal:   { background: "rgba(59,130,246,.15)",   color: "#93c5fd", border: "1px solid rgba(59,130,246,.2)"  },
+      red:    { background: "rgba(239,68,68,.15)",    color: "#fca5a5", border: "1px solid rgba(239,68,68,.2)"    },
+      orange: { background: "rgba(251,146,60,.15)",   color: "#fdba74", border: "1px solid rgba(251,146,60,.2)"   },
     },
   };
   return (dark ? styles.dark : styles.light)[color] || {};
@@ -140,7 +140,7 @@ export default function Sidebar({ dark }) {
                   background:  isActive ? (dark ? ACTIVE_BG_D : ACTIVE_BG_L) : "transparent",
                   color:       isActive ? (dark ? ACTIVE_TX_D : ACTIVE_TX_L) : (dark ? ITEM_TX_D : ITEM_TX_L),
                   fontWeight:  isActive ? 700 : 500,
-                  borderLeft:  isActive ? `3px solid ${dark ? "#5eead4" : "#0f766e"}` : "3px solid transparent",
+                  borderLeft:  isActive ? `3px solid ${dark ? "#60a5fa" : "#1e3a8a"}` : "3px solid transparent",
                   paddingLeft: isActive ? "9px" : "12px",
                   borderTopLeftRadius:    isActive ? 4  : 10,
                   borderBottomLeftRadius: isActive ? 4  : 10,
@@ -173,8 +173,8 @@ export default function Sidebar({ dark }) {
         style={{
           borderTop: `1px solid ${border}`,
           background: dark
-            ? "linear-gradient(135deg, #0a2e2b 0%, #0f3d38 55%, #0d4a44 100%)"
-            : "linear-gradient(135deg, #0a5c55 0%, #0f766e 55%, #0d9488 100%)",
+            ? "linear-gradient(135deg, #050a1a 0%, #0a1230 55%, #0d1a4a 100%)"
+            : "linear-gradient(135deg, #172554 0%, #1e40af 55%, #2563eb 100%)",
         }}>
 
         {/* Motif de points façon WelcomeBanner */}
@@ -192,8 +192,8 @@ export default function Sidebar({ dark }) {
               Administrateur
             </p>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 shrink-0"/>
-              <span className="text-[11px]" style={{ color:"#5eead4" }}>En ligne</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-300 shrink-0"/>
+              <span className="text-[11px]" style={{ color:"#93c5fd" }}>En ligne</span>
             </div>
           </div>
           <button onClick={()=>setShowLogout(true)}
@@ -218,12 +218,12 @@ export default function Sidebar({ dark }) {
           <div style={{ background:"#fff",borderRadius:16,width:320,boxShadow:"0 20px 60px rgba(0,0,0,0.2)",textAlign:"center",overflow:"hidden" }}
             onClick={e=>e.stopPropagation()}>
 
-            {/* Header gradient teal avec motif de points */}
+            {/* Header gradient bleu foncé */}
             <div style={{
-              background: "linear-gradient(135deg, #0a5c55 0%, #0f766e 55%, #0d9488 100%)",
+              background: "linear-gradient(135deg, #172554 0%, #1e40af 55%, #2563eb 100%)",
               backgroundImage: `
                 radial-gradient(circle, rgba(255,255,255,0.10) 1px, transparent 1px),
-                linear-gradient(135deg, #0a5c55 0%, #0f766e 55%, #0d9488 100%)
+                linear-gradient(135deg, #172554 0%, #1e40af 55%, #2563eb 100%)
               `,
               backgroundSize: "16px 16px, 100% 100%",
               padding: "28px 28px 24px",
@@ -248,9 +248,9 @@ export default function Sidebar({ dark }) {
                   Annuler
                 </button>
                 <button onClick={confirmLogout}
-                  style={{ flex:1,height:40,borderRadius:10,border:"none",background:"#0f766e",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer" }}
-                  onMouseEnter={e=>e.currentTarget.style.background="#0a5c55"}
-                  onMouseLeave={e=>e.currentTarget.style.background="#0f766e"}>
+                  style={{ flex:1,height:40,borderRadius:10,border:"none",background:"#1e40af",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer" }}
+                  onMouseEnter={e=>e.currentTarget.style.background="#1e3a8a"}
+                  onMouseLeave={e=>e.currentTarget.style.background="#1e40af"}>
                   Se déconnecter
                 </button>
               </div>

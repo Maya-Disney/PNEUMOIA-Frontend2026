@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useProfil } from '../hooks/useAuth';
 import {
   Menu, Search, Bell, Trash2,
-  Settings, LogOut, UserCircle, ChevronDown, Sun, Moon,
+  Settings, LogOut, UserCircle, ChevronDown, Sun, Moon, RefreshCw,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
@@ -14,6 +14,7 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
   const [searchQuery,  setSearchQuery]  = useState('');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifCount,   setNotifCount]   = useState(0);
+  const [refreshing,   setRefreshing]   = useState(false);
   const userMenuRef = useRef(null);
   const navigate    = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -57,6 +58,11 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => { window.location.reload(); }, 150);
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -126,6 +132,9 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
                 placeholder="Rechercher un patient, un cas…"
                 className="w-full bg-transparent text-sm text-[var(--t2)] placeholder:text-[var(--t4)] focus:outline-none"
               />
+              <kbd className="text-[10px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                ⌘K
+              </kbd>
             </form>
 
             {/* Bouton recherche — mobile */}
@@ -134,6 +143,15 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
               className="md:hidden p-2 rounded-xl bg-[var(--sf2)] border border-[var(--ln)] hover:bg-[var(--sf3)] transition-all"
             >
               <Search className="w-5 h-5 text-[var(--t3)]" />
+            </button>
+
+            {/* Actualiser */}
+            <button
+              onClick={handleRefresh}
+              title="Actualiser la page"
+              className="p-2.5 rounded-xl bg-(--sf2) border border-(--ln) hover:bg-(--sf3) transition-all group"
+            >
+              <RefreshCw className={`w-5 h-5 text-(--t3) group-hover:text-blue-600 transition-colors ${refreshing ? 'animate-spin' : ''}`} />
             </button>
 
             {/* Cloche — notifications */}
@@ -145,7 +163,7 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
               <Bell className="w-5 h-5 text-[var(--t3)] group-hover:text-blue-600 transition-colors" />
               {notifCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-[var(--sf)]">
-                  {notifCount > 9 ? '9+' : notifCount}
+                  {notifCount > 99 ? '99+' : notifCount}
                 </span>
               )}
             </Link>
