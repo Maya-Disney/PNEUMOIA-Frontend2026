@@ -34,9 +34,9 @@ const formatTime = (d) => d ? new Date(d).toLocaleTimeString('fr-FR', { hour:'2-
 const formatDateTime = (d) => d ? `${formatDate(d)} à ${formatTime(d)}` : '—';
 
 const STATUT_CFG = {
-  terminee:   { label: 'Terminée',    icon: CheckCircle,   cls: 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40' },
-  en_attente: { label: 'En attente',  icon: AlertCircle,   cls: 'bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40' },
-  annulee:    { label: 'Annulée',     icon: XCircle,       cls: 'bg-red-100 text-red-800 border border-red-300 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40' },
+  terminee:   { label: 'Terminée',    icon: CheckCircle,   cls: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+  en_attente: { label: 'En attente',  icon: AlertCircle,   cls: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' },
+  annulee:    { label: 'Annulée',     icon: XCircle,       cls: 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
 };
 
 const CLINIQUE_CFG = {
@@ -89,8 +89,19 @@ const InfoRow = ({ label, value, highlight }) => (
   </div>
 );
 
+const TAG_CLS = {
+  blue:   'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
+  red:    'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300',
+  orange: 'bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300',
+  amber:  'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
+  purple: 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300',
+  slate:  'bg-slate-50 text-slate-700 dark:bg-slate-500/10 dark:text-slate-300',
+  indigo: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300',
+  teal:   'bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-300',
+};
+
 const Tag = ({ children, color = 'blue' }) => (
-  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-${color}-50 text-${color}-700 dark:bg-${color}-500/10 dark:text-${color}-300`}>
+  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${TAG_CLS[color] || TAG_CLS.blue}`}>
     {children}
   </span>
 );
@@ -316,24 +327,20 @@ function ConsultationModal({ consultation: c, onClose, onDownload }) {
 
               {/* Principale */}
               {principale && (
-                <div className="mb-4 rounded-xl border border-(--ln) overflow-hidden">
-                  <div className="h-1.5 bg-(--sf2)">
-                    <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${principale.pct}%` }} />
+                <div className="mb-3 p-4 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-700/40 rounded-xl text-center">
+                  <p className="text-lg font-bold text-blue-800 dark:text-blue-200">{principale.nom}</p>
+                  <div className="flex justify-center gap-2 mt-2 flex-wrap">
+                    <span className="text-xs px-2.5 py-0.5 bg-blue-100 dark:bg-blue-800/60 text-blue-700 dark:text-blue-200 rounded-full font-medium">
+                      Confiance : {principale.pct}%
+                    </span>
+                    {principale.etat && (
+                      <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${CLINIQUE_CFG[principale.etat]?.cls || 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200 border-slate-200 dark:border-slate-600'}`}>
+                        {CLINIQUE_CFG[principale.etat]?.label || principale.etat}
+                      </span>
+                    )}
                   </div>
-                  <div className="p-4 bg-(--sf)">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <p className="text-base font-bold text-(--t1)">{principale.nom}</p>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs px-2.5 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 rounded-full font-semibold">
-                          Confiance : {principale.pct}%
-                        </span>
-                        {principale.etat && (
-                          <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${CLINIQUE_CFG[principale.etat]?.cls || 'bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'}`}>
-                            {CLINIQUE_CFG[principale.etat]?.label || principale.etat}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                  <div className="mt-3 h-1.5 bg-blue-100 dark:bg-blue-800/40 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all" style={{ width: `${principale.pct}%` }} />
                   </div>
                 </div>
               )}
@@ -463,17 +470,12 @@ function ConsultationModal({ consultation: c, onClose, onDownload }) {
             className="px-4 py-2 text-sm font-medium text-(--t2) hover:bg-(--sf) rounded-lg transition-colors">
             Fermer
           </button>
-          <button
-            onClick={() => c.statut !== 'en_attente' && onDownload(c.id)}
-            disabled={c.statut === 'en_attente'}
-            title={c.statut === 'en_attente' ? 'Rapport indisponible — consultation en attente de diagnostic' : 'Télécharger le rapport PDF'}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
-              c.statut === 'en_attente'
-                ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed line-through'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}>
-            <FileText className="w-4 h-4" /> Télécharger le rapport
-          </button>
+          {c.statut !== 'en_attente' && (
+            <button onClick={() => onDownload(c.id)}
+              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2">
+              <FileText className="w-4 h-4" /> Télécharger le rapport
+            </button>
+          )}
         </div>
       </div>
     </>
@@ -487,21 +489,10 @@ export default function ConsultationHistory() {
   const [error,          setError]          = useState(null);
   const [searchTerm,     setSearchTerm]     = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const [viewMode,       setViewMode]       = useState(() => { try { return JSON.parse(localStorage.getItem('medecin_prefs') || '{}').defaultView || 'cards'; } catch { return 'cards'; } });
+  const [viewMode,       setViewMode]       = useState('cards');
   const [currentPage,    setCurrentPage]    = useState(1);
-  const [itemsPerPage,   setItemsPerPage]   = useState(() => { try { return Number(JSON.parse(localStorage.getItem('medecin_prefs') || '{}').itemsPerPage) || 12; } catch { return 12; } });
+  const [itemsPerPage,   setItemsPerPage]   = useState(12);
   const [selected,       setSelected]       = useState(null);
-
-  // Synchroniser les préférences en temps réel
-  useEffect(() => {
-    const onPrefs = (e) => {
-      const d = e.detail || {};
-      if (d.defaultView)  setViewMode(d.defaultView);
-      if (d.itemsPerPage) setItemsPerPage(Number(d.itemsPerPage) || 12);
-    };
-    window.addEventListener('pneumoia-prefs-updated', onPrefs);
-    return () => window.removeEventListener('pneumoia-prefs-updated', onPrefs);
-  }, []);
 
   // ── Charger les consultations depuis l'API ────────────────────
   const loadConsultations = useCallback(async () => {
@@ -614,7 +605,7 @@ export default function ConsultationHistory() {
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(c.created_at)}</span>
               </div>
               <div>
-                <p className="text-xs text-(--t4) mb-0.5">Diagnostic IA</p>
+                <p className="text-xs text-(--t4) mb-0.5">Diagnostic</p>
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-(--t1)">{getDiag(c)}</p>
                   <span className="text-xs font-bold text-blue-600">{getPct(c)}%</span>
@@ -645,7 +636,7 @@ export default function ConsultationHistory() {
       <table className="w-full">
         <thead className="bg-(--sf2) border-b border-(--ln)">
           <tr>
-            {['Patient', 'Date & Heure', 'Diagnostic IA', 'Médecin', 'Statut', ''].map(h => (
+            {['Patient', 'Date & Heure', 'Diagnostic', 'Médecin', 'Statut', ''].map(h => (
               <th key={h} className="text-left py-3 px-4 text-[10px] font-bold uppercase tracking-wider text-(--t4)">{h}</th>
             ))}
           </tr>
@@ -718,23 +709,8 @@ export default function ConsultationHistory() {
             className="flex items-center gap-2 px-3 py-2 bg-(--sf) border border-(--ln) rounded-xl text-sm font-medium text-(--t2) hover:bg-(--sf2) transition-all">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <button onClick={() => {
-            const rows = [
-              ['Date', 'Patient', 'Diagnostic', 'Confiance (%)', 'Statut', 'Statut clinique'],
-              ...filtered.map(c => [
-                new Date(c.created_at).toLocaleDateString('fr-FR'),
-                getPatientName(c),
-                getDiag(c),
-                getPct(c),
-                STATUT_CFG[c.statut]?.label || c.statut,
-                CLINIQUE_CFG[c.statut_clinique]?.label || c.statut_clinique || '—',
-              ]),
-            ];
-            const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-            const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-            const a = document.createElement('a'); a.href = url; a.download = `historique_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
-          }} className="flex items-center gap-2 px-4 py-2 bg-(--sf) border border-(--ln) rounded-xl text-sm font-medium text-(--t2) hover:bg-(--sf2) transition-all">
-            <Download className="w-4 h-4" /> Exporter CSV
+          <button className="flex items-center gap-2 px-4 py-2 bg-(--sf) border border-(--ln) rounded-xl text-sm font-medium text-(--t2) hover:bg-(--sf2) transition-all">
+            <Download className="w-4 h-4" /> Exporter
           </button>
         </div>
       </div>

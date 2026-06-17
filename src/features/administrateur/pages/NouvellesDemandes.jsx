@@ -137,7 +137,7 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
 
         <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[15px] font-medium
           ${allOk
-            ? (dark?"bg-teal-900/20 border-teal-700/40 text-teal-300":"bg-teal-50 border-teal-200 text-teal-700")
+            ? (dark?"bg-blue-900/20 border-blue-700/40 text-blue-300":"bg-blue-50 border-blue-200 text-blue-800")
             : (dark?"bg-amber-900/20 border-amber-700/40 text-amber-300":"bg-amber-50 border-amber-200 text-amber-700")}`}>
           {allOk
             ? `✓ Tous les documents vérifiés — dossier complet`
@@ -193,7 +193,7 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
                   title={!opened[i] ? "Ouvrez d'abord le document pour pouvoir le valider" : isVerified ? "Décocher" : "Marquer comme vérifié"}
                   className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all
                     ${!opened[i] ? "cursor-not-allowed opacity-35" : "cursor-pointer"}
-                    ${isVerified ? "border-teal-500 bg-teal-500" : "hover:border-teal-500"}`}
+                    ${isVerified ? "border-blue-500 bg-blue-500" : "hover:border-blue-500"}`}
                   style={!isVerified ? { borderColor: opened[i] ? txt.subtle : surface.border, background: surface.bg } : undefined}>
                   {isVerified && (
                     <svg width="11" height="11" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -353,7 +353,7 @@ function ModaleValider({ doc: m, onClose, onConfirm, dark }) {
         </button>
       </>}>
       <div className="flex flex-col gap-3">
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-teal-900/20 border-teal-700/40 text-teal-300":"bg-teal-50 border-teal-200 text-teal-700"}`}>
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-blue-900/20 border-blue-700/40 text-blue-300":"bg-blue-50 border-blue-200 text-blue-800"}`}>
           <CheckCircle size={13} className="shrink-0" />
           <span>Le compte de <strong>{m.name}</strong> sera activé. Un e-mail d'activation lui sera envoyé.</span>
         </div>
@@ -778,7 +778,7 @@ export default function NouvellesDemandes() {
       )}
 
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white ${toast.type==="success"?"bg-teal-600":"bg-red-600"}`}>
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white ${toast.type==="success"?"bg-blue-700":"bg-red-600"}`}>
           {toast.msg}
         </div>
       )}

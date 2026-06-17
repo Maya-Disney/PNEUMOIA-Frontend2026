@@ -65,7 +65,7 @@ export const getNotifications = () =>
   apiFetch('/notifications');
 
 export const marquerNotifLue = (id) =>
-  apiFetch(`/notifications/${id}/lue`, { method: 'PATCH' });
+  apiFetch(`/notifications/${id}/lire`, { method: 'PATCH' });
 
 export const marquerToutesLues = () =>
   apiFetch('/notifications/tout-lire', { method: 'PATCH' });
@@ -74,7 +74,7 @@ export const supprimerNotif = (id) =>
   apiFetch(`/notifications/${id}`, { method: 'DELETE' });
 
 export const supprimerNotifsLues = () =>
-  apiFetch('/notifications/lues', { method: 'DELETE' });
+  apiFetch('/notifications', { method: 'DELETE' });
 
 // ── PDF ───────────────────────────────────────────────────────
 export const telechargerPDF = async (consultationId) => {

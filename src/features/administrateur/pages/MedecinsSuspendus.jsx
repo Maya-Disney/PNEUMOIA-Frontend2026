@@ -265,7 +265,7 @@ export default function MedecinsSuspendus() {
                                   setOpenMenuId(null);
                                 }}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium transition-colors
-                                  ${dark?"text-teal-400 hover:bg-teal-900/20":"text-teal-700 hover:bg-teal-50"}`}
+                                  ${dark?"text-blue-400 hover:bg-blue-900/20":"text-blue-800 hover:bg-blue-50"}`}
                               >
                                 <RotateCcw size={16} className="shrink-0 mt-0.5" />
                                 <span className="flex-1">Réactiver le compte</span>
@@ -335,7 +335,7 @@ export default function MedecinsSuspendus() {
             </button>
           </>}>
           <div className="flex flex-col gap-3">
-            <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-teal-900/20 border-teal-700/40 text-teal-300":"bg-teal-50 border-teal-200 text-teal-700"}`}>
+            <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-blue-900/20 border-blue-700/40 text-blue-300":"bg-blue-50 border-blue-200 text-blue-800"}`}>
               <RotateCcw size={13} className="shrink-0 mt-0.5"/>
               <span>
                 Le compte de <strong>{modaleReactiver.nom}</strong> sera réactivé.
@@ -420,7 +420,7 @@ export default function MedecinsSuspendus() {
       )}
 
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white transition-all ${toast.type==="success"?"bg-teal-600":"bg-red-600"}`}>
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white transition-all ${toast.type==="success"?"bg-blue-700":"bg-red-600"}`}>
           {toast.type==="success"?<RotateCcw size={13}/>:<Trash2 size={13}/>}
           {toast.msg}
         </div>

@@ -20,7 +20,7 @@ function normaliserMedecin(data) {
   return {
     id:               data.id,
     initials,
-    avatarColor:      "#0f766e",
+    avatarColor:      "#009e82",
     photo_url:        data.photo_url || null,
     nom:              `${data.civilite || "Dr."} ${data.prenom} ${data.nom}`,
     specialite:       data.specialite       || "Pneumologue",
@@ -188,7 +188,7 @@ export default function ProfilMedecin() {
         ? <span style={{display:"inline-block",padding:"2px 10px",borderRadius:99,fontSize:13,fontWeight:500,
             background:value==="Actif"?"#ecfdf5":"#fef9c3",color:value==="Actif"?"#065f46":"#854d0e",
             border:value==="Actif"?"0.5px solid #6ee7b7":"0.5px solid #fde68a"}}>{value}</span>
-        : <p className={`text-[14px] font-medium ${mono?"font-mono":""} ${teal?"text-teal-700":tx1}`}>{value||"—"}</p>
+        : <p className={`text-[14px] font-medium ${mono?"font-mono":""} ${teal?"text-blue-800":tx1}`}>{value||"—"}</p>
       }
     </div>
   );
@@ -251,7 +251,7 @@ export default function ProfilMedecin() {
                 <p className={`text-[14px] mt-0.5 ${tx3}`}>{m.specialite} · {m.hopital} · {m.ville}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <span style={{display:"inline-block",padding:"2px 10px",borderRadius:99,fontSize:13,fontWeight:500,background:m.statut==="Actif"?"#ecfdf5":"#fef9c3",color:m.statut==="Actif"?"#065f46":"#854d0e",border:m.statut==="Actif"?"0.5px solid #6ee7b7":"0.5px solid #fde68a"}}>{m.statut}</span>
-                  <span style={{display:"inline-block",padding:"2px 10px",borderRadius:99,fontSize:13,fontWeight:500,background:"#eff6ff",color:"#1d4ed8",border:"0.5px solid #bfdbfe"}}>CNOM vérifié</span>
+                  <span style={{display:"inline-block",padding:"2px 10px",borderRadius:99,fontSize:13,fontWeight:500,background:"#e6f7f4",color:"#007a64",border:"0.5px solid #6ee7b7"}}>CNOM vérifié</span>
                 </div>
               </div>
             </div>
@@ -287,13 +287,13 @@ export default function ProfilMedecin() {
           </div>
 
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <KpiCard bg="#f0fdf4" bdr="#bbf7d0" iconBg="#0f766e" icon={<User size={17}/>}
+            <KpiCard bg="#f0fdf4" bdr="#bbf7d0" iconBg="#009e82" icon={<User size={17}/>}
               label="Statut" labelColor="#059669" value={m.statut} valueColor="#065f46"/>
             <KpiCard bg="#fff7ed" bdr="#fed7aa" iconBg="#f97316" icon={<Cpu size={17}/>}
               label="Concordance IA" labelColor="#ea580c"
               value={m.concordanceIA ? `${m.concordanceIA}%` : "—"} valueColor="#9a3412"/>
-            <KpiCard bg="#eff6ff" bdr="#bfdbfe" iconBg="#3b82f6" icon={<Calendar size={17}/>}
-              label="Validé le" labelColor="#2563eb" value={m.valideLE||"—"} valueColor="#1e40af"/>
+            <KpiCard bg="#e6f7f4" bdr="#6ee7b7" iconBg="#009e82" icon={<Calendar size={17}/>}
+              label="Validé le" labelColor="#007a64" value={m.valideLE||"—"} valueColor="#005c4b"/>
           </div>
         </div>
 
@@ -303,7 +303,7 @@ export default function ProfilMedecin() {
             <p className={`text-[14px] font-medium mb-4 ${tx1}`}>Statistiques d'activité</p>
             <div className="grid grid-cols-2 gap-4">
               {[
-                {label:"Patients",       value:m.patients?m.patients.toLocaleString("fr-FR"):"0",       color:"#0f766e"},
+                {label:"Patients",       value:m.patients?m.patients.toLocaleString("fr-FR"):"0",       color:"#009e82"},
                 {label:"Consultations",  value:m.consultations?m.consultations.toLocaleString("fr-FR"):"0",color:"#185FA5"},
                 {label:"Rang",           value:m.rangCommunaute||"—",                                    color:"#7C3AED"},
                 {label:"Cas partagés",   value:m.casPartages?(m.casPartages.match(/\d+/)?.[0] ?? "—"):"—", color:"#D97706"},

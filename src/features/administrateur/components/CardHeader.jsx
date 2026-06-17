@@ -1,6 +1,6 @@
 import { ChevronRight } from "lucide-react";
 
-const BRAND = "#0f766e";
+const BRAND = "#009e82";
 
 export default function CardHeader({ title, sub, action, onAction, dark }) {
   return (

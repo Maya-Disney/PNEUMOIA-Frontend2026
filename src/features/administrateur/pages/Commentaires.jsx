@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Trash2, X, Star, Search, AlertTriangle, Bell, MessageSquare, CheckCircle } from "lucide-react";
 import { brand, status, getSurface, getText } from "../theme";
@@ -37,6 +37,7 @@ export default function Commentaires() {
   const txt     = getText(dark);
 
   const [rows,         setRows]        = useState([]);
+  const [loading,      setLoading]     = useState(true);
   const [search,       setSearch]      = useState("");
   const [villeFiltre,  setVilleFiltre] = useState("Toutes");
   const [noteFiltre,   setNoteFiltre]  = useState("Toutes");
@@ -48,28 +49,26 @@ export default function Commentaires() {
   const [page,         setPage]        = useState(1);
   const [perPage,      setPerPage]     = useState(10);
 
-  const dernierVidage = useRef(null);
+  const mapAvis = (a) => ({
+    id:          a.id,
+    initials:    `${(a.prenom?.[0]||"").toUpperCase()}${(a.nom?.[0]||"").toUpperCase()}`,
+    nom:         `${a.civilite||"Dr."} ${a.prenom||""} ${a.nom||""}`.trim(),
+    specialite:  a.specialite    || "Pneumologue",
+    hopital:     a.etablissement || "—",
+    ville:       a.ville         || "—",
+    photo_url:   a.photo_url     || null,
+    note:        a.note          || 0,
+    commentaire: a.commentaire   || a.contenu || "",
+    date:        a.created_at ? new Date(a.created_at) : new Date(),
+    nouveau:     !a.vu,
+  });
 
   useEffect(() => {
+    setLoading(true);
     getAvis()
-      .then(data => {
-        if (Array.isArray(data)) {
-          setRows(data.map(a => ({
-            id:          a.id,
-            initials:    `${(a.prenom?.[0]||"").toUpperCase()}${(a.nom?.[0]||"").toUpperCase()}`,
-            nom:         `${a.civilite||"Dr."} ${a.prenom} ${a.nom}`,
-            specialite:  a.specialite    || "Pneumologue",
-            hopital:     a.etablissement || "—",
-            ville:       a.ville         || "—",
-            photo_url:   a.photo_url     || null,
-            note:        a.note          || 0,
-            commentaire: a.commentaire   || a.contenu || "",
-            date:        a.created_at ? new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at + "Z") : new Date(),
-            nouveau:     !a.vu,
-          })));
-        }
-      })
-      .catch(() => {});
+      .then(data => setRows(Array.isArray(data) ? data.map(mapAvis) : []))
+      .catch(() => setRows([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const nbNouveaux = rows.filter(r => r.nouveau).length;
@@ -86,20 +85,24 @@ export default function Commentaires() {
     setRows(p => p.map(r => ({...r, nouveau:false})));
   }
 
-  function supprimer(r) {
-    supprimerAvis(r.id).catch(() => {});
-    setRows(p => p.filter(x => x.id !== r.id));
-    showToast(`Commentaire supprimé — ${r.nom} sera notifié`, "error");
+  async function supprimer(r) {
+    try {
+      await supprimerAvis(r.id);
+      setRows(p => p.filter(x => x.id !== r.id));
+      showToast(`Commentaire supprimé — ${r.nom} sera notifié`, "error");
+    } catch {
+      showToast("Erreur lors de la suppression", "error");
+    }
     setModaleDelete(null);
   }
 
-  function viderPage() {
-    const maintenant = Date.now();
-    dernierVidage.current = maintenant;
-    setRows(p => p.filter(r => r.date.getTime() > maintenant));
+  async function viderPage() {
+    const ids = rows.map(r => r.id);
+    await Promise.allSettled(ids.map(id => supprimerAvis(id)));
+    setRows([]);
     setSearch(""); setVilleFiltre("Toutes"); setNoteFiltre("Toutes"); setStatutFiltre("Tous"); setPage(1);
     setModaleVider(false);
-    showToast("Page vidée — médecins notifiés", "error");
+    showToast("Tous les commentaires ont été supprimés", "error");
   }
 
   const filtered = rows.filter(r => {
@@ -220,7 +223,12 @@ export default function Commentaires() {
 
       {/* ── Liste ── */}
       <div className="flex flex-col gap-3">
-        {rows.length===0
+        {loading
+          ? <div className="rounded-2xl border px-5 py-16 flex flex-col items-center gap-3" style={cardStyle}>
+              <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: `${brand.DEFAULT} transparent transparent transparent` }}/>
+              <p className="text-[14px]" style={{ color: txt.subtle }}>Chargement des commentaires…</p>
+            </div>
+          : rows.length===0
           ? <div className="rounded-2xl border px-5 py-16 flex flex-col items-center gap-5" style={cardStyle}>
               <div style={{position:"relative",width:88,height:88}}>
                 <div style={{width:88,height:88,borderRadius:"50%",background: dark?"rgba(0,158,130,0.10)":brand.light,border:`2px solid ${dark?"rgba(0,158,130,0.20)":brand.lighter}`,display:"flex",alignItems:"center",justifyContent:"center"}}>

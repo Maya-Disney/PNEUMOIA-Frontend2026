@@ -60,7 +60,7 @@ function fmt(d) {
 function couleurDelai(j) {
   if (j <= 3) return { bg: '#fef2f2', color: '#dc2626', border: '#fca5a5' };
   if (j <= 6) return { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' };
-  return             { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' };
+  return             { bg: '#e6f7f4', color: '#007a64', border: '#6ee7b7' };
 }
 
 const selCls = "text-[13px] px-2.5 py-1.5 rounded-lg border outline-none cursor-pointer transition-colors";
@@ -161,11 +161,11 @@ export default function PatientsSupprimesAdmin() {
       {/* ── Bandeau info ── */}
       <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border"
         style={{
-          borderColor: dark ? 'rgba(59,130,246,0.25)' : '#bfdbfe',
-          background:  dark ? 'rgba(59,130,246,0.07)' : '#eff6ff',
+          borderColor: dark ? 'rgba(0,158,130,0.25)' : '#6ee7b7',
+          background:  dark ? 'rgba(0,158,130,0.07)' : '#e6f7f4',
         }}>
-        <Info size={15} className="shrink-0 mt-0.5" style={{ color: dark ? '#93c5fd' : '#2563eb' }} />
-        <ul className="text-[13px] space-y-0.5" style={{ color: dark ? '#93c5fd' : '#1e40af' }}>
+        <Info size={15} className="shrink-0 mt-0.5" style={{ color: dark ? '#5eead4' : '#007a64' }} />
+        <ul className="text-[13px] space-y-0.5" style={{ color: dark ? '#5eead4' : '#007a64' }}>
           <li><strong>J30 – J40 :</strong> Dossier sous garde administrative — restauration possible sur demande du médecin.</li>
           <li><strong>Après J40 :</strong> Suppression définitive et irrécupérable de la base de données.</li>
         </ul>

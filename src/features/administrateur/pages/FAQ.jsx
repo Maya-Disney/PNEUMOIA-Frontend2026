@@ -423,8 +423,8 @@ export default function FAQ() {
                         <DateLine label="Répondu" date={q.dateReponse} dark={dark}/>
                       </div>
 
-                      <div className={`px-4 py-3 rounded-xl border-l-2 ${dark?"bg-[#0d1117] border-teal-700":"bg-teal-50 border-teal-500"}`}>
-                        <p className={`text-[14px] font-bold mb-1 ${dark?"text-teal-400":"text-teal-700"}`}>
+                      <div className={`px-4 py-3 rounded-xl border-l-2 ${dark?"bg-[#0d1117] border-teal-700":"bg-blue-50 border-blue-500"}`}>
+                        <p className={`text-[14px] font-bold mb-1 ${dark?"text-blue-400":"text-blue-800"}`}>
                           Réponse de l'administrateur
                         </p>
                         <p className={`text-[14px] leading-relaxed ${dark?"text-[#8b949e]":"text-gray-700"}`}>{q.reponse}</p>
@@ -851,7 +851,7 @@ export default function FAQ() {
       )}
 
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white ${toast.type==="success"?"bg-teal-600":"bg-red-600"}`}>
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white ${toast.type==="success"?"bg-blue-700":"bg-red-600"}`}>
           {toast.msg}
         </div>
       )}

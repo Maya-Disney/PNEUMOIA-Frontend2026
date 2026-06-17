@@ -218,7 +218,7 @@ function ModaleDossier({ doc: m, onClose, dark }) {
       }>
       <div className="flex flex-col gap-3">
 
-        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${dark ? "bg-teal-900/20 border-teal-700/40 text-teal-300" : "bg-teal-50 border-teal-200 text-teal-700"}`}>
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${dark ? "bg-blue-900/20 border-blue-700/40 text-blue-300" : "bg-blue-50 border-blue-200 text-blue-800"}`}>
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="shrink-0">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
@@ -238,7 +238,7 @@ function ModaleDossier({ doc: m, onClose, dark }) {
           ].map(({l,v,teal},i) => (
             <div key={i} className={`flex items-center justify-between px-4 py-2.5 border-b last:border-0 ${dark ? "border-[#21262d]" : "border-gray-100"}`}>
               <span className={`text-[15px] ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{l}</span>
-              <span className={`text-[15px] font-medium ${teal ? "text-teal-700" : dark ? "text-[#8b949e]" : "text-gray-700"}`}>{v}</span>
+              <span className={`text-[15px] font-medium ${teal ? "text-blue-800" : dark ? "text-[#8b949e]" : "text-gray-700"}`}>{v}</span>
             </div>
           ))}
         </div>
@@ -306,7 +306,7 @@ function ModaleProfil({ doc: m, onClose, onSuspendre, onSupprimer, dark }) {
               <p className={`text-[15px] font-bold ${dark ? "text-white" : "text-gray-800"}`}>{m.name}</p>
               <p className={`text-[15px] ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{m.specialite} · {m.hopital}</p>
               <div className="flex gap-1.5 mt-1">
-                <span className="text-[15px] font-bold px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400">{m.statut}</span>
+                <span className="text-[15px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400">{m.statut}</span>
                 <span className="text-[15px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">CNOM vérifié</span>
               </div>
             </div>
@@ -322,7 +322,7 @@ function ModaleProfil({ doc: m, onClose, onSuspendre, onSupprimer, dark }) {
         <div className="grid grid-cols-3 gap-2">
           {[{v:m.patients,l:"Patients"},{v:m.consultations.toLocaleString("fr-FR"),l:"Consultations"},{v:`${m.concordanceIA}%`,l:"Concordance IA",teal:true}].map(({v,l,teal})=>(
             <div key={l} className={`rounded-xl border p-3 text-center ${dark ? "bg-[#0d1117] border-[#21262d]" : "bg-gray-50 border-gray-100"}`}>
-              <p className={`text-xl font-black ${teal ? "text-teal-700 dark:text-teal-400" : dark ? "text-white" : "text-gray-900"}`}>{v}</p>
+              <p className={`text-xl font-black ${teal ? "text-blue-800 dark:text-blue-400" : dark ? "text-white" : "text-gray-900"}`}>{v}</p>
               <p className={`text-[14px] mt-0.5 ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{l}</p>
             </div>
           ))}
@@ -715,7 +715,7 @@ export default function ValideesCeMois() {
       {modaleSuppr   && <ModaleSuppression medecin={modaleSuppr} dark={dark} onClose={() => setModaleSuppr(null)} onConfirm={handleSuppression} />}
 
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white ${toast.type === "success" ? "bg-teal-600" : toast.type === "warn" ? "bg-orange-500" : "bg-red-600"}`}>
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white ${toast.type === "success" ? "bg-blue-700" : toast.type === "warn" ? "bg-orange-500" : "bg-red-600"}`}>
           {toast.msg}
         </div>
       )}

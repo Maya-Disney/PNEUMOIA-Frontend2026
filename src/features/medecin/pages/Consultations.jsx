@@ -120,7 +120,7 @@ const FormCard = ({ title, icon, children, className = "" }) => (
 const InputField = ({ label, type = "text", value, onChange, placeholder, required = false, icon: Icon, disabled = false }) => (
   <div className="mb-3">
     <label className="block text-xs font-medium text-(--t2) mb-1">
-      {label} {required && <span className="text-red-500">*</span>}
+      {label}{required && <span className="text-red-500 ml-0.5">*</span>}
     </label>
     <div className="relative">
       {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-(--t4)" />}
@@ -142,7 +142,7 @@ const InputField = ({ label, type = "text", value, onChange, placeholder, requir
 const SelectField = ({ label, value, onChange, options, required = false, icon: Icon }) => (
   <div className="mb-3">
     <label className="block text-xs font-medium text-(--t2) mb-1">
-      {label} {required && <span className="text-red-500">*</span>}
+      {label}{required && <span className="text-red-500 ml-0.5">*</span>}
     </label>
     <div className="relative">
       {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-(--t4)" />}
@@ -1160,9 +1160,15 @@ const createAndContinue = async () => {
   };
 
 
-  const getRiskColor = (level) => {
-    const colors = { low: 'emerald', medium: 'amber', high: 'red' };
-    return colors[level] || 'slate';
+  const RISK_BANNER_CLS = {
+    low:    'from-emerald-500 to-emerald-600',
+    medium: 'from-amber-500 to-amber-600',
+    high:   'from-red-500 to-red-600',
+  };
+  const RISK_BAR_CLS = {
+    low:    'bg-emerald-500',
+    medium: 'bg-amber-500',
+    high:   'bg-red-500',
   };
 
   const getRiskText = (level) => {
@@ -1486,15 +1492,12 @@ const createAndContinue = async () => {
           const needsIA = !(isAide && !aidePerms.peut_voir_diagnostic);
           const hasRequiredFields = needsIA
             ? (consultation.saturationO2 && consultation.frequenceCardiaque &&
-               consultation.tensionSystolique && consultation.tensionDiastolique &&
-               (consultation.toux || consultation.dyspnee || consultation.douleurThoracique ||
-                consultation.wheezing || consultation.hemoptysie || consultation.fatigue ||
-                consultation.fievre || consultation.motif))
+               consultation.tensionSystolique && consultation.tensionDiastolique)
             : true;
           const isDisabled = isAnalyzing || (needsIA && !hasRequiredFields);
           return (
         <button onClick={runAIAnalysis} disabled={isDisabled}
-          title={needsIA && !hasRequiredFields ? 'Remplissez SpO₂, FC, TA et au moins un symptôme' : ''}
+          title={needsIA && !hasRequiredFields ? 'Remplissez SpO₂, FC, TA systolique et TA diastolique' : ''}
           className={`px-6 py-2.5 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${
             isDisabled
               ? 'bg-gray-400 cursor-not-allowed opacity-60'
@@ -1598,7 +1601,7 @@ const createAndContinue = async () => {
       )}
 
       {/* Bandeau diagnostic + indicateur modèle */}
-      <div className={`bg-linear-to-r from-${getRiskColor(aiResult.riskLevel)}-500 to-${getRiskColor(aiResult.riskLevel)}-600 rounded-xl p-4 text-white`}>
+      <div className={`bg-linear-to-r ${RISK_BANNER_CLS[aiResult.riskLevel] || RISK_BANNER_CLS.low} rounded-xl p-4 text-white`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="w-6 h-6" />
@@ -1632,17 +1635,12 @@ const createAndContinue = async () => {
           <div className="text-center p-4 bg-(--sf2) rounded-lg border border-(--ln)">
             <div className="text-xl font-bold text-(--t1)">{aiResult.principal || 'En attente'}</div>
             <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-(--sf3) rounded-full text-xs text-(--t2)">
-              <Brain className="w-3 h-3" /> Confiance patient : {aiResult.confidence}%
+              <Activity className="w-3 h-3" /> Score de confiance : {aiResult.confidence}%
             </div>
-            {aiResult.versionModele && (
-              <div className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 dark:bg-emerald-500/20 rounded-full text-xs ml-1">
-                <Sparkles className="w-3 h-3" /> Fiabilité modèle : {aiResult.versionModele}
-              </div>
-            )}
           </div>
           <div className="mt-3">
             <div className="h-1.5 bg-(--sf2) rounded-full">
-              <div className={`h-full bg-${getRiskColor(aiResult.riskLevel)}-500 rounded-full`} style={{ width: `${aiResult.confidence}%` }} />
+              <div className={`h-full ${RISK_BAR_CLS[aiResult.riskLevel] || RISK_BAR_CLS.low} rounded-full`} style={{ width: `${aiResult.confidence}%` }} />
             </div>
           </div>
         </div>

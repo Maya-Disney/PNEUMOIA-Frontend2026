@@ -1,214 +1,237 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell, CheckCircle, AlertCircle, Info,
-  Loader2, Trash2, BellOff, Clock, Shield, UserCheck, Key, CheckCheck, MessageSquare, RefreshCw,
+  Loader2, Trash2, BellOff, Clock, Shield, UserCheck, Key,
+  MessageCircle, Settings, Check
 } from 'lucide-react';
 
+const P  = '#2563eb';
+const P2 = '#1d4ed8';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-const hdrs = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' });
+const tok = () => localStorage.getItem('token') || '';
+
+const NOTIF_ICONS = {
+  permission:              Shield,
+  validation:              UserCheck,
+  code:                    Key,
+  code_referent:           Key,
+  info:                    Info,
+  warning:                 AlertCircle,
+  success:                 CheckCircle,
+  nouveau_message_medecin: MessageCircle,
+  nouveau_message_equipe:  MessageCircle,
+  nouveau_commentaire:     MessageCircle,
+  aide_nouveau_patient:    UserCheck,
+  aide_modif_patient:      Shield,
+  parametres:              Settings,
+};
 
 const NOTIF_CFG = {
-  permission:  { icon: Shield,        bg: 'bg-emerald-50 dark:bg-emerald-500/10', iconCls: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-100 dark:border-emerald-500/20', dot: 'bg-emerald-500'},
-  validation:  { icon: UserCheck,     bg: 'bg-emerald-50 dark:bg-emerald-500/10', iconCls: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-100 dark:border-emerald-500/20', dot: 'bg-emerald-500'},
-  code:        { icon: Key,           bg: 'bg-amber-50 dark:bg-amber-500/10',     iconCls: 'text-amber-600 dark:text-amber-400',     border: 'border-amber-100 dark:border-amber-500/20',   dot: 'bg-amber-500'  },
-  warning:     { icon: AlertCircle,   bg: 'bg-orange-50 dark:bg-orange-500/10',   iconCls: 'text-orange-600 dark:text-orange-400',   border: 'border-orange-100 dark:border-orange-500/20', dot: 'bg-orange-500' },
-  success:     { icon: CheckCircle,   bg: 'bg-emerald-50 dark:bg-emerald-500/10', iconCls: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-100 dark:border-emerald-500/20', dot: 'bg-emerald-500'},
-  commentaire: { icon: MessageSquare, bg: 'bg-violet-50 dark:bg-violet-500/10',   iconCls: 'text-violet-600 dark:text-violet-400',   border: 'border-violet-100 dark:border-violet-500/20', dot: 'bg-violet-500' },
-  info:        { icon: Info,          bg: 'bg-slate-50 dark:bg-slate-500/10',     iconCls: 'text-slate-500 dark:text-slate-400',     border: 'border-slate-200 dark:border-slate-500/20',   dot: 'bg-slate-400'  },
+  permission:              { bg:'bg-blue-50 dark:bg-blue-500/10',   ic:'text-blue-600 dark:text-blue-400',   dot:'#3b82f6', border:'border-blue-100 dark:border-blue-500/15'   },
+  validation:              { bg:'bg-emerald-50 dark:bg-emerald-500/10', ic:'text-emerald-600 dark:text-emerald-400', dot:'#10b981', border:'border-emerald-100 dark:border-emerald-500/15' },
+  code:                    { bg:'bg-amber-50 dark:bg-amber-500/10',  ic:'text-amber-600 dark:text-amber-400',  dot:'#f59e0b', border:'border-amber-100 dark:border-amber-500/15'  },
+  code_referent:           { bg:'bg-amber-50 dark:bg-amber-500/10',  ic:'text-amber-600 dark:text-amber-400',  dot:'#f59e0b', border:'border-amber-100 dark:border-amber-500/15'  },
+  warning:                 { bg:'bg-orange-50 dark:bg-orange-500/10',ic:'text-orange-600 dark:text-orange-400',dot:'#f97316', border:'border-orange-100 dark:border-orange-500/15' },
+  success:                 { bg:'bg-emerald-50 dark:bg-emerald-500/10', ic:'text-emerald-600 dark:text-emerald-400', dot:'#10b981', border:'border-emerald-100 dark:border-emerald-500/15' },
+  nouveau_message_medecin: { bg:'bg-blue-50 dark:bg-blue-500/10',   ic:'text-blue-600 dark:text-blue-400',   dot:'#3b82f6', border:'border-blue-100 dark:border-blue-500/15'   },
+  nouveau_message_equipe:  { bg:'bg-blue-50 dark:bg-blue-500/10',   ic:'text-blue-600 dark:text-blue-400',   dot:'#3b82f6', border:'border-blue-100 dark:border-blue-500/15'   },
+  nouveau_commentaire:     { bg:'bg-blue-50 dark:bg-blue-500/10',   ic:'text-blue-600 dark:text-blue-400',   dot:'#3b82f6', border:'border-blue-100 dark:border-blue-500/15'   },
 };
+const DEF_CFG = { bg:'bg-slate-50 dark:bg-slate-500/10', ic:'text-slate-500 dark:text-slate-400', dot:'#94a3b8', border:'border-slate-100 dark:border-slate-500/15' };
 
-const TYPE_MAP = {
-  permission:              'permission',
-  validation:              'validation',
-  code_referent:           'code',
-  patient_modif:           'warning',
-  modif_patient:           'warning',
-  aide_modif_patient:      'warning',
-  referent_publication:    'success',
-  referent_like:           'success',
-  nouveau_commentaire:     'commentaire',
-  nouveau_message_medecin: 'commentaire',
-  parametres:              'info',
-};
-
-const getCfg = (type_notif) => NOTIF_CFG[TYPE_MAP[type_notif] || 'info'] || NOTIF_CFG.info;
-
-function timeAgo(dateStr) {
-  const s = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (s < 60)    return "à l'instant";
-  if (s < 3600)  return `il y a ${Math.floor(s / 60)} min`;
-  if (s < 86400) return `il y a ${Math.floor(s / 3600)}h`;
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+function normalizeNotif(n) {
+  return {
+    id:    n.id,
+    type:  n.type_notif || n.type || 'info',
+    title: n.titre      || n.title  || 'Notification',
+    body:  n.message    || n.body   || '',
+    date:  n.created_at || n.date,
+    read:  n.lu         ?? n.read ?? false,
+  };
 }
 
-const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
-const item      = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 60)    return 'À l\'instant';
+  if (s < 3600)  return `Il y a ${Math.floor(s/60)} min`;
+  if (s < 86400) return `Il y a ${Math.floor(s/3600)}h`;
+  return d.toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+}
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...opts,
+    headers: { Authorization:`Bearer ${tok()}`, 'Content-Type':'application/json', ...(opts.headers||{}) },
+  });
+  if (!res.ok && res.status !== 204) throw new Error(res.status);
+  if (res.status === 204) return null;
+  return res.json();
+}
 
 export default function AideNotifications() {
-  const [notifs,     setNotifs]     = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [filter,     setFilter]     = useState('all');
-  const intervalRef = useRef(null);
+  const [notifs,  setNotifs]  = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter,  setFilter]  = useState('all');
 
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
-      const r = await fetch(`${API_URL}/notifications?limite=100`, { headers: hdrs() });
-      if (r.ok) setNotifs(await r.json());
-    } catch {}
-    finally { if (!silent) setLoading(false); }
-  }, []);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await load(true);
-    setRefreshing(false);
-  };
+  const fetchNotifs = () =>
+    apiFetch('/notifications')
+      .then(data => setNotifs((Array.isArray(data) ? data : []).map(normalizeNotif)))
+      .catch(() => setNotifs([]))
+      .finally(() => setLoading(false));
 
   useEffect(() => {
-    load();
-    intervalRef.current = setInterval(() => load(true), 30_000);
-    return () => clearInterval(intervalRef.current);
-  }, [load]);
+    fetchNotifs();
+    const iv = setInterval(fetchNotifs, 60_000);
+    return () => clearInterval(iv);
+  }, []);
 
-  const markAll = async () => {
-    try {
-      await fetch(`${API_URL}/notifications/tout-lire`, { method: 'PATCH', headers: hdrs() });
-      setNotifs(prev => prev.map(n => ({ ...n, lu: true })));
-    } catch {}
-  };
+  const markAll  = async () => { setNotifs(prev => prev.map(n => ({ ...n, read:true }))); try { await apiFetch('/notifications/tout-lire', { method:'PATCH' }); } catch {} };
+  const clearRead = async () => { setNotifs(prev => prev.filter(n => !n.read)); try { await apiFetch('/notifications', { method:'DELETE' }); } catch {} };
+  const markOne  = async id  => { setNotifs(prev => prev.map(n => n.id===id ? { ...n, read:true } : n)); try { await apiFetch(`/notifications/${id}/lire`, { method:'PATCH' }); } catch {} };
+  const deleteOne = async id => { setNotifs(prev => prev.filter(n => n.id!==id)); try { await apiFetch(`/notifications/${id}`, { method:'DELETE' }); } catch {} };
 
-  const deleteAllRead = async () => {
-    try {
-      await fetch(`${API_URL}/notifications`, { method: 'DELETE', headers: hdrs() });
-      setNotifs(prev => prev.filter(n => !n.lu));
-    } catch {}
-  };
-
-  const markOne = async (id) => {
-    try {
-      await fetch(`${API_URL}/notifications/${id}/lire`, { method: 'PATCH', headers: hdrs() });
-      setNotifs(prev => prev.map(n => n.id === id ? { ...n, lu: true } : n));
-    } catch {}
-  };
-
-  const deleteOne = async (id) => {
-    try {
-      await fetch(`${API_URL}/notifications/${id}`, { method: 'DELETE', headers: hdrs() });
-      setNotifs(prev => prev.filter(n => n.id !== id));
-    } catch {}
-  };
-
-  const unread   = notifs.filter(n => !n.lu).length;
-  const filtered = filter === 'all' ? notifs : notifs.filter(n => !n.lu);
+  const unread   = notifs.filter(n => !n.read).length;
+  const filtered = filter === 'all' ? notifs : notifs.filter(n => !n.read);
 
   return (
-    <div className="w-full space-y-4">
+    <div className="space-y-5 w-full max-w-4xl mx-auto">
 
-      {/* En-tête */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-        className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-(--t1) flex items-center gap-2.5">
-            Notifications
+      {/* ── Header card ─── */}
+      <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }}
+        className="relative rounded-2xl overflow-hidden"
+        style={{ background:`linear-gradient(135deg,${P2} 0%,${P} 55%,#3b82f6 100%)`, boxShadow:`0 8px 32px rgba(37,99,235,0.25)` }}>
+        <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full opacity-15"
+          style={{ background:'radial-gradient(circle,#bfdbfe,transparent)' }} />
+        <div style={{ position:'absolute', inset:0, opacity:0.06, backgroundImage:'radial-gradient(circle at 2px 2px,#fff 1px,transparent 0)', backgroundSize:'18px 18px' }} />
+        <div className="relative px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
+            <div className="relative w-12 h-12 rounded-2xl flex items-center justify-center"
+              style={{ background:'rgba(255,255,255,0.18)', border:'1.5px solid rgba(255,255,255,0.28)' }}>
+              <Bell size={20} className="text-white" />
+              {unread > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-white">
+                  {unread > 9 ? '9+' : unread}
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="text-blue-200/80 text-[10px] font-black uppercase tracking-widest">Centre de notifications</p>
+              <h1 className="text-xl font-black text-white">
+                {loading ? '…' : `${notifs.length} notification${notifs.length > 1 ? 's' : ''}`}
+              </h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
             {unread > 0 && (
-              <span className="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full text-xs font-bold text-white bg-emerald-600">
-                {unread}
-              </span>
+              <div className="text-center px-3 py-2 rounded-xl bg-red-500/25 border border-red-400/35">
+                <p className="text-xl font-black text-white leading-none">{unread}</p>
+                <p className="text-[10px] text-red-200 font-bold">Non lues</p>
+              </div>
             )}
-          </h1>
-          <p className="text-sm text-(--t3) mt-1">Centre de notifications de votre espace</p>
+            <div className="text-center px-3 py-2 rounded-xl bg-white/10 border border-white/15">
+              <p className="text-xl font-black text-white leading-none">{notifs.filter(n=>n.read).length}</p>
+              <p className="text-[10px] text-blue-200 font-bold">Lues</p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Barre actions/filtres ─── */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-1 bg-(--sf) rounded-xl p-1 border border-(--ln) shadow-sm">
+          {[
+            { key:'all',    label:'Toutes',   count:notifs.length },
+            { key:'unread', label:'Non lues', count:unread        },
+          ].map(f => (
+            <button key={f.key} onClick={() => setFilter(f.key)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${filter===f.key ? 'text-white shadow-sm' : 'text-(--t3) hover:text-(--t2)'}`}
+              style={filter===f.key ? { background:`linear-gradient(135deg,${P2},${P})` } : {}}>
+              {f.label}
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${filter===f.key ? 'bg-white/20 text-white' : 'text-(--t4)'}`}>
+                {f.count}
+              </span>
+            </button>
+          ))}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleRefresh} disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-(--t2) border border-(--ln) rounded-xl hover:bg-(--sf2) transition-colors disabled:opacity-50">
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />Actualiser
-          </button>
           {unread > 0 && (
             <button onClick={markAll}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-(--t2) border border-(--ln) rounded-xl hover:bg-(--sf2) transition-colors">
-              <CheckCheck className="w-3.5 h-3.5" />Tout marquer lu
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-(--t2) bg-(--sf) border border-(--ln) rounded-xl hover:bg-(--sf2) transition-colors shadow-sm">
+              <Check size={12} /> Tout marquer lu
             </button>
           )}
-          {notifs.some(n => n.lu) && (
-            <button onClick={deleteAllRead}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-600 border border-red-200 dark:border-red-500/25 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
-              <Trash2 className="w-3.5 h-3.5" />Supprimer les lues
+          {notifs.some(n => n.read) && (
+            <button onClick={clearRead}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-red-600 dark:text-red-400 bg-(--sf) border border-red-100 dark:border-red-500/20 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors shadow-sm">
+              <Trash2 size={12} /> Effacer les lues
             </button>
           )}
         </div>
-      </motion.div>
+      </div>
 
-      {/* Tabs filtre */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-        className="flex gap-1 bg-(--sf2) rounded-xl p-1 border border-(--ln) w-fit">
-        {[{ key: 'all', label: 'Toutes', count: notifs.length }, { key: 'unread', label: 'Non lues', count: unread }].map(f => (
-          <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              filter === f.key ? 'bg-(--sf) text-(--t1) shadow-sm' : 'text-(--t3) hover:text-(--t2)'
-            }`}>
-            {f.label}
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-              filter === f.key ? 'bg-emerald-600 text-white' : 'bg-(--sf3) text-(--t4)'
-            }`}>{f.count}</span>
-          </button>
-        ))}
-      </motion.div>
-
-      {/* Liste */}
+      {/* ── Liste ─── */}
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <Loader2 className="w-7 h-7 animate-spin" style={{ color:P }} />
+          <p className="text-sm text-(--t4)">Chargement…</p>
         </div>
       ) : filtered.length === 0 ? (
-        <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center justify-center py-20 text-center gap-3">
-          <div className="w-14 h-14 rounded-2xl bg-(--sf2) border border-(--ln) flex items-center justify-center">
-            <BellOff className="w-7 h-7 text-(--t4)" />
+        <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }}
+          className="flex flex-col items-center justify-center py-20 text-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-(--sf2) border border-(--ln) flex items-center justify-center">
+            <BellOff className="w-8 h-8 text-(--t4)" />
           </div>
           <div>
-            <p className="font-semibold text-(--t2)">{filter === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}</p>
-            <p className="text-xs text-(--t4) mt-0.5">Vous êtes à jour</p>
+            <p className="font-bold text-(--t2) text-lg">
+              {filter==='unread' ? 'Aucune notification non lue' : 'Aucune notification'}
+            </p>
+            <p className="text-sm text-(--t4) mt-1">Vous êtes à jour !</p>
           </div>
         </motion.div>
       ) : (
-        <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
+        <div className="space-y-2">
           <AnimatePresence>
-            {filtered.map(n => {
-              const cfg  = getCfg(n.type_notif);
-              const Icon = cfg.icon;
+            {filtered.map((n, i) => {
+              const cfg  = NOTIF_CFG[n.type] || DEF_CFG;
+              const Icon = NOTIF_ICONS[n.type] || Info;
               return (
-                <motion.div key={n.id} variants={item}
-                  exit={{ opacity: 0, x: 24, transition: { duration: 0.18 } }}
-                  className={`flex items-start gap-3 p-4 rounded-xl border transition-colors ${
-                    n.lu ? 'bg-(--sf) border-(--ln)' : `${cfg.bg} ${cfg.border}`
-                  }`}>
-
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${n.lu ? 'bg-(--sf2)' : cfg.bg}`}>
-                    <Icon className={`w-4 h-4 ${n.lu ? 'text-(--t3)' : cfg.iconCls}`} />
+                <motion.div key={n.id}
+                  initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
+                  exit={{ opacity:0, x:24, scale:0.97 }}
+                  transition={{ duration:0.18, delay: i < 8 ? i * 0.04 : 0 }}
+                  className={`flex items-start gap-4 p-4 rounded-xl border transition-all ${
+                    n.read ? 'bg-(--sf) border-(--ln)' : `${cfg.bg} ${cfg.border}`
+                  }`}
+                  style={{ boxShadow: n.read ? 'none' : '0 2px 12px rgba(0,0,0,0.04)' }}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${n.read ? 'bg-(--sf2)' : cfg.bg}`}>
+                    <Icon size={17} className={n.read ? 'text-(--t4)' : cfg.ic} />
                   </div>
-
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className={`text-sm font-semibold leading-tight ${n.lu ? 'text-(--t2)' : 'text-(--t1)'}`}>{n.titre}</p>
-                      {!n.lu && <span className={`w-2 h-2 rounded-full shrink-0 mt-1 ${cfg.dot}`} />}
+                    <div className="flex items-start justify-between gap-3">
+                      <p className={`text-sm font-bold leading-tight ${n.read ? 'text-(--t2)' : 'text-(--t1)'}`}>{n.title}</p>
+                      {!n.read && (
+                        <span className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ background: cfg.dot }} />
+                      )}
                     </div>
-                    <p className={`text-xs mt-1 leading-relaxed ${n.lu ? 'text-(--t4)' : 'text-(--t3)'}`}>{n.message}</p>
+                    {n.body && (
+                      <p className={`text-xs mt-1 leading-relaxed ${n.read ? 'text-(--t4)' : 'text-(--t3)'}`}>{n.body}</p>
+                    )}
                     <div className="flex items-center gap-3 mt-2">
                       <span className="text-[10px] text-(--t4) flex items-center gap-1">
-                        <Clock className="w-3 h-3" />{timeAgo(n.created_at)}
+                        <Clock size={10} /> {timeAgo(n.date)}
                       </span>
-                      {!n.lu && (
+                      {!n.read && (
                         <button onClick={() => markOne(n.id)}
-                          className="text-[10px] font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
+                          className="text-[10px] font-bold transition-colors hover:underline" style={{ color:P }}>
                           Marquer lu
                         </button>
                       )}
                       <button onClick={() => deleteOne(n.id)}
-                        className="ml-auto p-1 rounded-lg text-(--t4) hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
+                        className="ml-auto w-6 h-6 rounded-lg flex items-center justify-center text-(--t4) hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all">
+                        <Trash2 size={11} />
                       </button>
                     </div>
                   </div>
@@ -216,7 +239,7 @@ export default function AideNotifications() {
               );
             })}
           </AnimatePresence>
-        </motion.div>
+        </div>
       )}
     </div>
   );

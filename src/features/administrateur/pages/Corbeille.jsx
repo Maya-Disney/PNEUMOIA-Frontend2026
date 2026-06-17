@@ -338,7 +338,7 @@ export default function Corbeille() {
                                   setOpenMenuId(null);
                                 }}
                                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] font-medium transition-colors
-                                  ${dark?"text-teal-400 hover:bg-teal-900/20":"text-teal-700 hover:bg-teal-50"}`}
+                                  ${dark?"text-blue-400 hover:bg-blue-900/20":"text-blue-800 hover:bg-blue-50"}`}
                               >
                                 <RotateCcw size={14} className="shrink-0" />
                                 Restaurer le compte

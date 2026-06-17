@@ -7,7 +7,7 @@ import {
 import { ArrowLeft } from "lucide-react";
 import { getConsultationsAnnee } from "../api/adminApi";
 
-const BRAND      = "#009e82";
+const BRAND = "#009e82";
 const BRAND_PALE = "#5eead4";
 const NOW        = new Date();
 const CUR_YEAR   = NOW.getFullYear();
@@ -166,14 +166,14 @@ export default function ConsultationsAnnuelles() {
       {/* ── KPIs ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {(selRow ? [
-          { label: "Consultations",  value: selRow.val.toLocaleString("fr-FR"),                                                                                   sub: `${selRow.label} ${year}`,                            color: "text-teal-600" },
-          { label: "vs Moyenne",     value: `${moy > 0 ? (selRow.val >= moy ? "+" : "") + Math.round((selRow.val - moy) / moy * 100) : 0}%`,                      sub: `Moy. annuelle : ${moy.toLocaleString("fr-FR")}`,     color: selRow.val >= moy ? "text-teal-600" : "text-red-500" },
+          { label: "Consultations",  value: selRow.val.toLocaleString("fr-FR"),                                                                                   sub: `${selRow.label} ${year}`,                            color: "text-blue-700" },
+          { label: "vs Moyenne",     value: `${moy > 0 ? (selRow.val >= moy ? "+" : "") + Math.round((selRow.val - moy) / moy * 100) : 0}%`,                      sub: `Moy. annuelle : ${moy.toLocaleString("fr-FR")}`,     color: selRow.val >= moy ? "text-blue-700" : "text-red-500" },
           { label: "Mois record",    value: pic?.label || "—",                                                                                                    sub: pic ? `${pic.val.toLocaleString("fr-FR")} consult.` : "—", color: dark ? "text-white" : "text-gray-700" },
           { label: "Total annuel",   value: total.toLocaleString("fr-FR"),                                                                                        sub: `${yearData.length} mois`,                            color: dark ? "text-[#8b949e]" : "text-gray-500" },
         ] : [
-          { label: "Total annuel",   value: total.toLocaleString("fr-FR"),  sub: `${yearData.length} mois enregistrés`,                          color: "text-teal-600" },
+          { label: "Total annuel",   value: total.toLocaleString("fr-FR"),  sub: `${yearData.length} mois enregistrés`,                          color: "text-blue-700" },
           { label: "Moyenne / mois", value: moy.toLocaleString("fr-FR"),    sub: "Consultations moyennes",                                       color: dark ? "text-white" : "text-gray-900" },
-          { label: "Mois record",    value: pic?.label || "—",              sub: pic ? `${pic.val.toLocaleString("fr-FR")} consultations` : "—", color: "text-teal-600" },
+          { label: "Mois record",    value: pic?.label || "—",              sub: pic ? `${pic.val.toLocaleString("fr-FR")} consultations` : "—", color: "text-blue-700" },
           { label: "Année",          value: String(year),                   sub: "Période affichée",                                             color: dark ? "text-[#8b949e]" : "text-gray-500" },
         ]).map(({ label, value, sub, color }) => (
           <div key={label} className={`${card} px-5 py-4`}>
@@ -316,7 +316,7 @@ export default function ConsultationsAnnuelles() {
                     onClick={() => setMois(row.mois === selectedMois ? null : row.mois)}
                     className={`border-b last:border-0 cursor-pointer transition-colors
                       ${isSel
-                        ? dark ? "bg-[#0d2926]" : "bg-teal-50/60"
+                        ? dark ? "bg-[#0d2926]" : "bg-blue-50/60"
                         : dark ? "border-[#21262d] hover:bg-[#0d1117]/40" : "border-gray-50 hover:bg-gray-50/50"}`}
                   >
                     <td className={`px-6 py-3.5 text-[14px] font-bold ${isPic ? "" : dark ? "text-white" : "text-gray-800"}`}
@@ -331,7 +331,7 @@ export default function ConsultationsAnnuelles() {
                     <td className={`px-6 py-3.5 text-[13px] tabular-nums ${dark ? "text-[#8b949e]" : "text-gray-500"}`}>
                       {part}%
                     </td>
-                    <td className={`px-6 py-3.5 text-[13px] font-bold tabular-nums ${diff >= 0 ? "text-teal-600" : "text-red-500"}`}>
+                    <td className={`px-6 py-3.5 text-[13px] font-bold tabular-nums ${diff >= 0 ? "text-blue-700" : "text-red-500"}`}>
                       {diff >= 0 ? "+" : ""}{diff}%
                     </td>
                     <td className="px-6 py-3.5">

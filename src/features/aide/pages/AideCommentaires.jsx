@@ -1,4 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${localStorage.getItem('token')}`,
+});
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageCircle, ThumbsUp, Reply, Trash2, Send,
@@ -9,12 +15,6 @@ import {
   Loader2, RotateCcw, RefreshCw,
 } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
 
 // ─── Tabs ──────────────────────────────────────────────────────────────────────
 const TABS = [
@@ -354,7 +354,9 @@ function OngletMedecins({ toast }) {
   const [expandedReplies, setExpanded]= useState({});
   const [replyingTo, setReplyingTo]   = useState(null);
   const [replyText, setReplyText]     = useState('');
+
   const loadPosts = () => {
+    setLoadingPosts(true);
     fetch(`${API_URL}/ressources?limite=50`, { headers: authHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => setPosts(Array.isArray(data?.data) ? data.data : []))

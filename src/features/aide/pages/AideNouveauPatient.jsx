@@ -3,421 +3,301 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, UserPlus, User, Phone, Calendar,
-  Droplets, Mail, MapPin, Syringe,
-  AlertTriangle, CheckCircle2, ClipboardList, Heart,
-  Briefcase, Globe,
+  Mail, MapPin, AlertCircle, CheckCircle2, Loader2,
+  Heart, Globe, Briefcase, ChevronRight, ChevronLeft,
 } from 'lucide-react';
 import { createPatientAide } from '../../../services/patientsApi';
 
-function calculerAge(dateStr) {
-  if (!dateStr) return null;
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const age  = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
-  return isNaN(age) || age < 0 ? null : age;
-}
+const P  = '#2563eb';
+const P2 = '#1d4ed8';
 
-function SectionCard({ icon: Icon, label, color = 'red', children, delay = 0 }) {
-  const palette = {
-    red:   { bg: 'bg-red-50 dark:bg-red-500/10',     text: 'text-red-600 dark:text-red-400'   },
-    blue:  { bg: 'bg-emerald-50 dark:bg-emerald-500/10',   text: 'text-emerald-600 dark:text-emerald-400' },
-    amber: { bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400' },
-  };
-  const c = palette[color] || palette.red;
+const inp = 'w-full px-3.5 py-2.5 bg-(--sf2) border border-(--ln) rounded-xl text-sm text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:border-blue-400 transition-all';
+
+const STEPS = ['Identité', 'Contact', 'Médical'];
+const GROUPES = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+const RELIGIONS = [
+  { val:'catholique',     label:'Catholique'          },
+  { val:'protestant',     label:'Protestant'          },
+  { val:'temoin_jehovah', label:'Témoin de Jéhovah'   },
+  { val:'musulman',       label:'Musulman'            },
+  { val:'autres',         label:'Autres'              },
+];
+
+function Label({ children, required }) {
   return (
-    <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay, duration:0.3 }}
-      className="bg-(--sf) rounded-2xl border border-(--ln) shadow-sm overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-(--ln) bg-(--sf2)">
-        <div className={`w-8 h-8 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
-          <Icon size={15} className={c.text} />
-        </div>
-        <span className={`text-sm font-semibold text-(--t1)`}>{label}</span>
-      </div>
-      <div className="p-5">{children}</div>
-    </motion.div>
+    <label className="block text-[10px] font-bold uppercase tracking-widest text-(--t4) mb-1.5">
+      {children}{required && <span className="text-red-500 ml-1">*</span>}
+    </label>
   );
 }
 
-function Field({ label, required, color = 'blue', children }) {
-  const star = color === 'red' ? 'text-red-500' : 'text-emerald-500';
+function Field({ label, required, children }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-(--t3) mb-1.5 uppercase tracking-wide">
-        {label}{required && <span className={`${star} ml-0.5`}>*</span>}
-      </label>
+      <Label required={required}>{label}</Label>
       {children}
     </div>
   );
 }
 
-const GROUPES = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
-
 export default function AideNouveauPatient() {
   const navigate = useNavigate();
+  const perms    = (() => { try { return JSON.parse(localStorage.getItem('aide_permissions')||'{}'); } catch { return {}; } })();
+  const [step,  setStep]  = useState(0);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [done,    setDone]    = useState(false);
 
   const [form, setForm] = useState({
-    civilite:'', nom:'', prenom:'', date_naissance:'',
-    groupe_sanguin:'', telephone:'', email:'', adresse:'',
-    profession:'', religion:'',
+    civilite:'', prenom:'', nom:'', date_naissance:'',
+    telephone:'', email:'', adresse:'',
+    groupe_sanguin:'', religion:'', profession:'',
     personne_a_contacter:'', telephone_urgence:'',
-    allergies_text:'', antecedents_text:'',
+    allergies:'', antecedents:'',
   });
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState(null);
-  const [success, setSuccess] = useState(false);
 
-  const set = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.civilite) { setError('La civilité est obligatoire.'); return; }
-    setLoading(true); setError(null);
-    try {
-      await createPatientAide({
-        civilite:             form.civilite,
-        nom:                  form.nom.toUpperCase().trim(),
-        prenom:               form.prenom.trim(),
-        date_naissance:       form.date_naissance       || null,
-        groupe_sanguin:       form.groupe_sanguin       || null,
-        telephone:            form.telephone            || null,
-        email:                form.email                || null,
-        adresse:              form.adresse              || null,
-        profession:           form.profession           || null,
-        religion:             form.religion             || null,
-        personne_a_contacter: form.personne_a_contacter || null,
-        telephone_urgence:    form.telephone_urgence    || null,
-        allergies:            form.allergies_text
-          ? form.allergies_text.split(',').map(a => a.trim()).filter(Boolean)
-          : [],
-        antecedents: form.antecedents_text.trim()
-          ? { notes: form.antecedents_text.trim() }
-          : {},
-      });
-      setSuccess(true);
-      setTimeout(() => navigate('/aide/patients'), 1200);
-    } catch (err) {
-      setError(err.message || 'Erreur lors de la création du patient.');
-    } finally {
-      setLoading(false);
+  const validateStep = () => {
+    if (step === 0) {
+      if (!form.prenom.trim()) { setError('Le prénom est obligatoire.'); return false; }
+      if (!form.nom.trim())    { setError('Le nom est obligatoire.');    return false; }
     }
+    setError(''); return true;
   };
 
-  const inp = "w-full px-3 py-2.5 border border-(--ln) rounded-xl bg-(--sf) text-(--t1) text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all placeholder:text-(--t4)";
-  const sel = `${inp} cursor-pointer`;
+  const next = () => { if (validateStep()) setStep(s => Math.min(s + 1, STEPS.length - 1)); };
+  const prev = () => { setError(''); setStep(s => Math.max(s - 1, 0)); };
 
-  const age      = calculerAge(form.date_naissance);
-  const initials = `${form.prenom?.[0] || ''}${form.nom?.[0] || ''}`.toUpperCase();
-  const canSubmit = form.civilite && form.nom.trim() && form.prenom.trim() && !loading;
+  const handleSubmit = async () => {
+    if (!validateStep()) return;
+    setLoading(true); setError('');
+    try {
+      const payload = {
+        civilite:             form.civilite             || null,
+        prenom:               form.prenom.trim(),
+        nom:                  form.nom.trim(),
+        date_naissance:       form.date_naissance       || null,
+        telephone:            form.telephone.trim()     || null,
+        email:                form.email.trim()         || null,
+        adresse:              form.adresse.trim()       || null,
+        groupe_sanguin:       form.groupe_sanguin        || null,
+        religion:             form.religion              || null,
+        profession:           form.profession.trim()    || null,
+        personne_a_contacter: form.personne_a_contacter.trim() || null,
+        telephone_urgence:    form.telephone_urgence.trim()    || null,
+        allergies:            form.allergies ? form.allergies.split(',').map(a => a.trim()).filter(Boolean) : [],
+        antecedents:          form.antecedents ? { notes: form.antecedents.trim() } : {},
+      };
+      await createPatientAide(payload);
+      setDone(true);
+    } catch (e) { setError(e.message || 'Erreur lors de la création.'); }
+    finally { setLoading(false); }
+  };
+
+  if (!perms.peut_creer_patient) return (
+    <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+      <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+        <UserPlus className="w-8 h-8 text-blue-400" />
+      </div>
+      <div>
+        <p className="font-bold text-lg text-(--t1)">Permission requise</p>
+        <p className="text-sm text-(--t3) mt-1">Vous n'avez pas la permission de créer des patients.</p>
+      </div>
+    </div>
+  );
+
+  if (done) return (
+    <div className="flex flex-col items-center justify-center py-24 text-center gap-5">
+      <motion.div initial={{ scale:0.5, opacity:0 }} animate={{ scale:1, opacity:1 }} transition={{ type:'spring', stiffness:200, damping:15 }}
+        className="w-20 h-20 rounded-3xl flex items-center justify-center"
+        style={{ background:`linear-gradient(135deg,${P2},${P})`, boxShadow:`0 8px 32px rgba(37,99,235,0.35)` }}>
+        <CheckCircle2 className="w-10 h-10 text-white" />
+      </motion.div>
+      <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.25 }}>
+        <p className="text-2xl font-black text-(--t1)">Patient créé !</p>
+        <p className="text-sm text-(--t3) mt-2">
+          <span className="font-bold text-(--t1)">{form.prenom} {form.nom}</span> a été ajouté avec succès.
+        </p>
+      </motion.div>
+      <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.4 }} className="flex items-center gap-3">
+        <button onClick={() => navigate('/aide/patients')}
+          className="px-5 py-2.5 text-sm font-bold text-white rounded-xl transition-all active:scale-95"
+          style={{ background:`linear-gradient(135deg,${P2},${P})`, boxShadow:`0 4px 16px rgba(37,99,235,0.30)` }}>
+          Voir les patients
+        </button>
+        <button onClick={() => { setDone(false); setStep(0); setForm({ civilite:'', prenom:'', nom:'', date_naissance:'', telephone:'', email:'', adresse:'', groupe_sanguin:'', religion:'', profession:'', personne_a_contacter:'', telephone_urgence:'', allergies:'', antecedents:'' }); }}
+          className="px-5 py-2.5 text-sm font-bold text-(--t2) bg-(--sf) border border-(--ln) rounded-xl hover:bg-(--sf2) transition-all">
+          Nouveau patient
+        </button>
+      </motion.div>
+    </div>
+  );
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-5">
+    <div className="w-full max-w-2xl mx-auto space-y-5">
 
-      {/* ── HERO ─────────────────────────────────────────────────────── */}
-      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
-        className="rounded-2xl overflow-hidden shadow-lg"
-        style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)' }}>
-        <div className="relative p-5 overflow-hidden">
-          <div className="absolute -right-8 -top-8 w-48 h-48 rounded-full opacity-15 pointer-events-none"
-            style={{ background: 'radial-gradient(circle, #059669, transparent)' }} />
-          <div className="relative flex items-center gap-4">
-            <motion.button whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.95 }}
-              type="button" onClick={() => navigate('/aide/patients')}
-              className="w-10 h-10 flex items-center justify-center rounded-xl border border-white/15 text-white/70 hover:bg-white/10 transition-all shrink-0">
-              <ArrowLeft size={17} />
-            </motion.button>
-            <div className="w-12 h-12 rounded-xl bg-linear-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shrink-0">
-              <UserPlus className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Nouveau patient</h1>
-              <p className="text-slate-400 text-sm mt-0.5">Créer un dossier patient complet</p>
-            </div>
+      {/* ── Header ─── */}
+      <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }}
+        className="relative rounded-2xl overflow-hidden"
+        style={{ background:`linear-gradient(135deg,${P2} 0%,${P} 55%,#3b82f6 100%)`, boxShadow:`0 8px 32px rgba(37,99,235,0.25)` }}>
+        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full opacity-15"
+          style={{ background:'radial-gradient(circle,#bfdbfe,transparent)' }} />
+        <div style={{ position:'absolute', inset:0, opacity:0.06, backgroundImage:'radial-gradient(circle at 2px 2px,#fff 1px,transparent 0)', backgroundSize:'18px 18px' }} />
+        <div className="relative px-6 py-5 flex items-center gap-4">
+          <button onClick={() => navigate('/aide/patients')}
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 hover:bg-white/25 transition-all"
+            style={{ background:'rgba(255,255,255,0.15)', border:'1.5px solid rgba(255,255,255,0.25)' }}>
+            <ArrowLeft size={15} className="text-white" />
+          </button>
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+            style={{ background:'rgba(255,255,255,0.18)', border:'1.5px solid rgba(255,255,255,0.28)' }}>
+            <UserPlus size={18} className="text-white" />
+          </div>
+          <div>
+            <p className="text-blue-200/80 text-[10px] font-black uppercase tracking-widest">Nouveau patient</p>
+            <h1 className="text-xl font-black text-white">Ajouter un patient</h1>
           </div>
         </div>
       </motion.div>
 
-      {/* ── Corps ───────────────────────────────────────────────────── */}
-      <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {/* Colonne gauche — formulaire (2/3) */}
-            <div className="lg:col-span-2 space-y-5">
-
-              <AnimatePresence>
-                {error && (
-                  <motion.div key="err" initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
-                    className="flex items-start gap-3 p-3.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl text-sm text-red-700 dark:text-red-300">
-                    <AlertTriangle size={15} className="shrink-0 mt-0.5" /> {error}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Identité */}
-              <SectionCard icon={User} label="Identité" color="red" delay={0.05}>
-                <div className="space-y-4">
-                  <Field label="Civilité" required>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[{val:'M',label:'M.',sub:'Monsieur'},{val:'Mme',label:'Mme',sub:'Madame'}].map(opt => (
-                        <motion.label key={opt.val} whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all ${
-                            form.civilite === opt.val
-                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10'
-                              : 'border-(--ln) hover:border-emerald-300 hover:bg-(--sf2)'
-                          }`}>
-                          <input type="radio" name="civilite" value={opt.val}
-                            checked={form.civilite === opt.val} onChange={() => set('civilite', opt.val)} className="sr-only" />
-                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                            form.civilite === opt.val ? 'border-emerald-500' : 'border-(--ln)'
-                          }`}>
-                            {form.civilite === opt.val && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
-                          </div>
-                          <div>
-                            <div className={`text-sm font-bold ${form.civilite === opt.val ? 'text-emerald-700 dark:text-emerald-300' : 'text-(--t1)'}`}>{opt.label}</div>
-                            <div className="text-xs text-(--t4)">{opt.sub}</div>
-                          </div>
-                        </motion.label>
-                      ))}
-                    </div>
-                  </Field>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Nom" required>
-                      <input className={inp} value={form.nom} onChange={e => set('nom', e.target.value)} required />
-                    </Field>
-                    <Field label="Prénom" required>
-                      <input className={inp} value={form.prenom} onChange={e => set('prenom', e.target.value)} required />
-                    </Field>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Date de naissance">
-                      <input type="date" className={inp} value={form.date_naissance} onChange={e => set('date_naissance', e.target.value)} />
-                    </Field>
-                    <Field label="Âge">
-                      <input type="text" readOnly value={age !== null ? `${age} ans` : ''}
-                        placeholder="Calculé automatiquement"
-                        className={`${inp} bg-(--sf2) cursor-default text-(--t3)`} />
-                    </Field>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Téléphone">
-                      <input type="tel" className={inp} value={form.telephone}
-                        onChange={e => set('telephone', e.target.value)} placeholder="+237 6XX XXX XXX" />
-                    </Field>
-                    <Field label="Email">
-                      <input type="email" className={inp} value={form.email}
-                        onChange={e => set('email', e.target.value)} placeholder="patient@email.com" />
-                    </Field>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Adresse / Ville">
-                      <input className={inp} value={form.adresse}
-                        onChange={e => set('adresse', e.target.value)} placeholder="Yaoundé, Bastos…" />
-                    </Field>
-                    <Field label="Profession">
-                      <div className="relative">
-                        <Briefcase size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-(--t4)" />
-                        <input className={`${inp} pl-9`} value={form.profession}
-                          onChange={e => set('profession', e.target.value)} placeholder="Enseignant, médecin…" />
-                      </div>
-                    </Field>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Religion">
-                      <div className="relative">
-                        <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-(--t4)" />
-                        <select className={`${sel} pl-9`} value={form.religion} onChange={e => set('religion', e.target.value)}>
-                          <option value="">— Non renseignée</option>
-                          <option value="catholique">Catholique</option>
-                          <option value="protestant">Protestant</option>
-                          <option value="temoin_jehovah">Témoin de Jéhovah</option>
-                          <option value="musulman">Musulman</option>
-                          <option value="autres">Autres</option>
-                        </select>
-                      </div>
-                    </Field>
-                    <Field label="Groupe sanguin">
-                      <select className={sel} value={form.groupe_sanguin} onChange={e => set('groupe_sanguin', e.target.value)}>
-                        <option value="">— Non renseigné</option>
-                        {GROUPES.map(g => <option key={g} value={g}>{g}</option>)}
-                      </select>
-                    </Field>
-                  </div>
-
-                  {form.religion === 'temoin_jehovah' && (
-                    <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl">
-                      <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-bold text-amber-800 dark:text-amber-200">Patient Témoin de Jéhovah</p>
-                        <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">Ne peut pas recevoir de transfusion sanguine. Cette information sera visible sur le dossier et prise en compte par l'IA.</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </SectionCard>
-
-              {/* Antécédents */}
-              <SectionCard icon={ClipboardList} label="Antécédents médicaux" color="amber" delay={0.1}>
-                <div className="space-y-4">
-                  <Field label="Allergies connues">
-                    <input className={inp} value={form.allergies_text}
-                      onChange={e => set('allergies_text', e.target.value)}
-                      placeholder="Pénicilline, latex… (séparées par virgule)" />
-                    <p className="text-[11px] text-(--t4) mt-1">Séparez plusieurs allergies par une virgule.</p>
-                  </Field>
-                  <Field label="Antécédents">
-                    <textarea className={`${inp} resize-none`} rows={3}
-                      value={form.antecedents_text} onChange={e => set('antecedents_text', e.target.value)}
-                      placeholder="Hypertension, diabète type 2, chirurgies passées…" />
-                  </Field>
-                </div>
-              </SectionCard>
-
-              {/* Urgence */}
-              <SectionCard icon={Heart} label="Contact d'urgence" color="blue" delay={0.2}>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Personne à contacter">
-                    <input className={inp} value={form.personne_a_contacter}
-                      onChange={e => set('personne_a_contacter', e.target.value)}
-                      placeholder="Nom (lien de parenté)" />
-                  </Field>
-                  <Field label="Téléphone d'urgence">
-                    <input type="tel" className={inp} value={form.telephone_urgence}
-                      onChange={e => set('telephone_urgence', e.target.value)} placeholder="+237 6XX XXX XXX" />
-                  </Field>
-                </div>
-              </SectionCard>
+      {/* ── Stepper ─── */}
+      <div className="flex items-center gap-0">
+        {STEPS.map((label, i) => (
+          <div key={i} className="flex items-center flex-1">
+            <div className={`flex items-center gap-2 shrink-0 ${i <= step ? 'text-(--t1)' : 'text-(--t4)'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                i < step  ? 'text-white' :
+                i === step ? 'text-white' :
+                'bg-(--sf2) border border-(--ln)'
+              }`} style={ i <= step ? { background: i < step ? '#22c55e' : P, boxShadow: i === step ? `0 0 0 4px rgba(37,99,235,0.15)` : 'none' } : {}}>
+                {i < step ? <CheckCircle2 size={14}/> : i + 1}
+              </div>
+              <span className="text-xs font-bold hidden sm:block">{label}</span>
             </div>
-
-            {/* Colonne droite — aperçu + actions (1/3) */}
-            <div className="space-y-5">
-              <motion.div initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} transition={{ delay:0.2 }}
-                className="bg-(--sf) rounded-2xl border border-(--ln) shadow-sm overflow-hidden sticky top-20">
-
-                <div className="px-5 py-4 border-b border-(--ln) bg-(--sf2)">
-                  <span className="text-sm font-semibold text-(--t1)">Aperçu du dossier</span>
-                </div>
-
-                <div className="p-5">
-                  {/* Avatar */}
-                  <div className="flex flex-col items-center mb-5">
-                    <motion.div key={initials} initial={{ scale:0.85 }} animate={{ scale:1 }}
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg mb-3 bg-linear-to-br from-emerald-500 to-emerald-700">
-                      {initials || <User size={24} className="opacity-60" />}
-                    </motion.div>
-                    <div className="text-center">
-                      <motion.p key={`${form.civilite}${form.prenom}${form.nom}`}
-                        initial={{ opacity:0 }} animate={{ opacity:1 }}
-                        className="text-base font-bold text-(--t1)">
-                        {form.civilite && `${form.civilite}. `}
-                        {form.prenom || <span className="text-(--t4) font-normal italic">Prénom</span>}
-                        {' '}
-                        {form.nom ? form.nom.toUpperCase() : <span className="text-(--t4) font-normal italic">Nom</span>}
-                      </motion.p>
-                      {age !== null && (
-                        <motion.p initial={{ opacity:0 }} animate={{ opacity:1 }} className="text-xs text-(--t3) mt-0.5">
-                          {age} ans
-                        </motion.p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Infos */}
-                  <div className="space-y-2">
-                    {[
-                      { icon: Calendar,  val: form.date_naissance ? new Date(form.date_naissance).toLocaleDateString('fr-FR') : null, placeholder: 'Date de naissance' },
-                      { icon: Droplets,  val: form.groupe_sanguin, placeholder: 'Groupe sanguin' },
-                      { icon: Phone,     val: form.telephone,      placeholder: 'Téléphone' },
-                      { icon: Mail,      val: form.email,          placeholder: 'Email' },
-                      { icon: MapPin,    val: form.adresse,        placeholder: 'Ville' },
-                      { icon: Briefcase, val: form.profession,     placeholder: 'Profession' },
-                      { icon: Globe,     val: form.religion ? ({ catholique:'Catholique', protestant:'Protestant', temoin_jehovah:'Témoin de Jéhovah', musulman:'Musulman', autres:'Autres' }[form.religion] || form.religion) : null, placeholder: 'Religion' },
-                    ].map(({ icon: Icon, val, placeholder }, i) => (
-                      <div key={i} className="flex items-center gap-2.5 py-1.5 border-b border-(--ln) last:border-0">
-                        <Icon size={12} className="text-(--t4) shrink-0" />
-                        <span className={`text-xs ${val ? 'text-(--t2) font-medium' : 'text-(--t4) italic'}`}>
-                          {val || placeholder}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Badge allergies */}
-                  {form.allergies_text.trim() && (
-                    <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }}
-                      className="mt-3 flex items-start gap-2 p-2.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
-                      <Syringe size={12} className="text-emerald-500 shrink-0 mt-0.5" />
-                      <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold leading-relaxed">
-                        Allergies : {form.allergies_text}
-                      </span>
-                    </motion.div>
-                  )}
-
-                  {/* Badge groupe sanguin spécial */}
-                  {(form.groupe_sanguin === 'O-' || form.groupe_sanguin === 'AB+') && (
-                    <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }}
-                      className="mt-2 flex items-center gap-2 p-2.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
-                      <Droplets size={12} className="text-emerald-500 shrink-0" />
-                      <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold">
-                        {form.groupe_sanguin === 'O-' ? 'Donneur universel' : 'Receveur universel'}
-                      </span>
-                    </motion.div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="px-5 pb-5 space-y-2.5">
-                  <AnimatePresence>
-                    {success && (
-                      <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }}
-                        className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl text-sm text-emerald-700 dark:text-emerald-300 font-semibold">
-                        <CheckCircle2 size={15} /> Dossier créé !
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <motion.button whileHover={canSubmit ? { scale:1.02 } : {}} whileTap={canSubmit ? { scale:0.98 } : {}}
-                    type="submit" disabled={!canSubmit}
-                    className="w-full flex items-center justify-center gap-2 py-3 text-white text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none">
-                    {loading
-                      ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      : <UserPlus size={15} />}
-                    {loading ? 'Création en cours...' : 'Créer le dossier'}
-                  </motion.button>
-
-                  <button type="button" onClick={() => navigate('/aide/patients')}
-                    className="w-full py-2.5 border border-(--ln) text-(--t2) text-sm font-medium rounded-xl hover:bg-(--sf2) transition-colors">
-                    Annuler
-                  </button>
-
-                  {/* Checklist */}
-                  <div className="pt-2 space-y-1.5">
-                    {[
-                      { label: 'Civilité',          ok: !!form.civilite          },
-                      { label: 'Nom',               ok: !!form.nom.trim()        },
-                      { label: 'Prénom',            ok: !!form.prenom.trim()     },
-                      { label: 'Date de naissance', ok: !!form.date_naissance    },
-                      { label: 'Téléphone',         ok: !!form.telephone         },
-                    ].map(({ label, ok }) => (
-                      <div key={label} className="flex items-center gap-2">
-                        <motion.div animate={{ scale: ok ? [1,1.2,1] : 1 }} transition={{ duration:0.25 }}
-                          className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                            ok ? 'bg-emerald-500' : 'bg-(--sf2) border border-(--ln)'
-                          }`}>
-                          {ok && <CheckCircle2 size={10} className="text-white" strokeWidth={3} />}
-                        </motion.div>
-                        <span className={`text-xs ${ok ? 'text-(--t2) font-medium' : 'text-(--t4)'}`}>{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-
+            {i < STEPS.length - 1 && (
+              <div className={`flex-1 h-0.5 mx-3 rounded-full transition-colors ${i < step ? 'bg-green-400' : 'bg-(--ln)'}`} />
+            )}
           </div>
-      </form>
+        ))}
+      </div>
+
+      {/* ── Formulaire ─── */}
+      <motion.div key={step} initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-20 }} transition={{ duration:0.2 }}
+        className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden shadow-sm">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-(--ln)">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-500/10">
+            {step === 0 ? <User size={14} className="text-blue-600 dark:text-blue-400" />
+             : step === 1 ? <Phone size={14} className="text-indigo-600 dark:text-indigo-400" />
+             : <Heart size={14} className="text-rose-600 dark:text-rose-400" />}
+          </div>
+          <span className="text-sm font-bold text-(--t1)">{STEPS[step]}</span>
+          <span className="ml-auto text-xs text-(--t4)">{step + 1} / {STEPS.length}</span>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <AnimatePresence>
+            {error && (
+              <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+                className="flex items-center gap-2.5 p-3 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-xl text-sm text-red-700 dark:text-red-300">
+                <AlertCircle size={14} className="shrink-0" /> {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {step === 0 && (
+            <>
+              {/* Civilité */}
+              <Field label="Civilité">
+                <div className="grid grid-cols-2 gap-2">
+                  {[{val:'M',label:'Monsieur'},{val:'Mme',label:'Madame'}].map(opt => (
+                    <label key={opt.val}
+                      className={`flex items-center gap-2.5 px-3 py-3 rounded-xl border-2 cursor-pointer transition-all ${form.civilite===opt.val ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' : 'border-(--ln) hover:border-blue-200'}`}>
+                      <input type="radio" name="civilite" className="sr-only" value={opt.val} checked={form.civilite===opt.val} onChange={() => set('civilite',opt.val)} />
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${form.civilite===opt.val ? 'border-blue-500' : 'border-(--t4)'}`}>
+                        {form.civilite===opt.val && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                      </div>
+                      <span className={`text-sm font-semibold ${form.civilite===opt.val ? 'text-blue-700 dark:text-blue-300' : 'text-(--t2)'}`}>{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Prénom" required><input className={inp} value={form.prenom} onChange={e => set('prenom',e.target.value)} placeholder="Jean" /></Field>
+                <Field label="Nom" required><input className={inp} value={form.nom} onChange={e => set('nom',e.target.value)} placeholder="Dupont" /></Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Date de naissance"><input type="date" className={inp} value={form.date_naissance} onChange={e => set('date_naissance',e.target.value)} /></Field>
+                <Field label="Groupe sanguin">
+                  <select className={`${inp} cursor-pointer`} value={form.groupe_sanguin} onChange={e => set('groupe_sanguin',e.target.value)}>
+                    <option value="">—</option>
+                    {GROUPES.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Profession"><input className={inp} value={form.profession} onChange={e => set('profession',e.target.value)} placeholder="Médecin…" /></Field>
+                <Field label="Religion">
+                  <select className={`${inp} cursor-pointer`} value={form.religion} onChange={e => set('religion',e.target.value)}>
+                    <option value="">—</option>
+                    {RELIGIONS.map(r => <option key={r.val} value={r.val}>{r.label}</option>)}
+                  </select>
+                </Field>
+              </div>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <Field label="Téléphone"><input type="tel" className={inp} value={form.telephone} onChange={e => set('telephone',e.target.value)} placeholder="+237 6XX XXX XXX" /></Field>
+              <Field label="Email"><input type="email" className={inp} value={form.email} onChange={e => set('email',e.target.value)} placeholder="patient@example.com" /></Field>
+              <Field label="Adresse"><input className={inp} value={form.adresse} onChange={e => set('adresse',e.target.value)} placeholder="Yaoundé, Cameroun" /></Field>
+              <div className="pt-2 border-t border-(--ln)">
+                <p className="text-[10px] font-black uppercase tracking-widest text-(--t4) mb-3">Contact d'urgence</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Nom / Lien de parenté"><input className={inp} value={form.personne_a_contacter} onChange={e => set('personne_a_contacter',e.target.value)} placeholder="Mère – Marie Dupont" /></Field>
+                  <Field label="Téléphone d'urgence"><input type="tel" className={inp} value={form.telephone_urgence} onChange={e => set('telephone_urgence',e.target.value)} /></Field>
+                </div>
+              </div>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <Field label="Allergies (séparées par virgule)">
+                <input className={inp} value={form.allergies} onChange={e => set('allergies',e.target.value)} placeholder="Pénicilline, latex, arachides…" />
+              </Field>
+              <Field label="Antécédents médicaux">
+                <textarea className={`${inp} resize-none`} rows={5}
+                  value={form.antecedents} onChange={e => set('antecedents',e.target.value)}
+                  placeholder="Diabète de type 2, hypertension artérielle…" />
+              </Field>
+            </>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between px-5 py-4 border-t border-(--ln) bg-(--sf2)">
+          <button onClick={prev} disabled={step === 0}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-(--t2) rounded-xl border border-(--ln) hover:bg-(--sf) transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+            <ChevronLeft size={14} /> Précédent
+          </button>
+          {step < STEPS.length - 1 ? (
+            <button onClick={next}
+              className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-bold text-white rounded-xl transition-all active:scale-95"
+              style={{ background:`linear-gradient(135deg,${P2},${P})`, boxShadow:`0 4px 14px rgba(37,99,235,0.28)` }}>
+              Suivant <ChevronRight size={14} />
+            </button>
+          ) : (
+            <button onClick={handleSubmit} disabled={loading}
+              className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 transition-all active:scale-95"
+              style={{ background:`linear-gradient(135deg,${P2},${P})`, boxShadow:`0 4px 14px rgba(37,99,235,0.28)` }}>
+              {loading ? <Loader2 size={15} className="animate-spin"/> : <CheckCircle2 size={15}/>}
+              {loading ? 'Création…' : 'Créer le patient'}
+            </button>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import { getConsultationsJours, getConsultationsTotal } from "../api/adminApi";
 
-const BRAND   = "#0f766e";
+const BRAND = "#009e82";
 const COMPARE = "#8b5cf6";
 const NOW     = new Date();
 const MOIS    = ["jan","fév","mar","avr","mai","juin","juil","août","sep","oct","nov","déc"];
@@ -226,14 +226,14 @@ export default function CourbeActivite() {
             value: moyActuel.toLocaleString("fr-FR"),
             sub:   `vs ${moyPrec.toLocaleString("fr-FR")} (${labelPrec})`,
             subColor: dark?"#484f58":"#9ca3af",
-            color: "text-teal-600",
+            color: "text-blue-700",
           },
           {
             label: `Pic — ${picActuel.date||""}`,
             value: picActuel.actuel?.toLocaleString("fr-FR") || "—",
             sub:   labelActuel,
             subColor: dark?"#484f58":"#9ca3af",
-            color: "text-teal-600",
+            color: "text-blue-700",
           },
         ].map(({ label, value, sub, subColor, color }) => (
           <div key={label} className={`${card} px-5 py-4`}>
