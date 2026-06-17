@@ -126,7 +126,7 @@ export default function AideProfil() {
   );
 
   return (
-    <div className="space-y-5 w-full max-w-5xl mx-auto">
+    <div className="space-y-5 w-full max-w-6xl mx-auto">
 
       {/* ── Profile hero card ─── */}
       <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.35 }}

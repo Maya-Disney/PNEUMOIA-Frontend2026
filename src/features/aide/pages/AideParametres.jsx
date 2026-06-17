@@ -94,7 +94,7 @@ export default function AideParametres() {
   };
 
   return (
-    <div className="space-y-5 w-full max-w-3xl mx-auto">
+    <div className="space-y-5 w-full max-w-6xl mx-auto">
 
       {/* ── Header ─── */}
       <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }}
