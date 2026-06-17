@@ -332,6 +332,22 @@ export async function toggleFAQPublie(faqId) {
   return request("PATCH", `/api/admin/faq/${faqId}/toggle`, null, true);
 }
 
+export async function supprimerFAQ(faqId) {
+  return request("DELETE", `/api/admin/faq/${faqId}`, null, true);
+}
+
+export async function viderTouteFAQ() {
+  return request("DELETE", "/api/admin/faq/vider", null, true);
+}
+
+export async function supprimerQuestion(questionId) {
+  return request("DELETE", `/api/admin/faq/questions/${questionId}`, null, true);
+}
+
+export async function viderHistoriqueQuestions() {
+  return request("DELETE", "/api/admin/faq/questions/historique", null, true);
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 10. STATISTIQUES
@@ -343,6 +359,14 @@ export async function toggleFAQPublie(faqId) {
  */
 export async function getConsultationsSemaine() {
   return request("GET", "/api/admin/stats/consultations/semaine", null, true);
+}
+
+/**
+ * Consultations par jour sur une plage de dates quelconque.
+ * GET /api/admin/stats/consultations/jours?from=2026-05-11&to=2026-06-17
+ */
+export async function getConsultationsJours(from, to) {
+  return request("GET", `/api/admin/stats/consultations/jours?from=${from}&to=${to}`, null, true);
 }
 
 /**
@@ -380,6 +404,22 @@ export async function getRepartitionGeo(mois, annee) {
  */
 export async function getTopMedecinsConcordance(mois, annee) {
   return request("GET", `/api/admin/stats/top-medecins-concordance?mois=${mois}&annee=${annee}`, null, true);
+}
+
+/**
+ * Concordance IA moyenne par mois sur les 6 derniers mois glissants.
+ * GET /api/admin/stats/concordance/evolution
+ */
+export async function getConcordanceEvolution() {
+  return request("GET", "/api/admin/stats/concordance/evolution", null, true);
+}
+
+/**
+ * Concordance IA moyenne par pathologie pour un mois donné.
+ * GET /api/admin/stats/concordance/pathologies?mois=6&annee=2026
+ */
+export async function getConcordancePathologies(mois, annee) {
+  return request("GET", `/api/admin/stats/concordance/pathologies?mois=${mois}&annee=${annee}`, null, true);
 }
 
 
@@ -472,4 +512,16 @@ export async function getAuditLogs(type = "", statut = "") {
  */
 export async function purgerAuditLogs(days = 30) {
   return request("DELETE", "/api/admin/audit/logs/purger", { days }, true);
+}
+
+export async function getAdminNotifications(nonLuesSeulement = false) {
+  return request("GET", `/api/admin/notifications${nonLuesSeulement ? "?non_lues_seulement=true" : ""}`, null, true);
+}
+
+export async function getPatientsSupprimesAdmin() {
+  return request("GET", "/api/admin/patients-supprimes", null, true);
+}
+
+export async function restaurerPatientSupprime(patientId) {
+  return request("PATCH", `/api/admin/patients-supprimes/${patientId}/restaurer`, null, true);
 }

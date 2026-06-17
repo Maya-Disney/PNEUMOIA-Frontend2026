@@ -64,7 +64,7 @@ export default function Commentaires() {
             photo_url:   a.photo_url     || null,
             note:        a.note          || 0,
             commentaire: a.commentaire   || a.contenu || "",
-            date:        a.created_at ? new Date(a.created_at) : new Date(),
+            date:        a.created_at ? new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at + "Z") : new Date(),
             nouveau:     !a.vu,
           })));
         }

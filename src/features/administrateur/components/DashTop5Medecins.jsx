@@ -61,8 +61,15 @@ export default function DashTop5Medecins({ dark }) {
   async function load(m, a) {
     setLoading(true);
     try {
-      const res = await getTopMedecinsConcordance(m + 1, a);
-      setData(res.medecins.map((doc, i) => ({ ...doc, rank: i + 1 })));
+      const res  = await getTopMedecinsConcordance(m + 1, a);
+      const list = Array.isArray(res) ? res : (res?.medecins || []);
+      setData(list.map((doc, i) => ({
+        ...doc,
+        rank:         i + 1,
+        concordance:  doc.concordance_ia  ?? doc.concordance  ?? 0,
+        consultations: doc.nb_consultations ?? doc.consultations ?? 0,
+        tendance:     typeof doc.tendance === "number" ? doc.tendance : 0,
+      })));
     } catch {
       setData([]);
     } finally {
@@ -136,6 +143,12 @@ export default function DashTop5Medecins({ dark }) {
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="h-[58px] rounded-xl animate-pulse" style={{ background: surface.bg }} />
           ))}
+        </div>
+      ) : data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 gap-2 rounded-xl border border-dashed"
+          style={{ borderColor: surface.border }}>
+          <p className="text-[13px] font-medium" style={{ color: txt.muted }}>Aucune donnée de concordance</p>
+          <p className="text-[12px]" style={{ color: txt.subtle }}>Les médecins doivent avoir des diagnostics IA enregistrés</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">

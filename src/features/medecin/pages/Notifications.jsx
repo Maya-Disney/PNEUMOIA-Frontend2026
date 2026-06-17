@@ -29,6 +29,8 @@ const TYPE_CFG = {
   demande_partage:         { Icon: Users,          link: '/medecin/partage'          },
   parametres:              { Icon: Settings,       link: '/medecin/parametres'       },
   faq_admin:               { Icon: Info,           link: '/medecin/dashboard'        },
+  faq_reponse:             { Icon: Info,           link: '/medecin/notifications'    },
+  nouvelle_faq:            { Icon: Info,           link: '/medecin/notifications'    },
   consultation_hors_ligne: { Icon: Stethoscope,    link: '/medecin/historique'       },
   patient_archive:         { Icon: AlertCircle,    link: '/medecin/patients'         },
   publication:             { Icon: MessageCircle,  link: '/medecin/mes-publications' },

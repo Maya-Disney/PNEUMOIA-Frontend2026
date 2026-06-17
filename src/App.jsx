@@ -62,6 +62,7 @@ import CorbeilleAdmin      from './features/administrateur/pages/Corbeille';
 import FAQ                 from './features/administrateur/pages/FAQ';
 import Commentaires        from './features/administrateur/pages/Commentaires';
 import ConsultationsAnnuelles from './features/administrateur/pages/ConsultationsAnnuelles';
+import PatientsSupprimesAdmin from './features/administrateur/pages/PatientsSupprimesAdmin';
 
 
 function RequireAdminAuth() {
@@ -152,8 +153,9 @@ function App() {
           <Route path="audit"          element={<JournalAudit />} />
           <Route path="parametres"     element={<Parametres />} />
           <Route path="medecins/:id"   element={<ProfilMedecin />} />
-          <Route path="corbeille"      element={<CorbeilleAdmin />} />
-          <Route path="faq"            element={<FAQ />} />
+          <Route path="corbeille"           element={<CorbeilleAdmin />} />
+          <Route path="patients-supprimes"  element={<PatientsSupprimesAdmin />} />
+          <Route path="faq"                 element={<FAQ />} />
           <Route path="commentaires"        element={<Commentaires />} />
           <Route path="consultations-annuelles" element={<ConsultationsAnnuelles />} />
         </Route>
@@ -178,9 +180,10 @@ function App() {
               <Route path="audit"          element={<JournalAudit />} />
               <Route path="parametres"     element={<Parametres />} />
               <Route path="medecins/:id"   element={<ProfilMedecin />} />
-              <Route path="corbeille"      element={<CorbeilleAdmin />} />
-              <Route path="faq"            element={<FAQ />} />
-              <Route path="commentaires"   element={<Commentaires />} />
+              <Route path="corbeille"          element={<CorbeilleAdmin />} />
+              <Route path="patients-supprimes" element={<PatientsSupprimesAdmin />} />
+              <Route path="faq"                element={<FAQ />} />
+              <Route path="commentaires"       element={<Commentaires />} />
             </Route>
 
           </Routes>

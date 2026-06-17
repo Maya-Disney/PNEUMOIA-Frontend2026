@@ -16,38 +16,6 @@ const MOIS_LABELS = [
 
 const ANNEES = [2024, 2025, 2026];
 
-const REGIONS_BASE = [
-  { r: "Littoral",     cov: 94 },
-  { r: "Centre",       cov: 88 },
-  { r: "Ouest",        cov: 52 },
-  { r: "Nord",         cov: 31 },
-  { r: "Est",          cov: 18 },
-  { r: "Sud",          cov: 0  },
-  { r: "Adamaoua",     cov: 0  },
-  { r: "Extrême-Nord", cov: 0  },
-  { r: "Nord-Ouest",   cov: 0  },
-  { r: "Sud-Ouest",    cov: 0  },
-];
-
-function getVillesMock(annee, mois) {
-  const base = [
-    { v:"Douala",    r:"Littoral", mdBase:15, cBase:180, pBase:42  },
-    { v:"Yaoundé",   r:"Centre",   mdBase:10, cBase:125, pBase:30  },
-    { v:"Bafoussam", r:"Ouest",    mdBase:3,  cBase:47,  pBase:11  },
-    { v:"Garoua",    r:"Nord",     mdBase:2,  cBase:26,  pBase:7   },
-    { v:"Bertoua",   r:"Est",      mdBase:1,  cBase:11,  pBase:3   },
-  ];
-  const yearBoost    = (annee - 2024) * 0.08;
-  const seasonFactor = [0.85,0.90,0.95,1.05,1.10,1.00,0.92,0.88,0.98,1.08,1.12,1.15][mois - 1];
-  const factor = (1 + yearBoost) * seasonFactor;
-  return base.map(({ v, r, mdBase, cBase, pBase }) => ({
-    v, r,
-    md: mdBase + (annee - 2024),
-    c:  Math.round(cBase * factor),
-    p:  Math.round(pBase * factor),
-  }));
-}
-
 export default function RepartitionGeo() {
   const { dark } = useOutletContext() || {};
   const surface  = getSurface(dark);
@@ -58,57 +26,33 @@ export default function RepartitionGeo() {
   const [annee, setAnnee] = useState(now.getFullYear() <= 2026 ? now.getFullYear() : 2026);
   const [loading, setLoading] = useState(false);
 
-  const [VILLES,  setVilles]  = useState(() => getVillesMock(now.getFullYear() <= 2026 ? now.getFullYear() : 2026, now.getMonth() + 1));
-  const [REGIONS, setRegions] = useState(() =>
-    REGIONS_BASE.map(reg => {
-      const mock = getVillesMock(now.getFullYear() <= 2026 ? now.getFullYear() : 2026, now.getMonth() + 1);
-      const match = mock.find(v => v.r === reg.r);
-      return { ...reg, md: match ? match.md : 0 };
-    })
-  );
+  const [VILLES,  setVilles]  = useState([]);
+  const [REGIONS, setRegions] = useState([]);
 
   useEffect(() => {
     setLoading(true);
     getRepartitionGeo(mois, annee)
       .then(data => {
-        if (data?.villes?.length) {
-          const apiVilles = data.villes.map(v => ({
-            v: v.ville,
-            r: v.region || "",
-            md: v.medecins  ?? 0,
-            c:  v.consultations ?? 0,
-            p:  v.patients  ?? 0,
-          }));
-          setVilles(apiVilles);
-
-          if (data?.regions?.length) {
-            setRegions(data.regions.map(r => ({
-              r:   r.region,
-              cov: r.couverture ?? 0,
-              md:  r.medecins   ?? 0,
-            })));
-          } else {
-            setRegions(REGIONS_BASE.map(reg => {
-              const match = apiVilles.find(v => v.r === reg.r);
-              return { ...reg, md: match ? match.md : 0 };
-            }));
-          }
-        } else {
-          const mock = getVillesMock(annee, mois);
-          setVilles(mock);
-          setRegions(REGIONS_BASE.map(reg => {
-            const match = mock.find(v => v.r === reg.r);
-            return { ...reg, md: match ? match.md : 0 };
-          }));
-        }
+        setVilles(
+          Array.isArray(data?.villes) && data.villes.length
+            ? data.villes.map(v => ({
+                v: v.ville,
+                r: v.region || "",
+                md: v.medecins      ?? 0,
+                c:  v.consultations ?? 0,
+                p:  v.patients      ?? 0,
+              }))
+            : []
+        );
+        setRegions(
+          Array.isArray(data?.regions) && data.regions.length
+            ? data.regions.map(r => ({ r: r.region, cov: r.couverture ?? 0, md: r.medecins ?? 0 }))
+            : []
+        );
       })
       .catch(() => {
-        const mock = getVillesMock(annee, mois);
-        setVilles(mock);
-        setRegions(REGIONS_BASE.map(reg => {
-          const match = mock.find(v => v.r === reg.r);
-          return { ...reg, md: match ? match.md : 0 };
-        }));
+        setVilles([]);
+        setRegions([]);
       })
       .finally(() => setLoading(false));
   }, [mois, annee]);

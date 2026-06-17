@@ -18,7 +18,7 @@ import {
   Send, ChevronDown, ChevronUp, Search, Wind, PauseCircle,
   AlertCircle, Trash2, Calendar,
 } from "lucide-react";
-import { getQuestions, repondreQuestion, getFAQ, creerFAQ, modifierFAQ, toggleFAQPublie } from "../api/adminApi";
+import { getQuestions, repondreQuestion, getFAQ, creerFAQ, modifierFAQ, toggleFAQPublie, supprimerFAQ, viderTouteFAQ, supprimerQuestion, viderHistoriqueQuestions } from "../api/adminApi";
 import { brand, getSurface, getText } from "../theme";
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -122,9 +122,11 @@ export default function FAQ() {
   const [modaleViderH,  setModaleViderH]  = useState(false);
   const [modaleViderFAQ,       setModaleViderFAQ]       = useState(false);
   const [modaleViderBrouillons, setModaleViderBrouillons] = useState(false);
-  const [expandFAQ,     setExpandFAQ]     = useState({});
-  const [reponse,       setReponse]       = useState("");
-  const [toast,         setToast]         = useState(null);
+  const [expandFAQ,        setExpandFAQ]        = useState({});
+  const [reponse,          setReponse]          = useState("");
+  const [toast,            setToast]            = useState(null);
+  const [modaleSupprimer,  setModaleSupprimer]  = useState(null);
+  // { id, label, type: "faq" | "question" }
 
   useEffect(() => {
     setLoadingQ(true);
@@ -187,26 +189,41 @@ export default function FAQ() {
     setReponse("");
   }
 
-  function handleViderHistorique() {
-    const maintenant = Date.now();
-    setQuestions(p => p.filter(q =>
-      q.statut !== "repondu" ||
-      (q.dateReponse && q.dateReponse.getTime() > maintenant)
-    ));
-    showToast("Historique vidé — les données restent en base");
+  async function handleViderHistorique() {
+    try { await viderHistoriqueQuestions(); } catch(e) {}
+    setQuestions(p => p.filter(q => q.statut !== "repondu"));
+    showToast("Historique supprimé définitivement");
     setModaleViderH(false);
   }
 
-  function handleViderFAQ() {
+  async function handleSupprimerQuestion(id) {
+    try { await supprimerQuestion(id); } catch(e) {}
+    setQuestions(p => p.filter(q => q.id !== id));
+    showToast("Question supprimée");
+    setModaleSupprimer(null);
+  }
+
+  async function handleViderFAQ() {
+    const publiees = faqList.filter(f => f.publie);
+    await Promise.allSettled(publiees.map(f => supprimerFAQ(f.id)));
     setFaqList(p => p.filter(f => !f.publie));
-    showToast("FAQ publiées masquées de l'affichage");
+    showToast(`${publiees.length} FAQ publiée${publiees.length > 1 ? "s" : ""} supprimée${publiees.length > 1 ? "s" : ""}`);
     setModaleViderFAQ(false);
   }
 
-  function handleViderBrouillons() {
+  async function handleViderBrouillons() {
+    const brouillons = faqList.filter(f => !f.publie);
+    await Promise.allSettled(brouillons.map(f => supprimerFAQ(f.id)));
     setFaqList(p => p.filter(f => f.publie));
-    showToast("Brouillons masqués de l'affichage");
+    showToast(`${brouillons.length} brouillon${brouillons.length > 1 ? "s" : ""} supprimé${brouillons.length > 1 ? "s" : ""}`);
     setModaleViderBrouillons(false);
+  }
+
+  async function handleSupprimerFAQ(id) {
+    try { await supprimerFAQ(id); } catch(e) {}
+    setFaqList(p => p.filter(f => f.id !== id));
+    showToast("FAQ supprimée");
+    setModaleSupprimer(null);
   }
 
   async function handleSaveFAQ(data) {
@@ -413,10 +430,16 @@ export default function FAQ() {
                         <p className={`text-[14px] leading-relaxed ${dark?"text-[#8b949e]":"text-gray-700"}`}>{q.reponse}</p>
                       </div>
                     </div>
-                    <button onClick={()=>{setModaleRep(q);setReponse(q.reponse||"");}}
-                      className={`shrink-0 px-3 py-1.5 rounded-xl text-[14px] font-bold border ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
-                      Modifier
-                    </button>
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <button onClick={()=>{setModaleRep(q);setReponse(q.reponse||"");}}
+                        className={`px-3 py-1.5 rounded-xl text-[14px] font-bold border ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+                        Modifier
+                      </button>
+                      <button onClick={()=>setModaleSupprimer({id:q.id, label:q.question, type:"question"})}
+                        className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[14px] font-bold border transition-colors ${dark?"border-red-900/40 text-red-400 hover:bg-red-900/20":"border-red-100 text-red-500 hover:bg-red-50"}`}>
+                        <Trash2 size={11}/> Supprimer
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -460,21 +483,26 @@ export default function FAQ() {
                         <BadgeCat cat={f.categorie}/>
                         <span style={{
                           display:"inline-block",padding:"1px 8px",borderRadius:99,fontSize:14,fontWeight:700,
-                          background:f.publie?"#ecfdf5":"#f3f4f6",
-                          color:f.publie?"#065f46":"#9ca3af",
-                          border:`0.5px solid ${f.publie?"#6ee7b7":"#e5e7eb"}`,
-                        }}>{f.publie?"● Publiée":"○ Brouillon"}</span>
+                          background:"#ecfdf5", color:"#065f46", border:"0.5px solid #6ee7b7",
+                        }}>● Publiée</span>
                         <span className={`text-[14px] ${tx3}`}>{f.nb_vues} vue{f.nb_vues>1?"s":""}</span>
+                        {f.auteur && (
+                          <span className={`text-[14px] font-medium ${tx3}`}>· Par {f.auteur}</span>
+                        )}
                       </div>
 
                       <button onClick={()=>setExpandFAQ(p=>({...p,[f.id]:!p[f.id]}))}
-                        className={`flex items-center justify-between w-full text-left gap-3 ${tx1} mb-2`}>
-                        <p className="text-[15px] font-semibold flex-1">{f.question}</p>
+                        className={`flex items-center justify-between w-full text-left gap-3 ${tx1} mb-2 outline-none`}>
+                        <span className="flex items-start gap-2 flex-1 min-w-0">
+                          <span className={`text-[11px] font-black uppercase tracking-wider mt-0.5 shrink-0 ${dark?"text-[#484f58]":"text-gray-400"}`}>Q</span>
+                          <p className="text-[15px] font-semibold flex-1">{f.question}</p>
+                        </span>
                         {expandFAQ[f.id]?<ChevronUp size={14} className={tx3}/>:<ChevronDown size={14} className={tx3}/>}
                       </button>
 
                       {expandFAQ[f.id] && (
                         <div className={`mb-3 px-4 py-3 rounded-xl ${dark?"bg-[#0d1117]":"bg-gray-50"}`}>
+                          <p className={`text-[12px] font-black uppercase tracking-wider mb-1 ${dark?"text-[#484f58]":"text-gray-400"}`}>Réponse — {f.auteur || "Administrateur"}</p>
                           <p className={`text-[14px] leading-relaxed ${tx2}`}>{f.reponse}</p>
                         </div>
                       )}
@@ -497,7 +525,10 @@ export default function FAQ() {
                           :{borderColor:"#bbf7d0",color:brand.DEFAULT,background:"#f0fdf4"}}>
                         {f.publie?"Dépublier":"Publier"}
                       </button>
-
+                      <button onClick={()=>setModaleSupprimer({id:f.id, label:f.question, type:"faq"})}
+                        className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[14px] font-bold border transition-colors ${dark?"border-red-900/40 text-red-400 hover:bg-red-900/20":"border-red-100 text-red-500 hover:bg-red-50"}`}>
+                        <Trash2 size={11}/> Supprimer
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -546,7 +577,7 @@ export default function FAQ() {
                 placeholder="Rédigez une réponse claire et complète…"
                 className={`${inp} resize-none`}/>
               <p className={`text-[14px] mt-1 ${tx3}`}>
-                La réponse sera envoyée par e-mail à {modaleRep.email}
+                La réponse sera visible dans l'espace médecin sur la plateforme
               </p>
             </div>
 
@@ -597,15 +628,15 @@ export default function FAQ() {
             </button>
           </>}>
           <div className="flex flex-col gap-3">
-            <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-blue-900/20 border-blue-700/40 text-blue-300":"bg-blue-50 border-blue-200 text-blue-700"}`}>
-              <HelpCircle size={13} className="shrink-0 mt-0.5"/>
+            <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-red-900/20 border-red-700/40 text-red-300":"bg-red-50 border-red-200 text-red-700"}`}>
+              <AlertCircle size={13} className="shrink-0 mt-0.5"/>
               <span>
-                Ceci masque uniquement les questions répondues de l'affichage.
-                <strong> Les données restent en base de données</strong> et sont archivées pendant 90 jours.
+                Cette action supprime définitivement les questions répondues.
+                <strong> Cette opération est irréversible.</strong>
               </span>
             </div>
             <p className={`text-[14px] ${tx2}`}>
-              {nbRepondus} question{nbRepondus>1?"s":""} répondue{nbRepondus>1?"s":""} sera{nbRepondus>1?"ont":""} masquée{nbRepondus>1?"s":""}.
+              {nbRepondus} question{nbRepondus>1?"s":""} répondue{nbRepondus>1?"s":""} sera{nbRepondus>1?"ont":""} supprimée{nbRepondus>1?"s":""} définitivement.
             </p>
           </div>
         </Modal>
@@ -647,14 +678,21 @@ export default function FAQ() {
                         <span style={{display:"inline-block",padding:"1px 8px",borderRadius:99,fontSize:14,fontWeight:700,background:"#f3f4f6",color:"#9ca3af",border:"0.5px solid #e5e7eb"}}>
                           ○ Brouillon
                         </span>
+                        {f.auteur && (
+                          <span className={`text-[14px] font-medium ${tx3}`}>· Par {f.auteur}</span>
+                        )}
                       </div>
                       <button onClick={()=>setExpandFAQ(p=>({...p,[`b_${f.id}`]:!p[`b_${f.id}`]}))}
-                        className={`flex items-center justify-between w-full text-left gap-3 ${tx1} mb-2`}>
-                        <p className="text-[15px] font-semibold flex-1">{f.question}</p>
+                        className={`flex items-center justify-between w-full text-left gap-3 ${tx1} mb-2 outline-none`}>
+                        <span className="flex items-start gap-2 flex-1 min-w-0">
+                          <span className={`text-[11px] font-black uppercase tracking-wider mt-0.5 shrink-0 ${dark?"text-[#484f58]":"text-gray-400"}`}>Q</span>
+                          <p className="text-[15px] font-semibold flex-1">{f.question}</p>
+                        </span>
                         {expandFAQ[`b_${f.id}`]?<ChevronUp size={14} className={tx3}/>:<ChevronDown size={14} className={tx3}/>}
                       </button>
                       {expandFAQ[`b_${f.id}`] && (
                         <div className={`mb-3 px-4 py-3 rounded-xl ${dark?"bg-[#0d1117]":"bg-gray-50"}`}>
+                          <p className={`text-[12px] font-black uppercase tracking-wider mb-1 ${dark?"text-[#484f58]":"text-gray-400"}`}>Réponse — {f.auteur || "Administrateur"}</p>
                           <p className={`text-[14px] leading-relaxed ${tx2}`}>{f.reponse}</p>
                         </div>
                       )}
@@ -672,6 +710,10 @@ export default function FAQ() {
                         className="px-3 py-1.5 rounded-xl text-[14px] font-bold border transition-colors"
                         style={{borderColor:"#bbf7d0",color:brand.DEFAULT,background:"#f0fdf4"}}>
                         Publier
+                      </button>
+                      <button onClick={()=>setModaleSupprimer({id:f.id, label:f.question, type:"faq"})}
+                        className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[14px] font-bold border transition-colors ${dark?"border-red-900/40 text-red-400 hover:bg-red-900/20":"border-red-100 text-red-500 hover:bg-red-50"}`}>
+                        <Trash2 size={11}/> Supprimer
                       </button>
                     </div>
                   </div>
@@ -766,6 +808,43 @@ export default function FAQ() {
             </div>
             <div className={`px-5 py-4 border-t ${dark?"border-[#21262d]":"border-gray-100"}`}>
               <button onClick={()=>setModalePhoto(null)} className={`w-full py-2 rounded-xl text-[14px] font-medium border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modaleSupprimer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={e=>e.target===e.currentTarget&&setModaleSupprimer(null)}>
+          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
+            <div className="px-5 pt-5 pb-4 flex flex-col items-center gap-3 text-center">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${dark?"bg-red-900/30":"bg-red-50"}`}>
+                <Trash2 size={20} className="text-red-500"/>
+              </div>
+              <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>
+                Supprimer définitivement ?
+              </p>
+              <p className={`text-[13px] leading-relaxed px-2 ${dark?"text-[#8b949e]":"text-gray-500"}`}>
+                « {(modaleSupprimer.label||"").slice(0,60)}{(modaleSupprimer.label||"").length>60?"…":""} »
+              </p>
+              <p className={`text-[12px] font-medium ${dark?"text-red-400":"text-red-500"}`}>
+                Cette action est irréversible.
+              </p>
+            </div>
+            <div className={`flex gap-2 px-5 pb-5`}>
+              <button onClick={()=>setModaleSupprimer(null)}
+                className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>
+                Annuler
+              </button>
+              <button
+                onClick={()=>modaleSupprimer.type==="faq"
+                  ? handleSupprimerFAQ(modaleSupprimer.id)
+                  : handleSupprimerQuestion(modaleSupprimer.id)
+                }
+                className="flex-1 py-2 rounded-xl text-[14px] font-bold text-white"
+                style={{background:"#ef4444"}}>
+                Supprimer
+              </button>
             </div>
           </div>
         </div>

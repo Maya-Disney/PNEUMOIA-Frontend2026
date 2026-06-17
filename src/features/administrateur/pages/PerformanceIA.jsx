@@ -1,9 +1,9 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { X } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
-import { getTopMedecinsConcordance } from "../api/adminapi";
+import { getTopMedecinsConcordance, getConcordanceEvolution, getConcordancePathologies } from "../api/adminapi";
 
 const MOIS_LABELS = [
   "Janvier","Février","Mars","Avril","Mai","Juin",
@@ -12,56 +12,6 @@ const MOIS_LABELS = [
 const MOIS_COURTS = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"];
 const ANNEES = [2024, 2025, 2026];
 
-// Base de concordance par pathologie
-const PATHOLOGIES = [
-  { p: "Pneumonie",   base: 89 },
-  { p: "Asthme",      base: 86 },
-  { p: "BPCO",        base: 81 },
-  { p: "Tuberculose", base: 86 },
-  { p: "Pleurésie",   base: 78 },
-  { p: "Bronchite",   base: 91 },
-];
-
-const MEDECINS = [
-  { ini: "DK", nom: "Dr. Kamto Diane",  baseT: 92, baseTotal: 198, bg: "bg-blue-100 text-blue-700"   },
-  { ini: "JD", nom: "Dr. Jean Dupont",  baseT: 88, baseTotal: 134, bg: "bg-teal-100 text-teal-700"   },
-  { ini: "AS", nom: "Dr. Aminata Sow",  baseT: 82, baseTotal: 87,  bg: "bg-purple-100 text-purple-700"},
-  { ini: "DM", nom: "Dr. Mbang",        baseT: 74, baseTotal: 62,  bg: "bg-amber-100 text-amber-700" },
-];
-
-// Variation légère selon mois/année pour rendre les données vivantes
-function vary(base, mois, annee, offset = 0) {
-  const yearBoost  = (annee - 2024) * 1.2;
-  const moisDelta  = Math.sin((mois + offset) * 0.9) * 2.5;
-  return Math.min(99, Math.max(60, Math.round(base + yearBoost + moisDelta)));
-}
-
-function getEvolution(mois, annee) {
-  const result = [];
-  for (let i = 5; i >= 0; i--) {
-    let m = mois - i;
-    let a = annee;
-    if (m <= 0) { m += 12; a -= 1; }
-    result.push({ m: MOIS_COURTS[m - 1], v: vary(82, m, a, i) });
-  }
-  return result;
-}
-
-function getParPathologie(mois, annee) {
-  return PATHOLOGIES.map(({ p, base }) => {
-    const t = vary(base, mois, annee);
-    const total = Math.round(base * 0.5 + (mois * 3) + (annee - 2024) * 8);
-    return { p, ok: Math.round(total * t / 100), ko: total - Math.round(total * t / 100), t };
-  });
-}
-
-function getParMedecin(mois, annee) {
-  return MEDECINS.map(({ ini, nom, baseT, baseTotal, bg }) => {
-    const t     = vary(baseT, mois, annee);
-    const total = Math.round(baseTotal * (1 + (mois - 1) * 0.02) * (1 + (annee - 2024) * 0.06));
-    return { ini, nom, t, total, bg };
-  });
-}
 
 function col(t) {
   if (t >= 85) return brand.DEFAULT;
@@ -88,31 +38,34 @@ export default function PerformancesIA() {
   const [mois,  setMois]  = useState(now.getMonth() + 1);
   const [annee, setAnnee] = useState(now.getFullYear() <= 2026 ? now.getFullYear() : 2026);
 
-  const evol       = useMemo(() => getEvolution(mois, annee),    [mois, annee]);
-  const parMaladie = useMemo(() => getParPathologie(mois, annee), [mois, annee]);
-
-  const [parMed,      setParMed]      = useState(() => getParMedecin(mois, annee));
+  const [evol,        setEvol]        = useState([]);
+  const [parMaladie,  setParMaladie]  = useState([]);
+  const [parMed,      setParMed]      = useState([]);
   const [loadingMed,  setLoadingMed]  = useState(false);
   const [photoZoom,   setPhotoZoom]   = useState(null);
 
   useEffect(() => {
     setLoadingMed(true);
-    getTopMedecinsConcordance(mois, annee)
-      .then(res => {
-        const docs = Array.isArray(res) ? res : (res?.medecins || []);
-        if (docs.length > 0) {
-          setParMed(docs.map(m => ({
-            ini:       `${m.prenom?.[0] || ""}${m.nom?.[0] || ""}`.toUpperCase(),
-            nom:       `Dr. ${m.prenom} ${m.nom}`,
-            t:         m.concordance,
-            total:     m.consultations,
-            photo_url: m.photo_url || null,
-          })));
-        } else {
-          setParMed(getParMedecin(mois, annee));
-        }
+    setEvol([]);
+    setParMaladie([]);
+    Promise.all([
+      getTopMedecinsConcordance(mois, annee).catch(() => null),
+      getConcordanceEvolution().catch(() => null),
+      getConcordancePathologies(mois, annee).catch(() => null),
+    ])
+      .then(([resMed, resEvol, resPatho]) => {
+        const docs = Array.isArray(resMed) ? resMed : (resMed?.medecins || []);
+        setParMed(docs.map(m => ({
+          ini:       `${m.prenom?.[0] || ""}${m.nom?.[0] || ""}`.toUpperCase(),
+          nom:       `Dr. ${m.prenom} ${m.nom}`,
+          t:         m.concordance_ia ?? m.concordance ?? 0,
+          total:     m.nb_consultations ?? m.consultations ?? 0,
+          photo_url: m.photo_url || null,
+        })));
+        if (Array.isArray(resEvol) && resEvol.length) setEvol(resEvol);
+        if (Array.isArray(resPatho) && resPatho.length) setParMaladie(resPatho);
       })
-      .catch(() => setParMed(getParMedecin(mois, annee)))
+      .catch(() => setParMed([]))
       .finally(() => setLoadingMed(false));
   }, [mois, annee]);
 
@@ -140,13 +93,6 @@ export default function PerformancesIA() {
   const periodLabel = `${MOIS_LABELS[mois - 1]} ${annee}`;
 
   // Calcul des 6 mois affichés dans l'évolution
-  const evolLabel = (() => {
-    let debut = mois - 5;
-    let debutAnnee = annee;
-    if (debut <= 0) { debut += 12; debutAnnee -= 1; }
-    return `${MOIS_COURTS[debut - 1]} ${debutAnnee} → ${MOIS_COURTS[mois - 1]} ${annee}`;
-  })();
-
   return (
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
 
@@ -188,7 +134,7 @@ export default function PerformancesIA() {
           { l: "Concordance globale",    v: `${tG}%`,                        accent: true  },
           { l: "Cas analysés",           v: totT.toLocaleString("fr-FR"),    accent: false },
           { l: "Accords médecin / IA",   v: totC.toLocaleString("fr-FR"),    accent: true  },
-          { l: "Meilleure concordance",  v: `${Math.max(...parMed.map(m => m.t))}%`, accent: true },
+          { l: "Meilleure concordance",  v: `${parMed.length ? Math.max(...parMed.map(m => m.t)) : 0}%`, accent: true },
         ].map(({ l, v, accent }) => (
           <div key={l} className="rounded-2xl border px-4 py-3" style={cardStyle}>
             <p className="text-2xl font-black" style={{ color: accent ? brand.DEFAULT : txt.primary }}>{v}</p>
@@ -203,46 +149,50 @@ export default function PerformancesIA() {
         {/* Évolution sur 6 mois glissants */}
         <div className="rounded-2xl border p-5" style={cardStyle}>
           <p className="text-[13px] font-bold mb-1" style={{ color: txt.primary }}>Évolution concordance</p>
-          <p className="text-[11px] mb-4" style={{ color: txt.muted }}>{evolLabel}</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={evol}>
-              <CartesianGrid vertical={false} stroke={gr} />
-              <XAxis dataKey="m" tick={{ fontSize: 10, fill: ax }} axisLine={false} tickLine={false} />
-              <YAxis domain={[70, 100]} tick={{ fontSize: 10, fill: ax }} axisLine={false} tickLine={false} width={28} />
-              <Tooltip content={<TipEvol dark={dark} />} />
-              <Line
-                type="monotone"
-                dataKey="v"
-                stroke={brand.DEFAULT}
-                strokeWidth={2.5}
-                dot={{ fill: brand.DEFAULT, r: 3 }}
-                activeDot={{ r: 5, fill: brand.DEFAULT, stroke: "#fff", strokeWidth: 2 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <p className="text-[11px] mb-4" style={{ color: txt.muted }}>6 derniers mois glissants</p>
+          {evol.length === 0 ? (
+            <div className="h-[180px] flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed" style={{ borderColor: surface.border }}>
+              <p className="text-[12px] font-medium" style={{ color: txt.subtle }}>Données non disponibles</p>
+              <p className="text-[11px]" style={{ color: txt.subtle }}>Endpoint non disponible pour l'évolution mensuelle</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={evol}>
+                <CartesianGrid vertical={false} stroke={gr} />
+                <XAxis dataKey="m" tick={{ fontSize: 10, fill: ax }} axisLine={false} tickLine={false} />
+                <YAxis domain={[70, 100]} tick={{ fontSize: 10, fill: ax }} axisLine={false} tickLine={false} width={28} />
+                <Tooltip content={<TipEvol dark={dark} />} />
+                <Line type="monotone" dataKey="v" stroke={brand.DEFAULT} strokeWidth={2.5}
+                  dot={{ fill: brand.DEFAULT, r: 3 }}
+                  activeDot={{ r: 5, fill: brand.DEFAULT, stroke: "#fff", strokeWidth: 2 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Par pathologie */}
         <div className="rounded-2xl border p-5" style={cardStyle}>
           <p className="text-[13px] font-bold mb-1" style={{ color: txt.primary }}>Concordance par pathologie</p>
           <p className="text-[11px] mb-4" style={{ color: txt.muted }}>{periodLabel}</p>
-          {[...parMaladie].sort((a, b) => b.t - a.t).map(m => (
-            <div key={m.p} className="flex items-center gap-3 mb-2 last:mb-0">
-              <span className="text-[10px] w-20 shrink-0" style={{ color: txt.muted }}>{m.p}</span>
-              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: surface.borderSoft }}>
-                <div className="h-full rounded-full" style={{ width: `${m.t}%`, background: col(m.t) }} />
-              </div>
-              <span
-                className="text-[9px] font-bold px-2 py-0.5 rounded-full w-10 text-center"
-                style={{
-                  background: m.t >= 85 ? "#f0fdfa" : m.t >= 75 ? "#fffbeb" : "#fef2f2",
-                  color: col(m.t),
-                }}
-              >
-                {m.t}%
-              </span>
+          {parMaladie.length === 0 ? (
+            <div className="h-[160px] flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed" style={{ borderColor: surface.border }}>
+              <p className="text-[12px] font-medium" style={{ color: txt.subtle }}>Données non disponibles</p>
+              <p className="text-[11px]" style={{ color: txt.subtle }}>Endpoint non disponible pour les pathologies</p>
             </div>
-          ))}
+          ) : (
+            [...parMaladie].sort((a, b) => b.t - a.t).map(m => (
+              <div key={m.p} className="flex items-center gap-3 mb-2 last:mb-0">
+                <span className="text-[10px] w-20 shrink-0" style={{ color: txt.muted }}>{m.p}</span>
+                <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: surface.borderSoft }}>
+                  <div className="h-full rounded-full" style={{ width: `${m.t}%`, background: col(m.t) }} />
+                </div>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full w-10 text-center"
+                  style={{ background: m.t >= 85 ? "#f0fdfa" : m.t >= 75 ? "#fffbeb" : "#fef2f2", color: col(m.t) }}>
+                  {m.t}%
+                </span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

@@ -86,9 +86,24 @@ export default function Corbeille() {
     }
   };
 
-  const handleSendRequest = (item) => {
-    setRequestSent(prev => ({ ...prev, [item.id]: true }));
-    setRequestModal(null);
+  const handleSendRequest = async (item) => {
+    setActionLoading(item.id);
+    try {
+      const res = await fetch(`${BASE}/patients/${item.id}/demande-recuperation`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Échec envoi demande');
+      }
+      setRequestSent(prev => ({ ...prev, [item.id]: true }));
+      setRequestModal(null);
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   if (loading) return (
@@ -271,8 +286,12 @@ export default function Corbeille() {
                   Annuler
                 </button>
                 <button onClick={() => handleSendRequest(requestModal)}
-                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 flex items-center justify-center gap-1.5 transition-colors">
-                  <Send size={14} />Envoyer la demande
+                  disabled={actionLoading === requestModal.id}
+                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-60">
+                  {actionLoading === requestModal.id
+                    ? <Loader2 size={14} className="animate-spin" />
+                    : <Send size={14} />}
+                  Envoyer la demande
                 </button>
               </div>
             </motion.div>

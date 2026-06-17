@@ -16,15 +16,6 @@ const START_YEAR = 2026;
 const MOIS_COURT = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
 const MOIS_LONG  = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
-function genMockYear(year) {
-  const maxMonth = year === CUR_YEAR ? NOW.getMonth() : 11;
-  return Array.from({ length: maxMonth + 1 }, (_, i) => ({
-    mois:  MOIS_COURT[i],
-    label: MOIS_LONG[i],
-    val:   Math.round(4000 + Math.random() * 6000),
-  }));
-}
-
 function CustomTip({ active, payload, dark, selectedMois }) {
   if (!active || !payload?.length) return null;
   const d = payload[0];
@@ -60,17 +51,18 @@ export default function ConsultationsAnnuelles() {
     setMois(null);
     getConsultationsAnnee(year)
       .then(res => {
-        if (Array.isArray(res) && res.length) {
-          setYearData(res.map((v, i) => ({
+        const raw = Array.isArray(res) ? res : (Array.isArray(res?.mois) ? res.mois : []);
+        if (raw.length) {
+          setYearData(raw.map((v, i) => ({
             mois:  MOIS_COURT[i] || `M${i+1}`,
             label: MOIS_LONG[i]  || `Mois ${i+1}`,
-            val:   v,
+            val:   v ?? 0,
           })));
         } else {
-          setYearData(genMockYear(year));
+          setYearData([]);
         }
       })
-      .catch(() => setYearData(genMockYear(year)))
+      .catch(() => setYearData([]))
       .finally(() => setLoading(false));
   }, [year]);
 
@@ -217,6 +209,10 @@ export default function ConsultationsAnnuelles() {
           <div style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <p className={`text-[14px] ${dark ? "text-[#484f58]" : "text-gray-300"}`}>Chargement…</p>
           </div>
+        ) : yearData.length === 0 ? (
+          <div style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <p className={`text-[14px] ${dark ? "text-[#484f58]" : "text-gray-400"}`}>Aucune consultation enregistrée pour {year}</p>
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={yearData} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
@@ -301,6 +297,13 @@ export default function ConsultationsAnnuelles() {
               </tr>
             </thead>
             <tbody>
+              {yearData.length === 0 && (
+                <tr>
+                  <td colSpan={5} className={`px-6 py-8 text-center text-[14px] ${dark ? "text-[#484f58]" : "text-gray-400"}`}>
+                    Aucune donnée disponible pour {year}
+                  </td>
+                </tr>
+              )}
               {(selectedMois ? yearData.filter(d => d.mois === selectedMois) : yearData).map((row, i) => {
                 const part  = total > 0 ? (row.val / total * 100).toFixed(1) : "0.0";
                 const diff  = moy > 0 ? Math.round((row.val - moy) / moy * 100) : 0;

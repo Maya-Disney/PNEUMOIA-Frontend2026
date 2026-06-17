@@ -6,7 +6,7 @@ import {
   LayoutDashboard, UserPlus, UserCheck, UserX,
   Stethoscope, UserMinus, LineChart, BarChart2,
   Brain, MapPin, FileSearch, Settings, LogOut,
-  Menu, X, HelpCircle, MessageCircle
+  Menu, X, HelpCircle, MessageCircle, Trash2
 } from "lucide-react";
 
 const BRAND    = "#007185";   // Couleur WelcomeBanner — utilisée pour avatar + accents
@@ -47,9 +47,10 @@ function getNav(counts) {
     {
       section: "Médecins",
       items: [
-        { to: "/administrateur/medecins",  icon: Stethoscope, label: "Médecins actifs", badge: counts.actifs,    badgeColor: "teal"   },
-        { to: "/administrateur/suspendus", icon: UserMinus,   label: "Suspendus" },
-        { to: "/administrateur/faq",       icon: HelpCircle,  label: "FAQ Médecins" },
+        { to: "/administrateur/medecins",          icon: Stethoscope, label: "Médecins actifs", badge: counts.actifs, badgeColor: "teal" },
+        { to: "/administrateur/suspendus",          icon: UserMinus,   label: "Suspendus" },
+        { to: "/administrateur/faq",               icon: HelpCircle,  label: "FAQ Médecins" },
+        { to: "/administrateur/patients-supprimes", icon: Trash2,      label: "Patients supprimés" },
       ]
     },
     {

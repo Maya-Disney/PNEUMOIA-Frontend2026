@@ -7,7 +7,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { brand, getSurface, getText } from "../theme";
 import { useAdminTheme } from "../context/useAdminTheme";
-import { getDemandes, getQuestions } from "../api/adminApi";
+import { getDemandes, getQuestions, getAvis, getAdminNotifications } from "../api/adminApi";
 import { mapMedecin } from "../api/demandesData";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -143,11 +143,12 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [notifOpen,    setNotifOpen]    = useState(false);
-  const [panelPos,     setPanelPos]     = useState({ top: 0, right: 0 });
-  const [inscriptions, setInscriptions] = useState([]);
-  const [faqNotifs,    setFaqNotifs]    = useState([]);
-  const commentNotifs = [];
+  const [notifOpen,       setNotifOpen]       = useState(false);
+  const [panelPos,        setPanelPos]        = useState({ top: 0, right: 0 });
+  const [inscriptions,    setInscriptions]    = useState([]);
+  const [faqNotifs,       setFaqNotifs]       = useState([]);
+  const [commentNotifs,   setCommentNotifs]   = useState([]);
+  const [patientNotifs,   setPatientNotifs]   = useState([]);
   const notifRef    = useRef(null);
   const bellRef     = useRef(null);
   const prevCount   = useRef(null); // null = premier chargement
@@ -192,7 +193,38 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
         newFaq = [];
       }
 
-      const newTotal = newInscriptions.length + newFaq.length;
+      let newComments = [];
+      try {
+        const data = await getAvis();
+        if (Array.isArray(data)) {
+          newComments = data
+            .filter(a => !a.vu)
+            .map(a => ({
+              id:   a.id,
+              nom:  `${a.civilite || "Dr."} ${a.prenom || ""} ${a.nom || ""}`.trim(),
+              note: a.note || 0,
+              date: a.created_at
+                ? new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at + "Z")
+                : new Date(),
+            }));
+        }
+      } catch {
+        newComments = [];
+      }
+
+      let newPatientNotifs = [];
+      try {
+        const data = await getAdminNotifications(true);
+        if (data?.notifications) {
+          newPatientNotifs = data.notifications.filter(n =>
+            n.type === "patient_supprime" || n.type === "demande_recuperation_patient"
+          );
+        }
+      } catch {
+        newPatientNotifs = [];
+      }
+
+      const newTotal = newInscriptions.length + newFaq.length + newComments.length + newPatientNotifs.length;
 
       // Premier chargement avec notifs → son immédiat
       // Polling suivant avec plus de notifs → son d'alerte
@@ -203,6 +235,8 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
 
       setInscriptions(newInscriptions);
       setFaqNotifs(newFaq);
+      setCommentNotifs(newComments);
+      setPatientNotifs(newPatientNotifs);
     }
 
     fetchAndAlert();
@@ -229,7 +263,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
 
   const surface     = getSurface(dark);
   const txt         = getText(dark);
-  const totalNotifs = inscriptions.length + commentNotifs.length + faqNotifs.length;
+  const totalNotifs = inscriptions.length + commentNotifs.length + faqNotifs.length + patientNotifs.length;
 
   function toggleNotif() {
     if (bellRef.current) {
@@ -507,6 +541,33 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
                 onClick={() => goTo("/administrateur/faq")}
                 txt={txt}
               />
+
+              {patientNotifs.length > 0 && (
+                <>
+                  <div style={{ borderTop: `1px solid ${surface.border}` }} />
+                  <NotifSectionHeader
+                    label="Patients supprimés" count={patientNotifs.length}
+                    Icon={Trash2} color="#dc2626" txt={txt}
+                  />
+                  {patientNotifs.slice(0, 3).map(n => (
+                    <NotifItem
+                      key={n.id}
+                      initials="PT"
+                      bg="#dc2626"
+                      title={n.titre}
+                      sub1={n.message.length > 52 ? n.message.slice(0, 52) + "…" : n.message}
+                      sub2={n.created_at ? `Il y a ${notifElapsed(new Date(n.created_at.endsWith("Z") ? n.created_at : n.created_at + "Z"))}` : ""}
+                      onClick={() => goTo("/administrateur/patients-supprimes")}
+                      dark={dark} txt={txt}
+                    />
+                  ))}
+                  <NotifSeeAll
+                    label="Voir les patients supprimés"
+                    onClick={() => goTo("/administrateur/patients-supprimes")}
+                    txt={txt}
+                  />
+                </>
+              )}
             </div>
           )}
         </div>

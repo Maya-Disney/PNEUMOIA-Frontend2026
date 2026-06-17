@@ -1,15 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid
 } from "recharts";
-import { getConsultationsSemaine, getConsultationsTotal } from "../api/adminApi";
+import { getConsultationsJours, getConsultationsTotal } from "../api/adminApi";
 
 const BRAND   = "#0f766e";
 const COMPARE = "#8b5cf6";
 const NOW     = new Date();
-const pad     = (n) => String(n).padStart(2, "0");
 const MOIS    = ["jan","fév","mar","avr","mai","juin","juil","août","sep","oct","nov","déc"];
 const MOIS_LONG = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
@@ -19,11 +18,25 @@ const PERIODES = [
   { key:"30j", label:"30 jours", nb:30 },
 ];
 
+function toISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function subMonth(d) {
+  const r = new Date(d);
+  r.setMonth(r.getMonth() - 1);
+  return r;
+}
+
+function fmtDate(d) {
+  return `${d.getDate()} ${MOIS[d.getMonth()]}`;
+}
+
 function Tip({ active, payload, dark, nomActuel, nomPrec }) {
   if (!active || !payload?.length) return null;
   const a = payload.find(p => p.dataKey === "actuel");
   const p = payload.find(p => p.dataKey === "precedent");
-  const ecart = a && p ? Math.round((a.value - p.value) / p.value * 100) : null;
+  const ecart = a && p && p.value > 0 ? Math.round((a.value - p.value) / p.value * 100) : null;
   return (
     <div style={{
       background: dark?"#161b22":"#fff",
@@ -75,100 +88,88 @@ function Tip({ active, payload, dark, nomActuel, nomPrec }) {
   );
 }
 
-function genMockData(annee, mois, nbJours) {
-  return Array.from({ length: nbJours }, (_, i) => {
-    const d  = new Date(annee, mois, i + 1);
-    const we = d.getDay() === 0 || d.getDay() === 6;
-    const base = we ? 280 : 540;
-    const noise = (Math.random() - 0.5) * 180;
-    return {
-      jour:  i + 1,
-      label: `${pad(i + 1)} ${MOIS[mois]}`,
-      date:  `${pad(i + 1)} ${MOIS[mois]}`,
-      val:   Math.max(60, Math.round(base + noise)),
-    };
-  });
-}
-
-function dateRange(annee, mois, startDay, nbJours) {
-  const from = new Date(annee, mois, startDay).toISOString().slice(0, 10);
-  const to   = new Date(annee, mois, startDay + nbJours - 1).toISOString().slice(0, 10);
-  return { from, to };
-}
-
 export default function CourbeActivite() {
   const { dark }   = useOutletContext() || {};
   const navigate   = useNavigate();
-  const [periode,     setPeriode]    = useState("30j");
-  const [loading,     setLoading]    = useState(true);
-  const [dataActuel,  setDataActuel] = useState([]);
-  const [dataPrec,    setDataPrec]   = useState([]);
-  const [variationAPI, setVariation] = useState(null);
+  const [periode,      setPeriode]   = useState("30j");
+  const [loading,      setLoading]   = useState(true);
+  const [dataActuel,   setDataActuel] = useState([]);
+  const [dataPrec,     setDataPrec]   = useState([]);
+  const [variationAPI, setVariation]  = useState(null);
 
-  const nb           = PERIODES.find(p => p.key === periode)?.nb || 30;
-  const anneeActuel  = NOW.getFullYear();
-  const moisActuelIdx = NOW.getMonth();
-  const anneePrec    = moisActuelIdx === 0 ? anneeActuel - 1 : anneeActuel;
-  const moisPrecIdx  = moisActuelIdx === 0 ? 11 : moisActuelIdx - 1;
-  const moisActuel   = MOIS_LONG[moisActuelIdx];
-  const moisPrec     = MOIS_LONG[moisPrecIdx];
-  const labelActuel  = `${moisActuel} ${anneeActuel}`;
-  const labelPrec    = `${moisPrec} ${anneePrec}`;
+  const nb = PERIODES.find(p => p.key === periode)?.nb || 30;
+
+  // Plages de dates
+  const currentTo   = NOW;
+  const currentFrom = new Date(NOW); currentFrom.setDate(NOW.getDate() - nb + 1);
+  const prevTo      = subMonth(NOW);
+  const prevFrom    = new Date(prevTo); prevFrom.setDate(prevTo.getDate() - nb + 1);
+
+  const labelActuel = `${MOIS_LONG[currentTo.getMonth()]} ${currentTo.getFullYear()}`;
+  const labelPrec   = `${MOIS_LONG[prevTo.getMonth()]} ${prevTo.getFullYear()}`;
 
   useEffect(() => {
     setLoading(true);
+    setVariation(null);
 
-    const { from: fromA, to: toA } = dateRange(anneeActuel, moisActuelIdx, 1, nb);
-    const { from: fromP, to: toP } = dateRange(anneePrec,   moisPrecIdx,   1, nb);
+    const fromA = toISO(currentFrom);
+    const toA   = toISO(currentTo);
+    const fromP = toISO(prevFrom);
+    const toP   = toISO(prevTo);
 
     Promise.all([
-      getConsultationsSemaine().catch(() => null),
+      getConsultationsJours(fromA, toA).catch(() => null),
+      getConsultationsJours(fromP, toP).catch(() => null),
       getConsultationsTotal(fromA, toA).catch(() => null),
-      getConsultationsTotal(fromP, toP).catch(() => null),
     ])
-      .then(([semaine, totActuel, totPrec]) => {
-        // Données journalières période actuelle
-        if (Array.isArray(semaine?.jours) && semaine.jours.length) {
-          const mapped = semaine.jours.slice(0, nb).map((d, i) => ({
-            jour:  i + 1,
-            label: d.j || `${pad(i + 1)} ${MOIS[moisActuelIdx]}`,
-            date:  d.j || `J${i + 1}`,
-            val:   d.c ?? 0,
-          }));
-          setDataActuel(mapped);
-        } else {
-          setDataActuel(genMockData(anneeActuel, moisActuelIdx, nb));
+      .then(([joursA, joursP, totActuel]) => {
+        function mapJours(arr) {
+          if (!Array.isArray(arr) || !arr.length) return [];
+          return arr.map((d) => {
+            const dt = new Date(d.date + "T00:00:00");
+            return { label: fmtDate(dt), date: fmtDate(dt), val: d.c ?? 0, dt };
+          });
         }
-
-        // Variation via l'API total
+        setDataActuel(mapJours(joursA));
+        setDataPrec(mapJours(joursP));
         if (totActuel?.variation_vs_mois_precedent != null) {
           setVariation(totActuel.variation_vs_mois_precedent);
         }
-
-        // Données période précédente (mock car pas d'endpoint dédié)
-        setDataPrec(genMockData(anneePrec, moisPrecIdx, nb));
       })
-      .catch(() => {
-        setDataActuel(genMockData(anneeActuel, moisActuelIdx, nb));
-        setDataPrec(genMockData(anneePrec, moisPrecIdx, nb));
-      })
+      .catch(() => { setDataActuel([]); setDataPrec([]); })
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nb]);
 
   const data = Array.from({ length: nb }, (_, i) => ({
-    label:     dataActuel[i]?.label || `J${i+1}`,
-    date:      dataActuel[i]?.date  || `J${i+1}`,
-    datePrec:  dataPrec[i]?.date    || `J${i+1}`,
-    actuel:    dataActuel[i]?.val   || 0,
-    precedent: dataPrec[i]?.val     || 0,
+    label:     dataActuel[i]?.label    || `J${i+1}`,
+    date:      dataActuel[i]?.date     || `J${i+1}`,
+    datePrec:  dataPrec[i]?.date       || "—",
+    actuel:    dataActuel[i]?.val      ?? 0,
+    precedent: dataPrec[i]?.val        ?? 0,
+    dt:        dataActuel[i]?.dt       || null,
   }));
 
   const totalActuel = data.reduce((s,d) => s + d.actuel, 0);
   const totalPrec   = data.reduce((s,d) => s + d.precedent, 0);
-  const moyActuel   = Math.round(totalActuel / nb);
-  const moyPrec     = Math.round(totalPrec   / nb);
+  const moyActuel   = nb > 0 ? Math.round(totalActuel / nb) : 0;
+  const moyPrec     = nb > 0 ? Math.round(totalPrec   / nb) : 0;
   const variation   = variationAPI ?? (totalPrec > 0 ? Math.round((totalActuel - totalPrec) / totalPrec * 100) : 0);
   const picActuel   = data.reduce((m,d) => d.actuel > m.actuel ? d : m, data[0] || {actuel:0});
+
+  // Groupement par semaine calendaire (Lun → Dim)
+  const calWeeks = useMemo(() => {
+    if (!data.length) return [];
+    const weeks = [];
+    let week = [];
+    data.forEach((entry) => {
+      const dow = entry.dt ? entry.dt.getDay() : -1; // 0=Dim, 1=Lun, …6=Sam
+      if (dow === 1 && week.length > 0) { weeks.push(week); week = []; }
+      week.push(entry);
+    });
+    if (week.length) weeks.push(week);
+    return weeks;
+  }, [data]);
 
   const ax   = dark ? "#484f58" : "#cbd5e1";
   const gr   = dark ? "#1e2836" : "#f8fafc";
@@ -266,12 +267,7 @@ export default function CourbeActivite() {
             <button
               onClick={() => navigate("/administrateur/consultations-annuelles")}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold transition-all border"
-              style={{
-                background: BRAND,
-                color: "#fff",
-                borderColor: BRAND,
-                boxShadow: "0 2px 8px rgba(15,118,110,.3)",
-              }}
+              style={{ background: BRAND, color:"#fff", borderColor: BRAND, boxShadow:"0 2px 8px rgba(15,118,110,.3)" }}
             >
               Visualiser par année →
             </button>
@@ -281,6 +277,11 @@ export default function CourbeActivite() {
         {loading ? (
           <div style={{height:280,display:"flex",alignItems:"center",justifyContent:"center"}}>
             <p className={`text-[14px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Chargement…</p>
+          </div>
+        ) : dataActuel.length === 0 || dataActuel.every(d => d.val === 0) ? (
+          <div style={{height:280,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
+            <p className={`text-[14px] font-semibold ${dark?"text-[#484f58]":"text-gray-400"}`}>Aucune consultation sur cette période</p>
+            <p className={`text-[12px] ${dark?"text-[#30363d]":"text-gray-300"}`}>Les données apparaîtront dès qu'une consultation sera enregistrée</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
@@ -323,7 +324,7 @@ export default function CourbeActivite() {
         )}
       </div>
 
-      {/* ── Tableau semaines ── */}
+      {/* ── Tableau semaines calendaires (Lun → Dim) ── */}
       <div className={`${card} overflow-hidden`}>
         <div className={`px-5 py-4 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
           <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>Récapitulatif par semaine</p>
@@ -338,12 +339,17 @@ export default function CourbeActivite() {
               </tr>
             </thead>
             <tbody>
-              {Array.from({length:Math.ceil(nb/7)},(_,i)=>{
-                const s = i*7, e = Math.min(s+7,nb);
-                const sl  = data.slice(s,e);
-                const tA  = sl.reduce((acc,d)=>acc+d.actuel,0);
-                const tP  = sl.reduce((acc,d)=>acc+d.precedent,0);
-                const ec  = tP>0?Math.round((tA-tP)/tP*100):0;
+              {calWeeks.map((week, i) => {
+                const tA    = week.reduce((s,d) => s + d.actuel, 0);
+                const tP    = week.reduce((s,d) => s + d.precedent, 0);
+                const noAct = tA === 0 && tP === 0;
+                const isNew = tP === 0 && tA > 0;
+                const ec    = tP > 0 ? Math.round((tA - tP) / tP * 100) : null;
+                const up    = isNew || (ec !== null && ec >= 0);
+                const ecLabel = noAct ? "—" : isNew ? "Nouveau" : `${ec >= 0 ? "+" : ""}${ec}%`;
+                const ecColor = noAct
+                  ? (dark ? "#484f58" : "#d1d5db")
+                  : up ? "#0f766e" : "#dc2626";
                 return (
                   <tr key={i} className={`border-b last:border-0 transition-colors ${dark?"border-[#21262d] hover:bg-[#0d1117]/40":"border-gray-50 hover:bg-gray-50/60"}`}>
                     <td className={`px-5 py-4 text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>S{i+1}</td>
@@ -352,13 +358,13 @@ export default function CourbeActivite() {
                         <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:2}}>
                           <span style={{width:6,height:6,borderRadius:99,background:BRAND,flexShrink:0,display:"inline-block"}}/>
                           <span style={{color:dark?"#8b949e":"#374151",fontSize:13}}>
-                            {sl[0]?.date} → {sl[sl.length-1]?.date}
+                            {week[0]?.date} → {week[week.length-1]?.date}
                           </span>
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:5}}>
                           <span style={{width:6,height:6,borderRadius:99,background:COMPARE,opacity:0.7,flexShrink:0,display:"inline-block"}}/>
                           <span style={{color:dark?"#484f58":"#9ca3af",fontSize:12}}>
-                            {sl[0]?.datePrec} → {sl[sl.length-1]?.datePrec}
+                            {week[0]?.datePrec} → {week[week.length-1]?.datePrec}
                           </span>
                         </div>
                       </div>
@@ -369,23 +375,27 @@ export default function CourbeActivite() {
                     <td className={`px-5 py-4 text-[14px] font-medium ${dark?"text-[#8b949e]":"text-gray-500"}`}>
                       {tP.toLocaleString("fr-FR")}
                     </td>
-                    <td className={`px-5 py-4 text-[14px] font-bold ${ec>=0?"text-teal-600":"text-red-500"}`}>
-                      {ec>=0?"+":""}{ec}%
+                    <td className="px-5 py-4 text-[14px] font-bold" style={{color: ecColor}}>
+                      {ecLabel}
                     </td>
                     <td className="px-5 py-4">
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div className={`h-1.5 rounded-full overflow-hidden ${dark?"bg-[#21262d]":"bg-gray-100"}`} style={{width:80}}>
-                          <div style={{
-                            width:`${Math.min(100,50+ec*2)}%`,
-                            height:"100%",borderRadius:99,
-                            background:ec>=0?BRAND:"#dc2626",
-                            transition:"width .4s ease"
-                          }}/>
+                      {!noAct ? (
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div className={`h-1.5 rounded-full overflow-hidden ${dark?"bg-[#21262d]":"bg-gray-100"}`} style={{width:80}}>
+                            <div style={{
+                              width: isNew ? "100%" : `${Math.min(100, Math.max(0, 50 + ec * 2))}%`,
+                              height:"100%",borderRadius:99,
+                              background: up ? BRAND : "#dc2626",
+                              transition:"width .4s ease"
+                            }}/>
+                          </div>
+                          <span style={{fontSize:13, color: up ? BRAND : "#dc2626", fontWeight:700}}>
+                            {up?"▲":"▼"}
+                          </span>
                         </div>
-                        <span style={{fontSize:13,color:ec>=0?BRAND:"#dc2626",fontWeight:700}}>
-                          {ec>=0?"▲":"▼"}
-                        </span>
-                      </div>
+                      ) : (
+                        <span className={`text-[13px] ${dark?"text-[#484f58]":"text-gray-300"}`}>—</span>
+                      )}
                     </td>
                   </tr>
                 );

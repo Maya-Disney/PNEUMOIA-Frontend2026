@@ -1,10 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageCircle, ThumbsUp, Reply, Trash2, Send,
@@ -16,16 +10,18 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${localStorage.getItem('token')}`,
+});
+
 // ─── Tabs ──────────────────────────────────────────────────────────────────────
 const TABS = [
   { id: 'equipe',   label: 'Messages équipe',   icon: Users,       desc: 'Échanges avec votre médecin référent et les aides de votre équipe' },
   { id: 'medecins', label: 'Posts des médecins', icon: Stethoscope, desc: 'Consultez et réagissez aux publications des médecins' },
 ];
 
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/DashBoardMedecin
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const typeConfigEquipe = {
   rapport: { label: 'Rapport',  color: 'bg-emerald-50 text-emerald-700',   icon: BookOpen },
@@ -56,10 +52,7 @@ function OngletEquipe({ toast }) {
   const initials = aideNom.trim().split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
 
   const [messages, setMessages]       = useState([]);
-<<<<<<< HEAD
-=======
   const [loading, setLoading]         = useState(true);
->>>>>>> origin/DashBoardMedecin
   const [searchTerm, setSearchTerm]   = useState('');
   const [filterType, setFilterType]   = useState('all');
   const [expandedReplies, setExpanded]= useState({});
@@ -356,17 +349,12 @@ function OngletMedecins({ toast }) {
   const initials = aideNom.trim().split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
 
   const [posts, setPosts]             = useState([]);
-<<<<<<< HEAD
-=======
   const [loadingPosts, setLoadingPosts]= useState(true);
->>>>>>> origin/DashBoardMedecin
   const [searchTerm, setSearchTerm]   = useState('');
   const [expandedReplies, setExpanded]= useState({});
   const [replyingTo, setReplyingTo]   = useState(null);
   const [replyText, setReplyText]     = useState('');
-
   const loadPosts = () => {
-    setLoadingPosts(true);
     fetch(`${API_URL}/ressources?limite=50`, { headers: authHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => setPosts(Array.isArray(data?.data) ? data.data : []))
