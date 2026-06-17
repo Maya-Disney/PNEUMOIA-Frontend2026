@@ -598,6 +598,8 @@ export default function NouvellesDemandes() {
                 const ds  = docState(doc);
                 const num = (page-1)*perPage+i+1;
                 const canAct = ds === "ok";
+                const isValide   = doc.status === "valide";
+                const isRejete   = doc.status === "rejete";
                 const isMenuOpen = openMenuId === doc.id;
 
                 return (
@@ -682,37 +684,43 @@ export default function NouvellesDemandes() {
                             <div className="border-t" style={{ borderColor: surface.border }} />
 
                             <button
-                              disabled={!canAct}
+                              disabled={!canAct || isRejete}
                               onClick={() => {
+                                if (!canAct || isRejete) return;
                                 setModaleValider(doc);
                                 setOpenMenuId(null);
                               }}
                               className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] font-medium transition-colors
-                                ${canAct
+                                ${canAct && !isRejete
                                   ? (dark?"text-emerald-300 hover:bg-emerald-900/20":"text-emerald-700 hover:bg-emerald-50")
                                   : "cursor-not-allowed"}`}
-                              style={!canAct ? { color: txt.subtle } : undefined}
+                              style={(!canAct || isRejete) ? { color: txt.subtle } : undefined}
                             >
                               <CheckCircle size={14} className="shrink-0" />
                               <span>Valider</span>
-                              {!canAct && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded" style={{ background: surface.bg, color: txt.subtle }}>Incomplet</span>}
+                              {isValide && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded font-bold" style={{ background: `${brand.DEFAULT}20`, color: brand.DEFAULT }}>Fait</span>}
+                              {isRejete && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded" style={{ background: surface.bg, color: txt.subtle }}>Refusé</span>}
+                              {!canAct && !isValide && !isRejete && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded" style={{ background: surface.bg, color: txt.subtle }}>Incomplet</span>}
                             </button>
 
                             <button
-                              disabled={!canAct}
+                              disabled={!canAct || isValide}
                               onClick={() => {
+                                if (!canAct || isValide) return;
                                 setModaleRefuser(doc);
                                 setOpenMenuId(null);
                               }}
                               className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] font-medium transition-colors
-                                ${canAct
+                                ${canAct && !isValide
                                   ? (dark?"text-red-400 hover:bg-red-900/20":"text-red-700 hover:bg-red-50")
                                   : "cursor-not-allowed"}`}
-                              style={!canAct ? { color: txt.subtle } : undefined}
+                              style={(!canAct || isValide) ? { color: txt.subtle } : undefined}
                             >
                               <XCircle size={14} className="shrink-0" />
                               <span>Refuser</span>
-                              {!canAct && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded" style={{ background: surface.bg, color: txt.subtle }}>Incomplet</span>}
+                              {isRejete && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(220,38,38,0.12)", color: "#dc2626" }}>Fait</span>}
+                              {isValide && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded" style={{ background: surface.bg, color: txt.subtle }}>Validé</span>}
+                              {!canAct && !isValide && !isRejete && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded" style={{ background: surface.bg, color: txt.subtle }}>Incomplet</span>}
                             </button>
                           </div>
                         )}

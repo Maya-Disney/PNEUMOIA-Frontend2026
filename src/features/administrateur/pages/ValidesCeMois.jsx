@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useAdminTheme } from "../context/useAdminTheme";
 import * as XLSX from "xlsx";
-import { Download, X, FileText, User, MoreVertical } from "lucide-react";
+import { Download, X, FileText, User, MoreVertical, XCircle } from "lucide-react";
 import { getMedecinsValides } from "../api/adminapi";
 import { brand, getSurface, getText } from "../theme";
 import {
@@ -95,10 +95,109 @@ function ModalePhoto({ doc: m, onClose, dark }) {
   );
 }
 
+function isPdf(url, mime) {
+  if (mime) return mime.toLowerCase().includes("pdf");
+  if (!url) return false;
+  return url.toLowerCase().split("?")[0].endsWith(".pdf");
+}
+
+function isImage(url, mime) {
+  if (mime) return mime.toLowerCase().startsWith("image/");
+  if (!url) return false;
+  return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url.toLowerCase().split("?")[0]);
+}
+
+function isOfficeDoc(url, mime) {
+  if (mime) return /word|excel|spreadsheet|presentationml|officedocument/i.test(mime);
+  if (!url) return false;
+  return /\.(docx?|xlsx?|pptx?)$/i.test(url.toLowerCase().split("?")[0]);
+}
+
+function ModaleApercu({ doc: d, onClose, dark }) {
+  const surface = getSurface(dark);
+  const txt     = getText(dark);
+  const fileUrl = d.url || null;
+  const pdf     = isPdf(fileUrl, d.mime);
+  const image   = isImage(fileUrl, d.mime);
+  const office  = isOfficeDoc(fileUrl, d.mime);
+  const officeViewerUrl = office && fileUrl
+    ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`
+    : null;
+
+  function handleDownload() {
+    if (!fileUrl) return;
+    const a = document.createElement("a");
+    a.href = fileUrl;
+    a.download = d.label;
+    a.click();
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black/80"
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="flex items-center justify-between px-5 py-4 shrink-0"
+        style={{ background: surface.card, borderBottom: `1px solid ${surface.border}` }}>
+        <div>
+          <p className="text-[15px] font-bold" style={{ color: txt.primary }}>{d.label}</p>
+          <p className="text-[14px] mt-0.5" style={{ color: txt.subtle }}>Aperçu du document</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {fileUrl && (
+            <button onClick={handleDownload}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[14px] font-bold rounded-lg border transition-colors"
+              style={{ borderColor: surface.border, color: txt.muted }}
+              onMouseEnter={e => { e.currentTarget.style.background = surface.bg; }}
+              onMouseLeave={e => { e.currentTarget.style.background = ""; }}>
+              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Télécharger
+            </button>
+          )}
+          <button onClick={onClose}
+            className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
+            style={{ color: txt.subtle }}
+            onMouseEnter={e => { e.currentTarget.style.background = surface.bg; }}
+            onMouseLeave={e => { e.currentTarget.style.background = ""; }}>
+            <XCircle size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+        {!fileUrl ? (
+          <div className="flex flex-col items-center gap-3 text-center px-6 py-12 rounded-xl border-2 border-dashed"
+            style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.6)" }}>
+            <svg width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p className="text-[15px]">Document non disponible — sera accessible après connexion du backend.</p>
+          </div>
+        ) : pdf ? (
+          <iframe src={fileUrl} title={d.label} className="w-full h-full rounded-lg" style={{ background: "#fff", border: "none" }} />
+        ) : image ? (
+          <img src={fileUrl} alt={d.label} className="max-w-full max-h-full rounded-lg shadow-2xl object-contain" />
+        ) : office ? (
+          <iframe src={officeViewerUrl} title={d.label} className="w-full h-full rounded-lg" style={{ background: "#fff", border: "none" }} />
+        ) : (
+          <div className="flex flex-col items-center gap-3 text-center px-6 py-12 rounded-xl border-2 border-dashed"
+            style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.6)" }}>
+            <svg width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p className="text-[15px]">Aperçu indisponible pour ce type de fichier — téléchargez-le pour le consulter.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ModaleDossier({ doc: m, onClose, dark }) {
+  const [apercu, setApercu] = useState(null);
+
   function handleVoir(d) {
-    if (d.url) window.open(d.url, "_blank");
-    else alert("Document disponible après connexion backend.");
+    setApercu(d);
   }
   function handleDl(d) {
     if (d.url) {
@@ -110,6 +209,7 @@ function ModaleDossier({ doc: m, onClose, dark }) {
   }
 
   return (
+    <>
     <Modal dark={dark} onClose={onClose} title="Dossier de validation" sub={`${m.name} · validé le ${formatValidation(m.dateValidation)}`} wide
       footer={
         <button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border transition-colors ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-[#21262d]" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
@@ -183,6 +283,8 @@ function ModaleDossier({ doc: m, onClose, dark }) {
         </p>
       </div>
     </Modal>
+    {apercu && <ModaleApercu doc={apercu} dark={dark} onClose={() => setApercu(null)} />}
+    </>
   );
 }
 

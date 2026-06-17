@@ -21,9 +21,7 @@ import {
 import { getQuestions, repondreQuestion, getFAQ, creerFAQ, modifierFAQ, toggleFAQPublie } from "../api/adminApi";
 import { brand, getSurface, getText } from "../theme";
 
-const NOW   = new Date();
-const pad   = (n) => String(n).padStart(2, "0");
-const sub   = (ms) => new Date(NOW.getTime() - ms);
+const pad = (n) => String(n).padStart(2, "0");
 
 /** Affiche une date en DD/MM/YYYY HH:MM */
 function fmt(d) {
@@ -40,94 +38,13 @@ function fmtDate(d) {
 /** Affiche une durée relative depuis maintenant */
 function elapsed(d) {
   if (!d) return "—";
-  const dm = Math.floor((NOW - d) / 60000);
+  const dm = Math.floor((Date.now() - d) / 60000);
   if (dm < 1)    return "À l'instant";
   if (dm < 60)   return `Il y a ${dm} min`;
   if (dm < 1440) return `Il y a ${Math.floor(dm/60)}h`;
   if (dm < 10080) return `Il y a ${Math.floor(dm/1440)}j`;
   return fmtDate(d);
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DONNÉES MOCK
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MOCK_QUESTIONS = [
-  {
-    id:1, medecin:"Dr. Jean Dupont", cnom:"CM-2019-0847", email:"j.dupont@hgd.cm",
-    ville:"Douala", hopital:"H. Général Douala",
-    avatarColor:brand.DEFAULT, initials:"JD", photo_url:null,
-    question:"Comment modifier mon établissement de rattachement sur la plateforme ?",
-    categorie:"Compte", statut:"en_attente",
-    date: sub(2*3600000),
-    reponse:null, dateReponse:null,
-  },
-  {
-    id:2, medecin:"Dr. Kamto Diane", cnom:"CM-2017-0432", email:"d.kamto@chu.cm",
-    ville:"Yaoundé", hopital:"CHU Yaoundé",
-    avatarColor:"#185FA5", initials:"DK", photo_url:null,
-    question:"Mon score de concordance IA semble incorrect. Comment est-il calculé ?",
-    categorie:"IA", statut:"en_attente",
-    date: sub(5*3600000),
-    reponse:null, dateReponse:null,
-  },
-  {
-    id:3, medecin:"Dr. Nkoa", cnom:"CM-2018-0521", email:"nkoa@hgd.cm",
-    ville:"Douala", hopital:"H. Général Douala",
-    avatarColor:"#7C3AED", initials:"DN", photo_url:null,
-    question:"Je n'arrive pas à partager un cas clinique. L'option est grisée.",
-    categorie:"Technique", statut:"repondu",
-    date: sub(2*24*3600000),
-    reponse:"Le partage de cas est disponible après validation complète de votre profil.",
-    dateReponse: sub(1*24*3600000),
-  },
-  {
-    id:4, medecin:"Dr. Barry", cnom:"CM-2020-0612", email:"barry@hrg.cm",
-    ville:"Garoua", hopital:"H. Régional Garoua",
-    avatarColor:"#D97706", initials:"DB", photo_url:null,
-    question:"Est-il possible d'exporter mes consultations en PDF ou Excel ?",
-    categorie:"Exportation", statut:"repondu",
-    date: sub(5*24*3600000),
-    reponse:"Oui, depuis votre tableau de bord médecin, cliquez sur 'Mes consultations' puis 'Exporter'.",
-    dateReponse: sub(4*24*3600000),
-  },
-  {
-    id:5, medecin:"Dr. Aminata Sow", cnom:"CM-2024-1122", email:"aminata@pneumo.cm",
-    ville:"Yaoundé", hopital:"Clinique centrale",
-    avatarColor:"#1D9E75", initials:"AS", photo_url:null,
-    question:"Combien de temps faut-il pour valider un nouveau dossier d'inscription ?",
-    categorie:"Inscription", statut:"en_attente",
-    date: sub(30*60000),
-    reponse:null, dateReponse:null,
-  },
-];
-
-const MOCK_FAQ = [
-  {
-    id:1,
-    question:"Comment fonctionne le score de concordance IA ?",
-    reponse:"Le score compare vos diagnostics avec les suggestions de PneumoIA sur vos 30 dernières consultations.",
-    categorie:"IA", publie:true, nb_vues:47,
-    created_at: sub(15*24*3600000),
-    updated_at: sub(2*24*3600000),
-  },
-  {
-    id:2,
-    question:"Comment modifier mes informations personnelles ?",
-    reponse:"Allez dans Profil > Modifier. Certains champs comme le CNOM ne peuvent être modifiés que par l'administrateur.",
-    categorie:"Compte", publie:true, nb_vues:32,
-    created_at: sub(20*24*3600000),
-    updated_at: null,
-  },
-  {
-    id:3,
-    question:"Comment partager un cas clinique avec la communauté ?",
-    reponse:"Dans votre espace, ouvrez une consultation puis cliquez sur 'Partager'.",
-    categorie:"Technique", publie:false, nb_vues:0,
-    created_at: sub(3*24*3600000),
-    updated_at: sub(1*24*3600000),
-  },
-];
 
 const CATEGORIES = ["Toutes","Compte","IA","Technique","Exportation","Inscription","Autre"];
 const CAT_COLORS = {
@@ -192,8 +109,8 @@ export default function FAQ() {
   const { dark } = useOutletContext() || {};
 
   const [onglet,        setOnglet]        = useState("attente");
-  const [questions,     setQuestions]     = useState(MOCK_QUESTIONS);
-  const [faqList,       setFaqList]       = useState(MOCK_FAQ);
+  const [questions,     setQuestions]     = useState([]);
+  const [faqList,       setFaqList]       = useState([]);
   const [loadingQ,      setLoadingQ]      = useState(true);
   const [loadingF,      setLoadingF]      = useState(true);
   const [search,        setSearch]        = useState("");
@@ -213,7 +130,7 @@ export default function FAQ() {
     setLoadingQ(true);
     getQuestions()
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setQuestions(data.map(q => ({
             ...q,
             date:        q.created_at  ? new Date(q.created_at)  : new Date(),
@@ -229,7 +146,7 @@ export default function FAQ() {
     setLoadingF(true);
     getFAQ()
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setFaqList(data.map(f => ({
             ...f,
             created_at: f.created_at ? new Date(f.created_at) : null,

@@ -8,25 +8,9 @@ import {
 } from "../components/ui/Table";
 import { getAuditLogs, purgerAuditLogs } from "../api/adminapi";
 
-const NOW = new Date();
 const pad = (n) => String(n).padStart(2, "0");
 function fmtDT(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
-function elapsed(d) { const dm = Math.floor((NOW - d) / 60000), dh = Math.floor(dm / 60), dd = Math.floor(dh / 24); if (dm < 60) return `${dm} min`; if (dh < 24) return `${dh}h`; if (dd === 1) return "Hier"; return `${dd}j`; }
-
-const MOCK_DATA = [
-  { id:1,  date:new Date(NOW.getTime()-2*60000),         acteur:"Dr. Aminata Sow",   role:"Médecin", action:"Connexion réussie",              cible:"Compte médecin",       ip:"197.234.56.78", ville:"Douala",  statut:"success" },
-  { id:2,  date:new Date(NOW.getTime()-15*60000),        acteur:"Super Admin",        role:"Admin",   action:"Compte médecin validé",          cible:"Dr. Paul Essomba",     ip:"192.168.1.1",   ville:"Local",   statut:"success" },
-  { id:3,  date:new Date(NOW.getTime()-34*60000),        acteur:"Inconnu",            role:"—",       action:"Tentative connexion échouée",    cible:"admin@pneumoia.cm",    ip:"105.112.43.21", ville:"Lagos",   statut:"danger"  },
-  { id:4,  date:new Date(NOW.getTime()-2*3600000),       acteur:"Super Admin",        role:"Admin",   action:"Compte médecin rejeté",          cible:"Dr. Tabi Jonas",       ip:"192.168.1.1",   ville:"Local",   statut:"warning" },
-  { id:5,  date:new Date(NOW.getTime()-3*3600000),       acteur:"Dr. Jean Dupont",    role:"Médecin", action:"Consultation enregistrée",       cible:"Patient #247",         ip:"197.234.12.55", ville:"Douala",  statut:"success" },
-  { id:6,  date:new Date(NOW.getTime()-5*3600000),       acteur:"Super Admin",        role:"Admin",   action:"Dr. Fokou suspendu",             cible:"Dr. Fokou Emmanuel",   ip:"192.168.1.1",   ville:"Local",   statut:"warning" },
-  { id:7,  date:new Date(NOW.getTime()-8*3600000),       acteur:"Dr. Kamto Diane",    role:"Médecin", action:"Connexion réussie",              cible:"Compte médecin",       ip:"41.202.219.67", ville:"Yaoundé", statut:"success" },
-  { id:8,  date:new Date(NOW.getTime()-12*3600000),      acteur:"Système",            role:"Système", action:"Modèle IA mis à jour",           cible:"Model v2.4.1",         ip:"—",             ville:"—",       statut:"info"    },
-  { id:9,  date:new Date(NOW.getTime()-24*3600000),      acteur:"Super Admin",        role:"Admin",   action:"Paramètres mis à jour",          cible:"Config plateforme",    ip:"192.168.1.1",   ville:"Local",   statut:"info"    },
-  { id:10, date:new Date(NOW.getTime()-2*24*3600000),    acteur:"Inconnu",            role:"—",       action:"Tentative connexion échouée",    cible:"d.kamto@chu.cm",       ip:"102.89.45.200", ville:"Abidjan", statut:"danger"  },
-  { id:11, date:new Date(NOW.getTime()-3*24*3600000),    acteur:"Dr. Aminata Sow",    role:"Médecin", action:"Cas publié communauté",          cible:"Cas #64",              ip:"197.234.56.78", ville:"Douala",  statut:"success" },
-  { id:12, date:new Date(NOW.getTime()-4*24*3600000),    acteur:"Super Admin",        role:"Admin",   action:"Sauvegarde automatique réussie", cible:"BDD principale",       ip:"192.168.1.1",   ville:"Local",   statut:"success" },
-];
+function elapsed(d) { const dm = Math.floor((Date.now() - d) / 60000), dh = Math.floor(dm / 60), dd = Math.floor(dh / 24); if (dm < 60) return `${dm} min`; if (dh < 24) return `${dh}h`; if (dd === 1) return "Hier"; return `${dd}j`; }
 
 const TYPES = ["Tous","Connexion","Validation","Suspension","Consultation","Système","Erreur"];
 const STATUT_CFG = {
@@ -148,9 +132,9 @@ export default function JournalAudit() {
     getAuditLogs()
       .then(res => {
         const entries = Array.isArray(res) ? res : (res?.logs ?? []);
-        setData(entries.length ? entries.map(normalizeLog) : MOCK_DATA.map(normalizeLog));
+        setData(entries.map(normalizeLog));
       })
-      .catch(() => setData(MOCK_DATA.map(normalizeLog)))
+      .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, []);
 

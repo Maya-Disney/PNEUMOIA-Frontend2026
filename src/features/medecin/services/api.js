@@ -90,3 +90,13 @@ export const telechargerPDF = async (consultationId) => {
   a.click();
   URL.revokeObjectURL(url);
 };
+
+// ── Avis / Témoignage plateforme ──────────────────────────────
+export const getMonAvis = () =>
+  apiFetch('/medecins/avis/mon-avis');
+
+export const publierMonAvis = (note, contenu) =>
+  apiFetch('/medecins/avis', {
+    method: 'POST',
+    body: JSON.stringify({ note, contenu }),
+  });

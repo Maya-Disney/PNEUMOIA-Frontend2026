@@ -52,12 +52,6 @@ const DEFAULTS = {
   notif_suspension: true,
 };
 
-const MOCK_PUBLICATIONS = [
-  { id:235, titre:"Cas #235 — BPCO exacerbation sévère",      auteur:"Dr. Nkoa",   meta:"H64, Bafoussam · Publié il y a 5j · 19 vues",       resume:"Exacerbation aiguë BPCO stade III. Corticothérapie + bronchodilatateur.", statut:"publie",   raison:null },
-  { id:241, titre:"Cas #241 — Pneumonie atypique résistante", auteur:"Dr. Dupont", meta:"H47, Douala · Publié il y a 1j · 12 vues",          resume:"Pneumonie bactérienne résistante à l'amoxicilline. Favorable sous azithromycine.", statut:"publie", raison:null },
-  { id:229, titre:"Cas #229 — Pneumopathie virale sévère",    auteur:"Dr. Barry",  meta:"F29, Garoua · Suspendu le 14/03/2026",              resume:null, statut:"suspendu", raison:"Erreur dans les données biologiques signalée par 2 confrères." },
-  { id:218, titre:"Cas #218 — Tuberculose pulmonaire active", auteur:"Dr. Fouda",  meta:"H52, Yaoundé · Signalé il y a 2j · 8 vues",        resume:"Données patient non anonymisées dans les images jointes.", statut:"signale", raison:"Données patient non anonymisées signalées par 3 confrères." },
-];
 
 const ONGLETS = [
   { key:"general",        label:"Général",       icon: Settings },
@@ -150,7 +144,7 @@ function NumberRow({ label, description, value, onChange, min, max, unit, dark }
 
 function OngletPublications({ dark }) {
   const [filtre, setFiltre] = useState("Tous les cas");
-  const [pubs,   setPubs]   = useState(MOCK_PUBLICATIONS);
+  const [pubs,   setPubs]   = useState([]);
 
   const suspendre = id => setPubs(p=>p.map(x=>x.id===id?{...x,statut:"suspendu"}:x));
   const reactiver = id => setPubs(p=>p.map(x=>x.id===id?{...x,statut:"publie",raison:null}:x));

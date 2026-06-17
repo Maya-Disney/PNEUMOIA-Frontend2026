@@ -4,9 +4,6 @@ import { Trash2, X, Star, Search, AlertTriangle, Bell, MessageSquare, CheckCircl
 import { brand, status, getSurface, getText } from "../theme";
 import { getAvis, supprimerAvis, marquerAvisVus } from "../api/adminApi";
 
-const NOW = new Date();
-const sub = (ms) => new Date(NOW.getTime() - ms);
-
 function elapsed(d) {
   const dm = Math.floor((Date.now() - d) / 60000);
   if (dm < 60)   return `Il y a ${dm} min`;
@@ -24,15 +21,6 @@ function avatarColor(str) {
 const VILLES_CM = ["Toutes","Yaoundé","Douala","Bafoussam","Garoua","Maroua","Ngaoundéré","Bertoua","Ebolowa","Buéa","Limbé"];
 const NOTES     = ["Toutes","5","4","3","2","1"];
 
-const MOCK = [
-  { id:1, initials:"JD", nom:"Dr. Jean Dupont",   specialite:"Pneumologue", ville:"Douala",  hopital:"H. Général Douala",   photo_url:null, note:5, commentaire:"PneumoIA a révolutionné ma pratique quotidienne. L'IA est précise et les outils de suivi patients sont excellents. Je recommande à tous mes confrères.", date:sub(30*60000),       nouveau:true  },
-  { id:2, initials:"DK", nom:"Dr. Kamto Diane",   specialite:"Pneumologue", ville:"Yaoundé", hopital:"CHU Yaoundé",          photo_url:null, note:4, commentaire:"Très bonne plateforme, interface intuitive. J'aurais aimé avoir plus d'options de personnalisation pour les rapports. Globalement très satisfaite.",  date:sub(3*3600000),      nouveau:true  },
-  { id:3, initials:"DN", nom:"Dr. Nkoa",           specialite:"Pneumologue", ville:"Douala",  hopital:"H. Général Douala",   photo_url:null, note:2, commentaire:"La plateforme est souvent lente et certaines fonctionnalités ne marchent pas bien sur mobile. Le support ne répond pas vite non plus.",             date:sub(1*24*3600000),   nouveau:true  },
-  { id:4, initials:"DB", nom:"Dr. Barry",          specialite:"Pneumologue", ville:"Garoua",  hopital:"H. Régional Garoua",  photo_url:null, note:5, commentaire:"Excellent outil ! La concordance IA m'aide énormément dans les cas complexes de pneumologie. Bravo à toute l'équipe de développement.",             date:sub(2*24*3600000),   nouveau:false },
-  { id:5, initials:"AS", nom:"Dr. Aminata Sow",   specialite:"Pneumologue", ville:"Yaoundé", hopital:"Clinique Centrale",    photo_url:null, note:1, commentaire:"Je suis très déçue. Mes données ont été perdues deux fois. C'est inacceptable pour une plateforme médicale. Je ne recommande pas du tout.",         date:sub(4*24*3600000),   nouveau:false },
-  { id:6, initials:"PF", nom:"Dr. Paul Fotso",    specialite:"Pneumologue", ville:"Douala",  hopital:"Clinique du Littoral", photo_url:null, note:4, commentaire:"Bonne expérience globale. Le module de partage de cas est très utile pour la communauté médicale. Quelques bugs mineurs à corriger.",              date:sub(5*24*3600000),   nouveau:false },
-];
-
 function StarRating({ note, size=14 }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -48,7 +36,7 @@ export default function Commentaires() {
   const surface = getSurface(dark);
   const txt     = getText(dark);
 
-  const [rows,         setRows]        = useState(MOCK);
+  const [rows,         setRows]        = useState([]);
   const [search,       setSearch]      = useState("");
   const [villeFiltre,  setVilleFiltre] = useState("Toutes");
   const [noteFiltre,   setNoteFiltre]  = useState("Toutes");
@@ -65,7 +53,7 @@ export default function Commentaires() {
   useEffect(() => {
     getAvis()
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setRows(data.map(a => ({
             id:          a.id,
             initials:    `${(a.prenom?.[0]||"").toUpperCase()}${(a.nom?.[0]||"").toUpperCase()}`,

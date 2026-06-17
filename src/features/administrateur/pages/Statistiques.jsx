@@ -20,41 +20,6 @@ ChartJS.register(BarElement, LineElement, PointElement, LinearScale, CategorySca
 const MOIS_FR    = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 const MOIS_COURT = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
 
-const MOCK_VILLES = [
-  {v:"Douala",c:2240,md:18},{v:"Yaoundé",c:1540,md:12},
-  {v:"Bafoussam",c:580,md:4},{v:"Garoua",c:320,md:3},{v:"Bertoua",c:141,md:1},
-];
-const MOCK_TOP = [
-  {ini:"DK", nom:"Dr. Kamto Diane", c:3201, ia:92, bg:"bg-blue-100 text-blue-700"},
-  {ini:"JD", nom:"Dr. Jean Dupont", c:4821, ia:88, bg:"bg-teal-100 text-teal-700"},
-  {ini:"AS", nom:"Dr. Aminata Sow", c:1243, ia:82, bg:"bg-purple-100 text-purple-700"},
-  {ini:"DM", nom:"Dr. Mbang",       c:987,  ia:74, bg:"bg-amber-100 text-amber-700"},
-];
-
-function genDayData(year, month) {
-  const days = new Date(year, month + 1, 0).getDate();
-  return Array.from({ length: days }, (_, i) => ({
-    label: String(i + 1),
-    v: Math.round(300 + Math.random() * 500),
-  }));
-}
-
-function genMonthData(year) {
-  const now = new Date();
-  const max = now.getFullYear() === year ? now.getMonth() : 11;
-  return Array.from({ length: max + 1 }, (_, i) => ({
-    label: MOIS_COURT[i],
-    v: Math.round(5000 + Math.random() * 5000),
-  }));
-}
-
-function genYearData() {
-  const cur = Math.max(new Date().getFullYear(), 2026);
-  return Array.from({ length: cur - 2025 }, (_, i) => ({
-    label: String(2026 + i),
-    v: Math.round(40000 + Math.random() * 30000),
-  }));
-}
 
 const VUES = [
   { k: "jours",  l: "Jours"  },
@@ -84,10 +49,10 @@ export default function Statistiques() {
   const [mois,  setMois]  = useState(now.getMonth());
 
   // ── État API ──────────────────────────────────────────────────────────────
-  const [kpis,   setKpis]   = useState({ medecins_actifs: 38, consultations_total: 4821, precision_ia: 94, concordance_moy: 84 });
-  const [villes, setVilles] = useState(MOCK_VILLES);
-  const [top,    setTop]    = useState(MOCK_TOP);
-  const [rawData, setRawData] = useState(() => genMonthData(curYear));
+  const [kpis,   setKpis]   = useState({ medecins_actifs: null, consultations_total: null, precision_ia: null, concordance_moy: null });
+  const [villes, setVilles] = useState([]);
+  const [top,    setTop]    = useState([]);
+  const [rawData, setRawData] = useState([]);
 
   useEffect(() => {
     getKpis().then(data => setKpis(prev => ({ ...prev, ...data }))).catch(() => {});
@@ -107,22 +72,20 @@ export default function Statistiques() {
     getTopMedecinsConcordance(now.getMonth() + 1, now.getFullYear())
       .then(res => {
         const docs = Array.isArray(res) ? res : (res?.medecins ?? []);
-        if (docs.length) {
-          setTop(docs.map((m, i) => ({
-            ini: `${m.prenom?.[0]||""}${m.nom?.[0]||""}`.toUpperCase(),
-            nom: `Dr. ${m.prenom} ${m.nom}`,
-            c:   m.consultations,
-            ia:  m.concordance,
-            bg:  BG_COLORS[i % BG_COLORS.length],
-          })));
-        }
+        setTop(docs.map((m, i) => ({
+          ini: `${m.prenom?.[0]||""}${m.nom?.[0]||""}`.toUpperCase(),
+          nom: `Dr. ${m.prenom} ${m.nom}`,
+          c:   m.consultations,
+          ia:  m.concordance,
+          bg:  BG_COLORS[i % BG_COLORS.length],
+        })));
       })
       .catch(() => {});
   }, []);
 
   useEffect(() => {
     if (vue === "jours") {
-      setRawData(genDayData(annee, mois));
+      setRawData([]);
     } else if (vue === "mois") {
       getConsultationsAnnee(annee)
         .then(res => {
@@ -131,14 +94,17 @@ export default function Statistiques() {
           } else if (Array.isArray(res?.mois) && res.mois.length) {
             setRawData(res.mois.map((d, i) => ({ label: MOIS_COURT[i], v: typeof d === "number" ? d : d.v })));
           } else {
-            setRawData(genMonthData(annee));
+            setRawData([]);
           }
         })
-        .catch(() => setRawData(genMonthData(annee)));
+        .catch(() => setRawData([]));
     } else {
       getConsultationsSemaine()
-        .then(() => setRawData(genYearData()))
-        .catch(() => setRawData(genYearData()));
+        .then(res => {
+          const entries = Array.isArray(res) ? res : [];
+          setRawData(entries.map((v, i) => ({ label: String(2026 + i), v })));
+        })
+        .catch(() => setRawData([]));
     }
   }, [vue, annee, mois]);
 
@@ -198,10 +164,10 @@ export default function Statistiques() {
       {/* ── KPIs ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon:Users,      l:"Médecins actifs",  v: String(kpis.medecins_actifs ?? 38),                                s:"+3 ce mois",     ibg:"bg-teal-50 dark:bg-teal-900/20",    ic:"text-teal-600"   },
-          { icon:Activity,   l:"Consultations",    v: (kpis.consultations_total ?? 4821).toLocaleString("fr-FR"),       s:"+247 ce mois",   ibg:"bg-blue-50 dark:bg-blue-900/20",     ic:"text-blue-500"   },
-          { icon:Brain,      l:"Précision IA",     v: `${kpis.precision_ia ?? 94}%`,                                     s:"+1.2% ce mois",  ibg:"bg-purple-50 dark:bg-purple-900/20", ic:"text-purple-500" },
-          { icon:TrendingUp, l:"Concordance moy.", v: `${kpis.concordance_moy ?? 84}%`,                                  s:"Médecins actifs", ibg:"bg-amber-50 dark:bg-amber-900/20",  ic:"text-amber-500"  },
+          { icon:Users,      l:"Médecins actifs",  v: kpis.medecins_actifs != null ? String(kpis.medecins_actifs) : "—",                                        s:"+3 ce mois",     ibg:"bg-teal-50 dark:bg-teal-900/20",    ic:"text-teal-600"   },
+          { icon:Activity,   l:"Consultations",    v: kpis.consultations_total != null ? Number(kpis.consultations_total).toLocaleString("fr-FR") : "—", s:"+247 ce mois",   ibg:"bg-blue-50 dark:bg-blue-900/20",     ic:"text-blue-500"   },
+          { icon:Brain,      l:"Précision IA",     v: kpis.precision_ia != null ? `${kpis.precision_ia}%` : "—",                                         s:"+1.2% ce mois",  ibg:"bg-purple-50 dark:bg-purple-900/20", ic:"text-purple-500" },
+          { icon:TrendingUp, l:"Concordance moy.", v: kpis.concordance_moy != null ? `${kpis.concordance_moy}%` : "—",                                   s:"Médecins actifs", ibg:"bg-amber-50 dark:bg-amber-900/20",  ic:"text-amber-500"  },
         ].map(({ icon: Icon, l, v, s, ibg, ic }) => (
           <div key={l} className="rounded-2xl border px-5 py-4" style={cardStyle}>
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${ibg}`}>

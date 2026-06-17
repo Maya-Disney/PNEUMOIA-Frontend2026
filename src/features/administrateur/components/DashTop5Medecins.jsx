@@ -11,36 +11,6 @@ const MOIS_FR = [
   "Juillet","Août","Septembre","Octobre","Novembre","Décembre",
 ];
 
-// ── Mock de secours (remplacé par l'API en production) ───────────────────────
-const MOCK_POOL = [
-  { id:1,  prenom:"Amara",   nom:"Bensalem"  },
-  { id:2,  prenom:"Yassine", nom:"Ouali"     },
-  { id:3,  prenom:"Leila",   nom:"Messaoud"  },
-  { id:4,  prenom:"Karim",   nom:"Hamidou"   },
-  { id:5,  prenom:"Nadia",   nom:"Terbeche"  },
-  { id:6,  prenom:"Sofiane", nom:"Cherif"    },
-  { id:7,  prenom:"Imane",   nom:"Bouali"    },
-  { id:8,  prenom:"Rachid",  nom:"Djebbar"   },
-];
-
-function genMockTop5(mois, annee) {
-  const rng = (n) => {
-    const seed = mois * 31 + annee + n;
-    return ((seed * 9301 + 49297) % 233280) / 233280;
-  };
-  return MOCK_POOL
-    .map((doc, i) => ({
-      ...doc,
-      photo_url:     null,
-      concordance:   Math.round(55 + rng(i * 3)     * 43),
-      consultations: Math.round(40 + rng(i * 3 + 1) * 260),
-      tendance:      Math.round((rng(i * 3 + 2) - 0.4) * 14),
-    }))
-    .sort((a, b) => b.concordance - a.concordance || b.consultations - a.consultations)
-    .slice(0, 5)
-    .map((doc, i) => ({ ...doc, rank: i + 1 }));
-}
-
 // ── Avatar : photo de profil ou initiales ────────────────────────────────────
 function Avatar({ doc, onClick }) {
   const [err, setErr] = useState(false);
@@ -94,7 +64,7 @@ export default function DashTop5Medecins({ dark }) {
       const res = await getTopMedecinsConcordance(m + 1, a);
       setData(res.medecins.map((doc, i) => ({ ...doc, rank: i + 1 })));
     } catch {
-      setData(genMockTop5(m, a));
+      setData([]);
     } finally {
       setLoading(false);
       setLastUpdate(new Date());

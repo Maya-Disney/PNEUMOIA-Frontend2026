@@ -16,67 +16,6 @@ const TABS = [
   { id: 'medecins', label: 'Posts des médecins', icon: Stethoscope, desc: 'Consultez et réagissez aux publications des médecins' },
 ];
 
-// ─── Mock data équipe ──────────────────────────────────────────────────────────
-const MOCK_EQUIPE = [
-  {
-    id: 1,
-    author: { name: 'Dr. Merlin', avatar: 'DM', role: 'Médecin référent', isDoctor: true },
-    text: 'Rappel important : bien documenter les saturations en O₂ lors des visites du matin. Le suivi spirométrique du patient PNEU-004821 doit être mis à jour avant vendredi.',
-    time: '2026-06-11T09:00:00', likes: 4, liked: false, pinned: true, type: 'info',
-    replies: [
-      { id: 101, author: { name: 'Marie Nguessie', avatar: 'MN', role: 'Aide soignante' }, text: 'Compris, je m\'en occupe dès ce matin.', time: '2026-06-11T09:30:00', likes: 1, liked: false },
-    ],
-  },
-  {
-    id: 2,
-    author: { name: 'Marie Nguessie', avatar: 'MN', role: 'Aide soignante', isDoctor: false },
-    text: 'Le patient TAGNE Bernard (chambre 12) a présenté une dyspnée ce matin vers 7h30. J\'ai pris ses constantes : SpO2 88%, FR 22/min. Le Dr. Merlin a été alerté.',
-    time: '2026-06-12T08:00:00', likes: 2, liked: false, pinned: false, type: 'alerte',
-    replies: [
-      { id: 201, author: { name: 'Dr. Merlin', avatar: 'DM', role: 'Médecin référent' }, text: 'Merci. Je passerai en visite urgente à 9h. Mettez-lui l\'O₂ à 2L/min en attendant.', time: '2026-06-12T08:15:00', likes: 3, liked: false },
-    ],
-  },
-  {
-    id: 3,
-    author: { name: 'Tagne Daril', avatar: 'TD', role: 'Aide soignant', isDoctor: false, isMe: true },
-    text: 'Pansement du patient chambre 8 refait ce matin, RAS. Prochain pansement prévu samedi.',
-    time: '2026-06-12T07:00:00', likes: 0, liked: false, pinned: false, type: 'rapport',
-    replies: [],
-  },
-];
-
-// ─── Mock data posts médecins ──────────────────────────────────────────────────
-const MOCK_MEDECINS = [
-  {
-    id: 1,
-    casTitle: 'BPCO stade avancé — Mise à jour protocole',
-    casId: 'CAS-2026-041',
-    author: { name: 'Dr. Merlin', avatar: 'DM', specialty: 'Pneumologue', hospital: 'CHU Douala' },
-    text: 'Mise à jour du protocole BPCO : désormais utiliser la combinaison LABA/LAMA pour les stades 3 et 4. Merci de noter ce changement pour les nouveaux patients. La double bronchodilatation réduit les exacerbations de 25%.',
-    time: '2026-06-10T16:00:00', likes: 6, liked: false, pinned: true, type: 'feedback',
-    replies: [
-      { id: 101, author: { name: 'Marie Nguessie', avatar: 'MN', role: 'Aide soignante' }, text: 'Bien noté, merci pour l\'information. Nous allons mettre à jour nos fiches de suivi.', time: '2026-06-10T17:00:00', likes: 1, liked: false },
-    ],
-  },
-  {
-    id: 2,
-    casTitle: 'Formation spirométrie — Vendredi 9h',
-    casId: 'INFO-2026-012',
-    author: { name: 'Dr. Merlin', avatar: 'DM', specialty: 'Pneumologue', hospital: 'CHU Douala' },
-    text: 'La formation sur la réalisation et l\'interprétation des spirométries est prévue vendredi prochain à 9h en salle de formation. Présence très fortement recommandée pour toutes les aides soignantes.',
-    time: '2026-06-08T11:00:00', likes: 3, liked: true, pinned: false, type: 'question',
-    replies: [],
-  },
-  {
-    id: 3,
-    casTitle: 'Pneumonie bactérienne — Précautions contact',
-    casId: 'CAS-2026-038',
-    author: { name: 'Dr. Nkoa', avatar: 'DN', specialty: 'Pneumologue', hospital: 'Clinique La Paix' },
-    text: 'Le patient chambre 5 est positif au pneumocoque résistant. Précautions contact niveau 2 obligatoires : blouse, gants, masque FFP2. Merci d\'en informer toute l\'équipe soignante.',
-    time: '2026-06-07T14:30:00', likes: 5, liked: false, pinned: false, type: 'question',
-    replies: [],
-  },
-];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const typeConfigEquipe = {
@@ -107,7 +46,7 @@ function OngletEquipe({ toast }) {
   const aideNom = localStorage.getItem('aide_nom') || 'Aide soignant';
   const initials = aideNom.trim().split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
 
-  const [messages, setMessages]       = useState(MOCK_EQUIPE);
+  const [messages, setMessages]       = useState([]);
   const [searchTerm, setSearchTerm]   = useState('');
   const [filterType, setFilterType]   = useState('all');
   const [expandedReplies, setExpanded]= useState({});
@@ -363,7 +302,7 @@ function OngletMedecins({ toast }) {
   const aideNom = localStorage.getItem('aide_nom') || 'Aide soignant';
   const initials = aideNom.trim().split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
 
-  const [posts, setPosts]             = useState(MOCK_MEDECINS);
+  const [posts, setPosts]             = useState([]);
   const [searchTerm, setSearchTerm]   = useState('');
   const [expandedReplies, setExpanded]= useState({});
   const [replyingTo, setReplyingTo]   = useState(null);

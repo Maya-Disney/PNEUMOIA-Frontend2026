@@ -64,7 +64,7 @@ export default function MedecinLayout() {
           pageTitle={getPageTitle()}
         />
         
-        <main className="px-8 py-6 overflow-y-auto no-scrollbar" style={{ maxHeight: 'calc(100vh - 64px)' }}>
+        <main className="px-8 py-6 overflow-y-auto" style={{ height: 'calc(100vh - 64px)' }}>
           <Outlet />
         </main>
       </div>

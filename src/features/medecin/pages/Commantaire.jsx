@@ -14,6 +14,7 @@ import {
   RotateCcw, FileText, User
 } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
+import { getMonAvis, publierMonAvis } from '../services/api';
 
 // ─── Tabs config ───────────────────────────────────────────────────────────────
 const TABS = [
@@ -23,49 +24,6 @@ const TABS = [
   { id: 'testimonial', label: 'Mon témoignage',  icon: Quote,         desc: 'Partagez votre avis sur la plateforme' },
 ];
 
-// ─── Données mock commentaires ─────────────────────────────────────────────────
-const MOCK_COMMENTS = [
-  {
-    id: 1,
-    casTitle: 'BPCO stade avancé — Patient 47 ans', casId: 'CAS-2024-042',
-    author: { name: 'Dr. Merlin', avatar: 'DM', specialty: 'Pneumologue', hospital: 'CHU Douala' },
-    text: 'Excellent cas clinique ! La prise en charge suit parfaitement les recommandations GOLD 2024. La combinaison LABA/LAMA est bien justifiée.',
-    time: '2026-05-22T14:30:00', likes: 8, liked: false, pinned: true, type: 'feedback',
-    replies: [
-      { id: 101, author: { name: 'Dr. Jean Tagne', avatar: 'JT', specialty: 'Pneumologue' }, text: 'Merci ! Le suivi EFR a confirmé l\'amélioration du VEMS à +18% après 3 mois.', time: '2026-05-22T15:10:00', likes: 3, liked: false },
-    ]
-  },
-  {
-    id: 2,
-    casTitle: 'Pneumonie bactérienne — Antibiothérapie probabiliste', casId: 'CAS-2024-038',
-    author: { name: 'Dr. Nkoa', avatar: 'DN', specialty: 'Pneumologue', hospital: 'Clinique La Paix' },
-    text: 'Envisageriez-vous une extension à 10 jours avec un germe atypique suspecté plutôt que 7 ?',
-    time: '2026-05-21T09:15:00', likes: 4, liked: true, pinned: false, type: 'question',
-    replies: []
-  },
-  {
-    id: 3,
-    casTitle: 'Tuberculose pulmonaire — Suivi thérapeutique', casId: 'CAS-2024-031',
-    author: { name: 'Dr. Abanda', avatar: 'DA', specialty: 'Infectiologue', hospital: 'Hôpital Général' },
-    text: 'La gestion des effets indésirables hépatiques du traitement antituberculeux est rarement aussi bien documentée.',
-    time: '2026-05-20T16:45:00', likes: 12, liked: false, pinned: false, type: 'feedback',
-    replies: [
-      { id: 201, author: { name: 'Dr. Fouda', avatar: 'DF', specialty: 'Hépatologue' }, text: 'Les transaminases à 3x la normale ont nécessité une adaptation du protocole.', time: '2026-05-20T17:20:00', likes: 5, liked: false },
-    ]
-  },
-];
-
-// ─── Données mock requêtes ─────────────────────────────────────────────────────
-const MOCK_REQUESTS = [
-  { id: 1, type: 'recuperation', patientNom: 'TAGNE Bernard', dossierId: 'PNEU-004821', dateSuppression: '2026-04-02', statut: 'en_attente', motif: 'Erreur de suppression — suivi en cours pour exacerbation BPCO.', date: '2026-05-12' },
-  { id: 2, type: 'recuperation', patientNom: 'FOUDA Marie', dossierId: 'PNEU-001234', dateSuppression: '2026-03-15', statut: 'approuve', motif: 'Reprise du suivi après hospitalisation.', date: '2026-04-20', reponseAdmin: 'Dossier restauré avec succès le 22/04/2026.' },
-];
-
-// ─── Données mock questions ────────────────────────────────────────────────────
-const MOCK_QUESTIONS = [
-  { id: 1, titre: 'Comment exporter les données EFR en PDF ?', message: 'Je souhaiterais exporter les données spirométriques directement depuis la fiche patient.', date: '2026-05-10', statut: 'publiee_faq', reponse: 'Rendez-vous sur la fiche patient > onglet Dossier > bouton Télécharger. Le PDF inclut automatiquement les données EFR disponibles.' },
-  { id: 2, titre: 'Délai de synchronisation hors ligne ?', message: 'Après une consultation en mode hors ligne, combien de temps avant la synchronisation ?', date: '2026-05-20', statut: 'en_attente', reponse: null },
-];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const typeConfig = {
@@ -94,7 +52,7 @@ function formatTime(iso) {
 
 // ─── Onglet Commentaires ───────────────────────────────────────────────────────
 function OngletCommentaires({ toast }) {
-  const [comments, setComments]   = useState(MOCK_COMMENTS);
+  const [comments, setComments]   = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [expandedReplies, setExpandedReplies] = useState({});
@@ -329,7 +287,7 @@ function OngletCommentaires({ toast }) {
 
 // ─── Onglet Requêtes admin ─────────────────────────────────────────────────────
 function OngletRequetes({ toast }) {
-  const [requests, setRequests] = useState(MOCK_REQUESTS);
+  const [requests, setRequests] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     type: 'recuperation',
@@ -523,7 +481,7 @@ function OngletRequetes({ toast }) {
 
 // ─── Onglet Questions / FAQ ────────────────────────────────────────────────────
 function OngletQuestions({ toast }) {
-  const [questions, setQuestions] = useState(MOCK_QUESTIONS);
+  const [questions, setQuestions] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [titre, setTitre]       = useState('');
   const [message, setMessage]   = useState('');
@@ -634,34 +592,47 @@ function OngletQuestions({ toast }) {
 
 // ─── Onglet Témoignage ────────────────────────────────────────────────────────
 function OngletTemoignage({ toast }) {
-  const [existing] = useState({
-    note: 4,
-    texte: '"PneumoIA a transformé ma pratique quotidienne. Un outil indispensable pour tout pneumologue moderne."',
-    statut: 'publie',
-    date: '2026-03-20',
-    ville: 'Douala, Cameroun',
-  });
-  const [editing, setEditing] = useState(false);
-  const [note, setNote]       = useState(existing ? existing.note : 0);
-  const [hovered, setHovered] = useState(0);
-  const [texte, setTexte]     = useState(existing ? existing.texte.replace(/"/g, '') : '');
-  const [ville, setVille]     = useState(existing ? existing.ville : '');
-  const [sending, setSending] = useState(false);
+  const [existing, setExisting] = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [editing, setEditing]   = useState(false);
+  const [note, setNote]         = useState(0);
+  const [hovered, setHovered]   = useState(0);
+  const [texte, setTexte]       = useState('');
+  const [sending, setSending]   = useState(false);
+
+  useEffect(() => {
+    getMonAvis()
+      .then(data => {
+        if (data) {
+          setExisting(data);
+          setNote(data.note);
+          setTexte(data.contenu);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleSubmit = async () => {
     if (note === 0 || !texte.trim()) { toast.warning('Donnez une note et rédigez votre témoignage'); return; }
     setSending(true);
-    await new Promise(r => setTimeout(r, 900));
-    setSending(false);
-    setEditing(false);
-    toast.success('Témoignage publié sur la page d\'accueil');
+    try {
+      const saved = await publierMonAvis(note, texte.trim());
+      setExisting(saved);
+      setEditing(false);
+      toast.success(existing ? 'Témoignage mis à jour' : 'Témoignage publié sur la page d\'accueil');
+    } catch (e) {
+      toast.error(e.message || 'Erreur lors de la publication');
+    } finally {
+      setSending(false);
+    }
   };
 
-  const statutTemoignage = {
-    publie:    { label: 'Visible sur la landing page', color: 'text-emerald-600', bg: 'bg-emerald-50', icon: CheckCircle },
-    supprime:  { label: 'Retiré par l\'admin',         color: 'text-red-600',     bg: 'bg-red-50',     icon: X },
-  };
-  const st = existing ? (statutTemoignage[existing.statut] || statutTemoignage.publie) : null;
+  if (loading) return (
+    <div className="flex items-center justify-center py-16">
+      <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+    </div>
+  );
 
   return (
     <div className="space-y-5">
@@ -711,11 +682,9 @@ function OngletTemoignage({ toast }) {
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-(--t4) mb-2">Mon témoignage actuel</p>
-              {st && (
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${st.bg} ${st.color}`}>
-                  <st.icon className="w-3.5 h-3.5" />{st.label}
-                </span>
-              )}
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600">
+                <CheckCircle className="w-3.5 h-3.5" /> Visible sur la landing page
+              </span>
             </div>
             <button onClick={() => setEditing(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-(--ln) rounded-lg text-(--t2) hover:bg-(--sf2) transition-colors">
@@ -725,23 +694,12 @@ function OngletTemoignage({ toast }) {
 
           {/* Aperçu carte landing */}
           <div className="bg-linear-to-br from-slate-900 to-blue-950 rounded-xl p-6 text-white">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg shrink-0">JT</div>
-              <div>
-                <p className="font-bold">Dr. Jean Tagne</p>
-                <p className="text-blue-300 text-sm">Pneumologue</p>
-              </div>
-            </div>
             <div className="flex gap-0.5 mb-4">
               {[1,2,3,4,5].map(s => (
                 <Star key={s} className={`w-5 h-5 ${s <= existing.note ? 'text-yellow-400 fill-yellow-400' : 'text-white/20'}`} />
               ))}
             </div>
-            <p className="text-sm italic text-white/90 leading-relaxed mb-4">{existing.texte}</p>
-            <div className="flex items-center gap-4 text-xs text-white/50">
-              <span>📍 {existing.ville}</span>
-              <span>🗓 {existing.date}</span>
-            </div>
+            <p className="text-sm italic text-white/90 leading-relaxed">{existing.contenu}</p>
           </div>
         </motion.div>
       )}
@@ -787,30 +745,15 @@ function OngletTemoignage({ toast }) {
             <p className="text-xs text-(--t4) mt-1 text-right">{texte.length}/280 caractères</p>
           </div>
 
-          {/* Ville */}
-          <div>
-            <label className="block text-xs font-semibold text-(--t2) mb-1">Ville / Pays</label>
-            <input value={ville} onChange={e => setVille(e.target.value)} placeholder="Douala, Cameroun"
-              className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-
           {/* Aperçu temps réel */}
           {note > 0 && texte.trim() && (
             <div>
               <p className="text-xs font-semibold text-(--t4) uppercase tracking-widest mb-2">Aperçu sur la landing page</p>
               <div className="bg-linear-to-br from-slate-900 to-blue-950 rounded-xl p-5 text-white">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold shrink-0">JT</div>
-                  <div>
-                    <p className="font-bold text-sm">Dr. Jean Tagne</p>
-                    <p className="text-blue-300 text-xs">Pneumologue</p>
-                  </div>
-                </div>
                 <div className="flex gap-0.5 mb-3">
                   {[1,2,3,4,5].map(s => <Star key={s} className={`w-4 h-4 ${s <= note ? 'text-yellow-400 fill-yellow-400' : 'text-white/20'}`} />)}
                 </div>
                 <p className="text-sm italic text-white/90 leading-relaxed">"{texte}"</p>
-                {ville && <p className="text-xs text-white/40 mt-3">📍 {ville}</p>}
               </div>
             </div>
           )}
@@ -820,7 +763,7 @@ function OngletTemoignage({ toast }) {
             <button onClick={handleSubmit} disabled={sending || note === 0 || !texte.trim()}
               className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors">
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {sending ? 'Publication...' : 'Publier sur la landing page'}
+              {sending ? 'Publication...' : (existing ? 'Mettre à jour' : 'Publier sur la landing page')}
             </button>
           </div>
         </motion.div>

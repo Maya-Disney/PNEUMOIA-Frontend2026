@@ -22,18 +22,12 @@ export default function Notifications() {
     loadNotifications();
   }, []);
 
-  const MOCK_NOTIFS = [
-    { id: 1, type: 'consultation', title: 'Nouvelle consultation', message: 'Dr. Martin a programmé une consultation avec Tamo Bernard', time: '2026-04-08T10:00:00', read: false, icon: 'Stethoscope', actionLink: '/medecin/consultation', actionType: 'consultation' },
-    { id: 2, type: 'patient',      title: 'Patient critique',      message: 'KAMGA Jean - Suivi dépassé depuis 9 jours',                time: '2026-04-08T08:30:00', read: false, icon: 'AlertCircle', actionLink: '/medecin/patients',      actionType: 'patient'       },
-    { id: 3, type: 'message',      title: 'Nouveau message',       message: 'Dr. Nkoa a commenté votre cas clinique #124',             time: '2026-04-08T07:15:00', read: false, icon: 'MessageCircle', actionLink: '/medecin/messagerie',  actionType: 'message'       },
-  ];
-
   const loadNotifications = async () => {
     try {
       const data = await getNotifications();
       setNotifications(Array.isArray(data) ? data : data.items ?? []);
     } catch {
-      setNotifications(MOCK_NOTIFS);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }

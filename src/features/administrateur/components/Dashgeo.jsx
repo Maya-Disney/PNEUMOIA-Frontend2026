@@ -5,34 +5,13 @@ import CardHeader from "./CardHeader";
 import { brand, getSurface, getText } from "../theme";
 import { getRepartitionGeo } from "../api/adminapi";
 
-const MOCK_VILLES = [
-  { v: "Douala",    c: 2240 },
-  { v: "Yaoundé",  c: 1540 },
-  { v: "Bafoussam",c: 580  },
-  { v: "Garoua",   c: 320  },
-  { v: "Bertoua",  c: 141  },
-];
-
-const MOCK_REGIONS = [
-  { r: "Littoral",   md: 18, cov: 94 },
-  { r: "Centre",     md: 12, cov: 88 },
-  { r: "Ouest",      md: 4,  cov: 52 },
-  { r: "Nord",       md: 3,  cov: 31 },
-  { r: "Est",        md: 1,  cov: 18 },
-  { r: "Sud",        md: 0,  cov: 0  },
-  { r: "Adamaoua",   md: 0,  cov: 0  },
-  { r: "Extrême-N",  md: 0,  cov: 0  },
-  { r: "N-Ouest",    md: 0,  cov: 0  },
-  { r: "S-Ouest",    md: 0,  cov: 0  },
-];
-
 export default function DashGeo({ dark }) {
   const navigate = useNavigate();
   const surface  = getSurface(dark);
   const txt      = getText(dark);
 
-  const [villes,  setVilles]  = useState(MOCK_VILLES);
-  const [regions, setRegions] = useState(MOCK_REGIONS);
+  const [villes,  setVilles]  = useState([]);
+  const [regions, setRegions] = useState([]);
 
   useEffect(() => {
     getRepartitionGeo()
@@ -47,7 +26,7 @@ export default function DashGeo({ dark }) {
   const TOTAL_C   = villes.reduce((s, v) => s + v.c, 0);
   const TOTAL_P   = 1163;
   const COUVERTES = regions.filter(r => r.md > 0).length;
-  const MAX_C     = Math.max(...villes.map(v => v.c));
+  const MAX_C     = villes.length ? Math.max(...villes.map(v => v.c)) : 1;
 
   function covColor(cov) {
     if (cov === 0) return dark ? "#30363d" : "#e5e7eb";

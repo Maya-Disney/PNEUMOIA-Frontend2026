@@ -4,13 +4,6 @@ import Card from "./Card";
 import CardHeader from "./CardHeader";
 import { getAuditLogs } from "../api/adminapi";
 
-const MOCK_LOGS = [
-  { id: 1, action: "Inscription validée", user: "Dr. Aminata Sow",   time: "Il y a 2h",  type: "success" },
-  { id: 2, action: "Compte suspendu",     user: "Dr. Mbang Denis",   time: "Il y a 5h",  type: "warn"    },
-  { id: 3, action: "Inscription refusée", user: "Dr. Tabi Jonas",    time: "Il y a 1j",  type: "error"   },
-  { id: 4, action: "Connexion admin",     user: "Super Admin",       time: "Il y a 1j",  type: "info"    },
-];
-
 const DOT = {
   success: "bg-emerald-400",
   warn:    "bg-orange-400",
@@ -35,23 +28,21 @@ function typeFromStatut(statut) {
 
 export default function DashAudit({ dark }) {
   const navigate = useNavigate();
-  const [logs, setLogs] = useState(MOCK_LOGS);
+  const [logs, setLogs] = useState([]);
 
   useEffect(() => {
     getAuditLogs()
       .then(data => {
         const entries = Array.isArray(data) ? data : (data?.logs ?? []);
-        if (entries.length) {
-          setLogs(
-            entries.slice(0, 4).map(l => ({
-              id:     l.id,
-              action: l.action,
-              user:   l.acteur,
-              time:   elapsed(l.date),
-              type:   typeFromStatut(l.statut),
-            }))
-          );
-        }
+        setLogs(
+          entries.slice(0, 4).map(l => ({
+            id:     l.id,
+            action: l.action,
+            user:   l.acteur,
+            time:   elapsed(l.date),
+            type:   typeFromStatut(l.statut),
+          }))
+        );
       })
       .catch(() => {});
   }, []);

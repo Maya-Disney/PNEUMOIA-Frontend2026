@@ -4,12 +4,6 @@ import { getMedecinById, suspendreMedecin, supprimerMedecin } from "../api/admin
 import { AlertTriangle, ArrowLeft, Trash2, X, FileDown, Cpu, Calendar, User, PauseCircle } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
 
-const MOCK = {
-  1: { id:1, initials:"JD", avatarColor:"#0f766e", photo_url:null, nom:"Dr. Jean Dupont", specialite:"Pneumologue", cnom:"CM-2019-0847", hopital:"H. Général Douala", ville:"Douala", email:"j.dupont@hgd.cm", telephone:"+237 699 123 456", patients:134, consultations:4821, concordanceIA:88, statut:"Actif", derniereActivite:"2026-06-05T14:22:00", creeLE:"14/08/2025", valideLE:"17/08/2025", rangCommunaute:"#7/38", casPartages:"247 cas publiés", activiteRecente:[{texte:"Consultation #247 enregistrée",quand:"Auj. 14:22"},{texte:"Cas #241 partagé sur la communauté",quand:"Hier"},{texte:"3 consultations Pneumonie",quand:"15 mars"}] },
-  2: { id:2, initials:"DK", avatarColor:"#185FA5", photo_url:null, nom:"Dr. Kamto Diane", specialite:"Pneumologue", cnom:"CM-2017-0432", hopital:"CHU Yaoundé", ville:"Yaoundé", email:"d.kamto@chu.cm", telephone:"+237 677 234 567", patients:198, consultations:3201, concordanceIA:92, statut:"Actif", derniereActivite:"2026-06-05T09:10:00", creeLE:"02/03/2026", valideLE:"04/03/2026", rangCommunaute:"#3/38", casPartages:"312 cas publiés", activiteRecente:[{texte:"Consultation #198 enregistrée",quand:"Auj. 09:10"},{texte:"Rapport mensuel soumis",quand:"Il y a 2j"}] },
-  3: { id:3, initials:"DN", avatarColor:"#7C3AED", photo_url:null, nom:"Dr. Nkoa", specialite:"Pneumologue", cnom:"CM-2018-0521", hopital:"H. Général Douala", ville:"Douala", email:"nkoa@hgd.cm", telephone:"+237 699 345 678", patients:176, consultations:2847, concordanceIA:74, statut:"Inactif", derniereActivite:"2026-05-25T10:00:00", creeLE:"07/02/2026", valideLE:"09/02/2026", rangCommunaute:"#5/38", casPartages:"189 cas publiés", activiteRecente:[{texte:"Nouveau patient enregistré",quand:"Hier"}] },
-  4: { id:4, initials:"DB", avatarColor:"#D97706", photo_url:null, nom:"Dr. Barry", specialite:"Pneumologue", cnom:"CM-2020-0612", hopital:"H. Régional Garoua", ville:"Garoua", email:"barry@hrg.cm", telephone:"+237 655 456 789", patients:89, consultations:1234, concordanceIA:61, statut:"Inactif", derniereActivite:"2026-05-29T08:00:00", creeLE:"20/11/2025", valideLE:"23/11/2025", rangCommunaute:"#12/38", casPartages:"74 cas publiés", activiteRecente:[{texte:"Consultation #89 enregistrée",quand:"Il y a 7j"}] },
-};
 
 const RAISONS = ["— Choisir une raison —","Signalement d'un confrère","Comportement non conforme","Vérification d'identité requise","Incohérence dans les documents","Inactivité prolongée","Autre"];
 
@@ -42,7 +36,7 @@ function normaliserMedecin(data) {
     derniereActivite: data.derniere_activite || null,
     creeLE:           data.created_at ? fmt(new Date(data.created_at)) : "—",
     valideLE:         data.valide_le  ? fmt(new Date(data.valide_le))  : "—",
-    rangCommunaute:   data.rang_communaute  || "—",
+    rangCommunaute:   (data.rang_communaute || "—").replace(/^#/, ""),
     casPartages:      data.cas_partages     || "—",
     activiteRecente:  data.activite_recente || [],
   };
@@ -136,11 +130,8 @@ export default function ProfilMedecin() {
     getMedecinById(id)
       .then(data => setM(normaliserMedecin(data)))
       .catch(() => {
-        // Fallback MOCK si l'API est absente ou retourne 404, sauf si on a déjà un affichage valide
         if (fromState?.email) return;
-        const mock = MOCK[Number(id)];
-        if (mock) setM(mock);
-        else navigate("/administrateur/medecins");
+        navigate("/administrateur/medecins");
       });
   }, [id]);
 
