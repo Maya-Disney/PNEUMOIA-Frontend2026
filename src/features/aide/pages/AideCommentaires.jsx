@@ -191,7 +191,7 @@ export default function AideCommentaires() {
   });
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col gap-5" style={{ height:'calc(100vh - 120px)' }}>
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-5" style={{ height:'calc(100vh - 120px)' }}>
 
       {/* ── Header ─── */}
       <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }}

@@ -135,7 +135,7 @@ export default function AideNouveauPatient() {
   );
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-5">
+    <div className="w-full max-w-6xl mx-auto space-y-5">
 
       {/* ── Header ─── */}
       <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }}
