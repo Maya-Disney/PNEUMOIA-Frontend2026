@@ -469,7 +469,7 @@ export default function Monitoring() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis domain={[60, 100]} tick={{ fontSize: 10 }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
                 <Tooltip formatter={(v) => [`${v}%`, 'Concordance']} />
                 <Area type="monotone" dataKey="val" name="Concordance" stroke="#6366f1" fill="url(#gConc)" strokeWidth={2} dot={false} />
               </AreaChart>
