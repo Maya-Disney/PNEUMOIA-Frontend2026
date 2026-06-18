@@ -441,8 +441,8 @@ export async function getAvis() {
  * Supprime un avis — le médecin est notifié par email.
  * DELETE /api/admin/avis/{id}
  */
-export async function supprimerAvis(avisId) {
-  return request("DELETE", `/api/admin/avis/${avisId}`, null, true);
+export async function supprimerAvis(avisId, raison = null) {
+  return request("DELETE", `/api/admin/avis/${avisId}`, raison ? { raison } : null, true);
 }
 
 /**
@@ -452,6 +452,7 @@ export async function supprimerAvis(avisId) {
 export async function marquerAvisVus() {
   return request("PATCH", "/api/admin/avis/marquer-vus", null, true);
 }
+
 
 
 // ─────────────────────────────────────────────────────────────────────────────

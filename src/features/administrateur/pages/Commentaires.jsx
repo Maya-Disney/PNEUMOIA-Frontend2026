@@ -43,6 +43,7 @@ export default function Commentaires() {
   const [noteFiltre,   setNoteFiltre]  = useState("Toutes");
   const [statutFiltre, setStatutFiltre]= useState("Tous");
   const [modaleDelete, setModaleDelete]= useState(null);
+  const [raisonDelete, setRaisonDelete]= useState("");
   const [modaleVider,  setModaleVider] = useState(false);
   const [modalePhoto,  setModalePhoto] = useState(null);
   const [toast,        setToast]       = useState(null);
@@ -59,8 +60,9 @@ export default function Commentaires() {
     photo_url:   a.photo_url     || null,
     note:        a.note          || 0,
     commentaire: a.commentaire   || a.contenu || "",
-    date:        a.created_at ? new Date(a.created_at) : new Date(),
+    date:        a.created_at ? new Date(a.created_at.endsWith("Z") ? a.created_at : a.created_at + "Z") : new Date(),
     nouveau:     !a.vu,
+    statut:      a.statut || "publie",
   });
 
   useEffect(() => {
@@ -87,13 +89,14 @@ export default function Commentaires() {
 
   async function supprimer(r) {
     try {
-      await supprimerAvis(r.id);
+      await supprimerAvis(r.id, raisonDelete.trim() || null);
       setRows(p => p.filter(x => x.id !== r.id));
       showToast(`Commentaire supprimé — ${r.nom} sera notifié`, "error");
     } catch {
       showToast("Erreur lors de la suppression", "error");
     }
     setModaleDelete(null);
+    setRaisonDelete("");
   }
 
   async function viderPage() {
@@ -340,7 +343,7 @@ export default function Commentaires() {
               <div className="flex items-start gap-2 px-4 py-3 rounded-xl border text-[13px]"
                 style={{ borderColor: status.danger.border, background: status.danger.bg, color: status.danger.text }}>
                 <AlertTriangle size={15} className="shrink-0 mt-0.5"/>
-                <span>Ce commentaire sera supprimé de la landing page et <strong>{modaleDelete.nom}</strong> sera notifié par e-mail.</span>
+                <span>Ce témoignage sera retiré de la landing page et <strong>{modaleDelete.nom}</strong> sera notifié.</span>
               </div>
               <div className="px-4 py-3 rounded-xl border text-[14px] italic leading-relaxed"
                 style={{ background: surface.bg, borderColor: surface.border, color: txt.secondary }}>
@@ -350,11 +353,27 @@ export default function Commentaires() {
                 <StarRating note={modaleDelete.note} size={13}/>
                 <span className="text-[13px]" style={{ color: txt.subtle }}>{modaleDelete.nom} · {modaleDelete.ville}</span>
               </div>
+              <div>
+                <label className="block text-[12px] font-semibold mb-1.5" style={{ color: txt.muted }}>
+                  Raison de la suppression <span style={{ color:"#dc2626" }}>*</span>
+                </label>
+                <textarea
+                  value={raisonDelete}
+                  onChange={e => setRaisonDelete(e.target.value)}
+                  placeholder="Ex : contenu offensant, publicité non autorisée, données patient mentionnées..."
+                  rows={3}
+                  className="w-full px-3 py-2 text-[13px] rounded-xl border outline-none resize-none"
+                  style={{ background: surface.bg, borderColor: surface.border, color: txt.primary }}
+                />
+              </div>
             </div>
             <div className="flex gap-2 px-5 py-4 border-t" style={{borderColor: surface.border}}>
-              <button onClick={()=>setModaleDelete(null)} className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold border"
+              <button onClick={()=>{ setModaleDelete(null); setRaisonDelete(""); }}
+                className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold border"
                 style={{ borderColor: surface.border, color: txt.muted }}>Annuler</button>
-              <button onClick={()=>supprimer(modaleDelete)} className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[14px] font-bold flex items-center justify-center gap-2">
+              <button onClick={()=>supprimer(modaleDelete)}
+                disabled={!raisonDelete.trim()}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-[14px] font-bold flex items-center justify-center gap-2">
                 <Trash2 size={14}/> Supprimer
               </button>
             </div>

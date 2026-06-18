@@ -41,6 +41,7 @@ export default function Notifications() {
     permission:                 'AlertCircle',
     parametres:                 'AlertCircle',
     code_referent:              'Award',
+    temoignage_supprime:        'Trash2',
   };
 
   const normalizeNotif = (n) => ({
@@ -106,7 +107,7 @@ export default function Notifications() {
   };
 
   const getIcon = (iconName) => {
-    const icons = { Stethoscope, AlertCircle, MessageCircle, Users, Award, CheckCircle, FileText, Bell };
+    const icons = { Stethoscope, AlertCircle, MessageCircle, Users, Award, CheckCircle, FileText, Bell, Trash2 };
     return icons[iconName] || Bell;
   };
 

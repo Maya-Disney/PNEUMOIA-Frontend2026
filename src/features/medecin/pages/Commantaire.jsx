@@ -740,7 +740,7 @@ function OngletTemoignage({ toast, profil }) {
           <p className="text-sm font-semibold text-blue-800">Votre avis est publié immédiatement</p>
           <p className="text-xs text-blue-700 mt-0.5">
             Dès que vous soumettez votre témoignage, il apparaît sur la page d'accueil de PneumoIA dans la section "Témoignages".
-            Aucune modération préalable n'est requise.
+            L'administrateur peut le retirer s'il ne respecte pas la charte.
           </p>
         </div>
       </div>
