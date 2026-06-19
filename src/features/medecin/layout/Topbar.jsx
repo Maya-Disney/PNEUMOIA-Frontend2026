@@ -132,9 +132,6 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
                 placeholder="Rechercher un patient, un cas…"
                 className="w-full bg-transparent text-sm text-[var(--t2)] placeholder:text-[var(--t4)] focus:outline-none"
               />
-              <kbd className="text-[10px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
-                ⌘K
-              </kbd>
             </form>
 
             {/* Bouton recherche — mobile */}

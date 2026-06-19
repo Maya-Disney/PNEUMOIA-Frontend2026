@@ -283,7 +283,8 @@ export default function Messagerie() {
   };
 
   const formatTime = (dateString) => {
-    const date = new Date(dateString);
+    const utc = dateString && !/Z$|[+-]\d{2}:?\d{2}$/.test(dateString) ? dateString + 'Z' : dateString;
+    const date = new Date(utc);
     const now = new Date();
     const diff = now - date;
     const hours = Math.floor(diff / 3600000);

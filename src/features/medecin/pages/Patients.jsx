@@ -52,8 +52,8 @@ function Badge({ children, variant = "blue" }) {
 function PillTag({ label, variant = "slate", onRemove }) {
   const variants = {
     slate: "bg-(--sf2) text-(--t2)",
-    green: "bg-emerald-50 text-emerald-700",
-    red: "bg-red-50 text-red-700",
+    green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+    red:   "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300",
   };
   return (
     <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-medium ${variants[variant]}`}>
@@ -120,7 +120,7 @@ function VitalCard({ label, value, unit, warn }) {
       className={`rounded-xl p-3 border transition-all ${warn ? "bg-red-50 border-red-200 shadow-sm shadow-red-100 dark:bg-red-500/10 dark:border-red-500/20" : "bg-emerald-50 border-emerald-200 shadow-sm shadow-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/20"}`}
     >
       <div className="text-[10px] font-black uppercase tracking-widest text-(--t4) mb-1.5">{label}</div>
-      <div className={`text-base font-black leading-none tracking-tight ${warn ? "text-red-600" : "text-emerald-700"}`}>
+      <div className={`text-base font-black leading-none tracking-tight ${warn ? "text-red-600 dark:text-red-400" : "text-emerald-700 dark:text-emerald-300"}`}>
         {value}<span className="text-[11px] font-semibold ml-1 opacity-70">{unit}</span>
       </div>
     </motion.div>
@@ -1063,6 +1063,27 @@ function StatusTab({ p, onStatusChange, onStatutCliniqueChange }) {
   const avis      = p.statut_avis     || (p.status === 'actif' ? 'terminee' : 'en_attente');
   const clinique  = p.statut_clinique || null;
   const cliniqueOptions = ["stable", "surveille", "urgent", "critique"];
+  const [suiviDate,    setSuiviDate]    = useState(p.antecedents?.prochain_suivi || '');
+  const [suiviLoading, setSuiviLoading] = useState(false);
+  const [suiviSaved,   setSuiviSaved]   = useState(false);
+
+  const handleConfirmerSuivi = async () => {
+    if (!suiviDate) return;
+    setSuiviLoading(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('access_token') || localStorage.getItem('pneumoia_token');
+      const BASE  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+      await fetch(`${BASE}/patients/${p.id}/suivi`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prochain_suivi: suiviDate }),
+      });
+      setSuiviSaved(true);
+      setTimeout(() => setSuiviSaved(false), 3000);
+    } catch { /* ignore */ } finally {
+      setSuiviLoading(false);
+    }
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 space-y-5">
@@ -1140,10 +1161,23 @@ function StatusTab({ p, onStatusChange, onStatutCliniqueChange }) {
       <div className="border-t border-(--ln) pt-4">
         <p className="text-xs font-black uppercase tracking-widest text-(--t4) mb-3">Prochain suivi</p>
         <div className="flex gap-2">
-          <input type="date" defaultValue="2026-03-26"
-            className="flex-1 px-3 py-2.5 text-sm bg-(--sf) border border-(--ln) rounded-xl text-(--t1) font-medium focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" />
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm">
-            Confirmer
+          <input
+            type="date"
+            value={suiviDate}
+            onChange={e => setSuiviDate(e.target.value)}
+            className="flex-1 px-3 py-2.5 text-sm bg-(--sf) border border-(--ln) rounded-xl text-(--t1) font-medium focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+          />
+          <motion.button
+            whileHover={{ scale: suiviDate ? 1.05 : 1 }}
+            whileTap={{ scale: suiviDate ? 0.95 : 1 }}
+            disabled={!suiviDate || suiviLoading}
+            onClick={handleConfirmerSuivi}
+            className={`px-4 py-2.5 text-sm font-bold rounded-xl transition-colors shadow-sm ${
+              suiviSaved
+                ? 'bg-emerald-600 text-white'
+                : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
+            }`}>
+            {suiviLoading ? '…' : suiviSaved ? 'Enregistré ✓' : 'Confirmer'}
           </motion.button>
         </div>
       </div>
@@ -1331,13 +1365,18 @@ function DetailPanel({ patient, onClose, onStatusChange, onStatutCliniqueChange,
   useEffect(() => { setTab("dossier"); }, [patient?.id]);
   useEffect(() => {
     if (patient) setEditData({
-      nom:        patient.nom || '',
-      prenom:     patient.prenom || '',
-      civilite:   patient.civilite || '',
-      telephone:  patient.tel || '',
-      adresse:    patient.city || '',
-      email:      patient.email || '',
-      profession: patient.profession || '',
+      nom:                  patient.nom || '',
+      prenom:               patient.prenom || '',
+      civilite:             patient.civilite || '',
+      telephone:            patient.telephone || patient.tel || '',
+      adresse:              patient.adresse   || patient.city || '',
+      email:                patient.email || '',
+      profession:           patient.profession || '',
+      date_naissance:       patient.date_naissance || '',
+      groupe_sanguin:       patient.groupe_sanguin || '',
+      religion:             patient.religion || '',
+      personne_a_contacter: patient.personne_a_contacter || '',
+      telephone_urgence:    patient.telephone_urgence || '',
     });
   }, [patient?.id]);
 
@@ -1408,13 +1447,20 @@ function DetailPanel({ patient, onClose, onStatusChange, onStatutCliniqueChange,
           className="inline-flex items-center gap-1.5 px-3 py-2 bg-(--sf) border border-(--ln) text-(--t2) text-xs font-bold rounded-lg hover:bg-(--sf2) transition-colors">
           <Edit3 size={13} />Modifier
         </motion.button>
-        <motion.button whileHover={{ scale: patient.derniere_consultation_id ? 1.05 : 1 }}
-          disabled={!patient.derniere_consultation_id}
-          title={patient.derniere_consultation_id ? 'Télécharger le bilan PDF' : 'Aucune consultation disponible'}
+        <motion.button
+          whileHover={{ scale: (patient.derniere_consultation_id && patient.status !== 'attente') ? 1.05 : 1 }}
+          disabled={!patient.derniere_consultation_id || patient.status === 'attente'}
+          title={
+            patient.status === 'attente'
+              ? 'Consultation en attente — bilan non disponible'
+              : patient.derniere_consultation_id
+                ? 'Télécharger le bilan PDF'
+                : 'Aucune consultation disponible'
+          }
           onClick={async () => {
             const consId = patient.derniere_consultation_id;
-            if (!consId) return;
-            const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+            if (!consId || patient.status === 'attente') return;
+            const token = localStorage.getItem('token') || localStorage.getItem('access_token') || localStorage.getItem('pneumoia_token');
             const BASE  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
             const res   = await fetch(`${BASE}/consultations/${consId}/pdf`, {
               headers: { Authorization: `Bearer ${token}` }
@@ -1424,11 +1470,11 @@ function DetailPanel({ patient, onClose, onStatusChange, onStatutCliniqueChange,
               const url  = URL.createObjectURL(blob);
               const a    = document.createElement('a');
               a.href = url; a.download = `bilan_${patient.nom}_${patient.prenom}.pdf`; a.click();
-              URL.revokeObjectURL(url);
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
             }
           }}
           className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors border ${
-            patient.derniere_consultation_id
+            (patient.derniere_consultation_id && patient.status !== 'attente')
               ? 'bg-(--sf) border-(--ln) text-(--t2) hover:bg-(--sf2)'
               : 'bg-(--sf2) border-(--ln) text-(--t4) cursor-not-allowed opacity-50'
           }`}>
@@ -1478,14 +1524,15 @@ function DetailPanel({ patient, onClose, onStatusChange, onStatutCliniqueChange,
         {tab === "dossier" && <DossierTab p={patient} />}
         {tab === "ia" && <IATab p={patient} />}
         {tab === "history" && <HistoryTab p={patient} onAvisSaved={(consultationId, avisResult) => {
-          // Mettre à jour le state local : remplacer la concordance dans tl
           onPatientUpdated?.(patient.id, {
             tl: (patient.tl || []).map(t =>
               t.consultation_id === consultationId
                 ? { ...t, concordance: avisResult.concordanceIA, diagnosticFinal: avisResult.diagRetenu, commentaireMedecin: avisResult.observations, statut: 'terminee' }
                 : t
             ),
-            notes: avisResult.observations || patient.notes,
+            notes:       avisResult.observations || patient.notes,
+            status:      'actif',
+            statut_avis: 'terminee',
           });
         }} />}
         {tab === "status" && <StatusTab p={patient} onStatusChange={onStatusChange} onStatutCliniqueChange={onStatutCliniqueChange} />}
@@ -1661,12 +1708,15 @@ function DetailPanel({ patient, onClose, onStatusChange, onStatutCliniqueChange,
                     nom:                  editData.nom,
                     prenom:               editData.prenom,
                     civilite:             editData.civilite,
+                    telephone:            editData.telephone,
                     tel:                  editData.telephone,
+                    adresse:              editData.adresse,
                     city:                 editData.adresse,
                     email:                editData.email,
                     profession:           editData.profession,
                     religion:             editData.religion,
                     groupe_sanguin:       editData.groupe_sanguin,
+                    date_naissance:       editData.date_naissance,
                     personne_a_contacter: editData.personne_a_contacter,
                     telephone_urgence:    editData.telephone_urgence,
                     init:                 `${editData.prenom?.[0] || ''}${editData.nom?.[0] || ''}`,

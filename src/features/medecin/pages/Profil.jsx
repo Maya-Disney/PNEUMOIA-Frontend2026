@@ -31,6 +31,7 @@ export default function Profile() {
     emailPro: '',
     telephone: '',
     adresse: '',
+    ville: '',
     bio: '',
     social: { linkedin: '', website: '' }
   });
@@ -48,6 +49,7 @@ export default function Profile() {
         emailPro:      profil.email          || '',
         telephone:     profil.telephone      || '',
         adresse:       profil.adresse        || '',
+        ville:         profil.ville          || '',
         bio:           profil.bio            || '',
         social: {
           linkedin: profil.linkedin || '',
@@ -213,6 +215,7 @@ export default function Profile() {
         etablissement: formData.etablissement  || null,
         telephone:     formData.telephone      || null,
         adresse:       formData.adresse        || null,
+        ville:         formData.ville          || null,
         bio:           formData.bio            || null,
         linkedin:      formData.social?.linkedin || null,
         website:       formData.social?.website  || null,
@@ -263,6 +266,7 @@ export default function Profile() {
         etablissement: updatedProfil.etablissement ?? prev.etablissement,
         telephone:     updatedProfil.telephone     ?? prev.telephone,
         adresse:       updatedProfil.adresse       ?? prev.adresse,
+        ville:         updatedProfil.ville         ?? prev.ville,
         bio:           updatedProfil.bio           ?? prev.bio,
         social: {
           linkedin: updatedProfil.linkedin ?? prev.social?.linkedin,
@@ -630,6 +634,21 @@ export default function Profile() {
                 {isEditing
                   ? <input type="tel" name="telephone" value={formData.telephone} onChange={handleInputChange} className={inputCls} />
                   : <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-(--t4)" /><p className="text-sm text-(--t1)">{formData.telephone}</p></div>}
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Adresse</label>
+                  {isEditing
+                    ? <input type="text" name="adresse" value={formData.adresse} onChange={handleInputChange} className={inputCls} placeholder="123 rue de la Paix" />
+                    : <p className="text-sm text-(--t1)">{formData.adresse || '—'}</p>}
+                </div>
+                <div>
+                  <label className={labelCls}>Ville</label>
+                  {isEditing
+                    ? <input type="text" name="ville" value={formData.ville} onChange={handleInputChange} className={inputCls} placeholder="Douala, Yaoundé..." />
+                    : <p className="text-sm text-(--t1)">{formData.ville || '—'}</p>}
+                </div>
               </div>
 
               <div>

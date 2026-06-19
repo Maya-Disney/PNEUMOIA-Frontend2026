@@ -92,7 +92,8 @@ export default function Notifications() {
   };
 
   const formatTime = (dateString) => {
-    const date = new Date(dateString);
+    const utc = dateString && !/Z$|[+-]\d{2}:?\d{2}$/.test(dateString) ? dateString + 'Z' : dateString;
+    const date = new Date(utc);
     const now = new Date();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);
@@ -227,8 +228,14 @@ export default function Notifications() {
                   <div className="flex items-start gap-4">
                     {/* Icône */}
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0
-                      ${isUnread ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-(--sf3)'}`}>
-                      <Icon className={`w-5 h-5 ${isUnread ? 'text-blue-600 dark:text-blue-300' : 'text-(--t4)'}`} />
+                      ${isUnread ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-(--sf3)'}`}
+                      style={{ transform: 'translateZ(0)' }}>
+                      <Icon
+                        size={20}
+                        strokeWidth={1.75}
+                        style={{ display: 'block', flexShrink: 0 }}
+                        className={isUnread ? 'text-blue-600 dark:text-blue-300' : 'text-(--t4)'}
+                      />
                     </div>
 
                     {/* Contenu */}

@@ -1733,6 +1733,7 @@ const createAndContinue = async () => {
                         setPrescription(prev => ({
                           ...prev,
                           diagnosticFinal: maladie,
+                          concordanceIA:   false,
                           recommandations: diff?.recommandations?.length > 0
                             ? diff.recommandations.join('\n')
                             : prev.recommandations,
@@ -1741,6 +1742,7 @@ const createAndContinue = async () => {
                         setPrescription(prev => ({
                           ...prev,
                           diagnosticFinal: maladie,
+                          concordanceIA:   true,
                           recommandations: (aiResult.recommendations || []).join('\n'),
                         }));
                       }
@@ -1760,7 +1762,7 @@ const createAndContinue = async () => {
                 name="diagnosticFinal"
                 value="autre"
                 checked={prescription.diagnosticFinal === 'autre'}
-                onChange={() => setPrescription({...prescription, diagnosticFinal: 'autre'})}
+                onChange={() => setPrescription({...prescription, diagnosticFinal: 'autre', concordanceIA: false})}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="text-sm text-(--t1)">Autre diagnostic</span>

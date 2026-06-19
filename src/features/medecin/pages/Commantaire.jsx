@@ -11,7 +11,7 @@ import {
   FileQuestion, LifeBuoy, Quote, ShieldAlert,
   FolderSearch, HelpCircle, Loader2, ThumbsDown,
   Stethoscope, Award, ChevronRight, Info,
-  RotateCcw, FileText, User
+  RotateCcw, FileText, User, Users
 } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
 
@@ -20,6 +20,7 @@ const tok = () => localStorage.getItem('token') || localStorage.getItem('access_
 
 // ─── Tabs config ───────────────────────────────────────────────────────────────
 const TABS = [
+  { id: 'equipe',      label: 'Équipe',           icon: Users,         desc: 'Messages de vos aides soignants — retours et alertes' },
   { id: 'comments',    label: 'Commentaires',    icon: MessageCircle, desc: 'Échanges sur vos cas cliniques' },
   { id: 'conferes',    label: 'Publications',     icon: Stethoscope,   desc: 'Publications des autres médecins de la communauté' },
   { id: 'requests',    label: 'Requêtes admin',  icon: FolderSearch,  desc: 'Récupération de dossiers supprimés' },
@@ -43,7 +44,9 @@ const statutConfig = {
 };
 
 function formatTime(iso) {
-  const d = new Date(iso);
+  // Append Z so JS treats server UTC timestamps as UTC, not local time
+  const utc = iso && !/Z$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso + 'Z' : iso;
+  const d = new Date(utc);
   const diff = Date.now() - d;
   const mins = Math.floor(diff / 60000);
   const h = Math.floor(diff / 3600000);
@@ -1106,12 +1109,201 @@ function OngletConfreres({ toast, profil }) {
   );
 }
 
+// ─── Onglet Messages équipe ────────────────────────────────────────────────────
+const TYPE_MSG_CFG = {
+  rapport: { label: 'Rapport',  color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: BookOpen },
+  alerte:  { label: 'Alerte',   color: 'bg-red-50 text-red-700 border-red-200',             icon: AlertCircle },
+  info:    { label: 'Info',     color: 'bg-amber-50 text-amber-700 border-amber-200',       icon: Star },
+};
+
+function OngletMessagesEquipe({ toast, profil }) {
+  const [messages, setMessages]   = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [replyingTo, setReplyTo]  = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [newText, setNewText]     = useState('');
+  const [newType, setNewType]     = useState('info');
+  const [showNew, setShowNew]     = useState(false);
+  const [expanded, setExpanded]   = useState({});
+
+  const load = () => {
+    setLoading(true);
+    fetch(`${API_URL}/equipe/messages`, { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setMessages(Array.isArray(data) ? data : []))
+      .catch(() => setMessages([]))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  const handlePost = async () => {
+    if (!newText.trim()) return;
+    try {
+      const r = await fetch(`${API_URL}/equipe/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contenu: newText.trim(), type_msg: newType }),
+      });
+      if (r.ok) {
+        const msg = await r.json();
+        setMessages(prev => [msg, ...prev]);
+        setNewText(''); setShowNew(false);
+        toast.success('Message envoyé');
+      }
+    } catch { toast.error('Erreur lors de l\'envoi'); }
+  };
+
+  const handleReply = async (mid) => {
+    if (!replyText.trim()) return;
+    try {
+      const r = await fetch(`${API_URL}/equipe/messages/${mid}/reply`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contenu: replyText.trim() }),
+      });
+      if (r.ok) {
+        const rep = await r.json();
+        setMessages(prev => prev.map(m => m.id === mid ? { ...m, replies: [...(m.replies || []), rep] } : m));
+        setExpanded(prev => ({ ...prev, [mid]: true }));
+        setReplyText(''); setReplyTo(null);
+        toast.success('Réponse envoyée');
+      }
+    } catch { toast.error('Erreur lors de l\'envoi'); }
+  };
+
+  if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-black uppercase tracking-widest text-(--t4)">Messages de l'équipe ({messages.length})</p>
+        <button onClick={() => setShowNew(!showNew)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition-colors">
+          <Send className="w-3 h-3" />Écrire
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {showNew && (
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="bg-(--sf) border border-(--ln) rounded-2xl p-4 space-y-3">
+            <div className="flex gap-2">
+              {['rapport', 'alerte', 'info'].map(t => {
+                const cfg = TYPE_MSG_CFG[t];
+                const Icon = cfg.icon;
+                return (
+                  <button key={t} onClick={() => setNewType(t)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${newType === t ? cfg.color : 'bg-(--sf2) border-(--ln) text-(--t3)'}`}>
+                    <Icon className="w-3 h-3" />{cfg.label}
+                  </button>
+                );
+              })}
+            </div>
+            <textarea value={newText} onChange={e => setNewText(e.target.value)} rows={3}
+              placeholder="Rédigez votre message à l'équipe..."
+              className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowNew(false)} className="px-3 py-1.5 text-xs text-(--t3) hover:bg-(--sf2) rounded-lg">Annuler</button>
+              <button onClick={handlePost} disabled={!newText.trim()}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
+                <Send className="w-3 h-3" />Envoyer
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {messages.length === 0 ? (
+        <div className="py-14 text-center bg-(--sf) border border-(--ln) rounded-2xl">
+          <Users className="w-10 h-10 text-(--t4) mx-auto mb-3" />
+          <p className="text-sm text-(--t3) font-medium">Aucun message d'équipe</p>
+          <p className="text-xs text-(--t4) mt-1">Les messages de vos aides soignants apparaîtront ici.</p>
+        </div>
+      ) : messages.map((msg, i) => {
+        const cfg  = TYPE_MSG_CFG[msg.type] || TYPE_MSG_CFG.info;
+        const Icon = cfg.icon;
+        const open = expanded[msg.id];
+        return (
+          <motion.div key={msg.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+            className={`bg-(--sf) border rounded-xl overflow-hidden ${msg.pinned ? 'border-l-4 border-l-blue-500 border-(--ln)' : 'border-(--ln)'}`}>
+            <div className="p-4">
+              <div className="flex items-start gap-3">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${msg.author?.isDoctor ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                  {msg.author?.avatar || '?'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                    <span className="text-sm font-bold text-(--t1)">{msg.author?.name}</span>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${cfg.color}`}>
+                      <Icon className="w-2.5 h-2.5" />{cfg.label}
+                    </span>
+                    {!msg.author?.isDoctor && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">Aide soignant</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-(--t2) leading-relaxed">{msg.text}</p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="text-xs text-(--t4) flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(msg.time)}</span>
+                    <button onClick={() => setReplyTo(replyingTo === msg.id ? null : msg.id)}
+                      className="text-xs text-(--t3) hover:text-blue-600 flex items-center gap-1 transition-colors">
+                      <Reply className="w-3 h-3" />Répondre
+                    </button>
+                    {(msg.replies?.length > 0) && (
+                      <button onClick={() => setExpanded(p => ({ ...p, [msg.id]: !p[msg.id] }))}
+                        className="text-xs text-blue-600 flex items-center gap-1">
+                        {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        {msg.replies.length} réponse{msg.replies.length > 1 ? 's' : ''}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {replyingTo === msg.id && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                    className="mt-3 pl-12 space-y-2">
+                    <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={2}
+                      placeholder="Votre réponse..."
+                      className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf2) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => { setReplyTo(null); setReplyText(''); }} className="text-xs text-(--t3) hover:bg-(--sf2) px-3 py-1 rounded-lg">Annuler</button>
+                      <button onClick={() => handleReply(msg.id)} disabled={!replyText.trim()}
+                        className="flex items-center gap-1.5 px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                        <Send className="w-3 h-3" />Répondre
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {open && msg.replies?.map((rep, ri) => (
+                  <motion.div key={rep.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: ri * 0.03 }}
+                    className="mt-2 pl-12 flex gap-3">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 ${rep.author?.isDoctor ? 'bg-blue-600' : 'bg-emerald-600'}`}>
+                      {rep.author?.avatar || '?'}
+                    </div>
+                    <div className="flex-1 bg-(--sf2) border border-(--ln) rounded-xl p-2.5">
+                      <span className="text-xs font-bold text-(--t1)">{rep.author?.name}</span>
+                      <p className="text-xs text-(--t2) mt-0.5">{rep.text}</p>
+                      <span className="text-[10px] text-(--t4)">{formatTime(rep.time)}</span>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Page principale ───────────────────────────────────────────────────────────
 export default function Commantaire() {
   const toast = useToast();
   const navigate = useNavigate();
   const { profil, loading: authLoading } = useProfil();
-  const [activeTab, setActiveTab] = useState('comments');
+  const [activeTab, setActiveTab] = useState('equipe');
 
   useEffect(() => {
     if (!authLoading && !profil) navigate('/login', { replace: true });
@@ -1133,13 +1325,13 @@ export default function Commantaire() {
       <div>
         <h1 className="text-2xl font-bold text-(--t1)">Espace de communication</h1>
         <p className="text-sm text-(--t3) mt-1">
-          Commentaires cas cliniques · Requêtes admin · Questions & FAQ · Témoignages
+          Messages équipe · Commentaires cas cliniques · Requêtes admin · Questions & FAQ · Témoignages
         </p>
       </div>
 
       {/* Onglets */}
       <div className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
-        <div className="grid grid-cols-2 sm:grid-cols-5 border-b border-(--ln)">
+        <div className="grid grid-cols-3 sm:grid-cols-6 border-b border-(--ln)">
           {TABS.map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -1169,11 +1361,12 @@ export default function Commantaire() {
         <div className="p-5">
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-              {activeTab === 'comments'    && <OngletCommentaires toast={toast} profil={profil} />}
-              {activeTab === 'conferes'    && <OngletConfreres    toast={toast} profil={profil} />}
-              {activeTab === 'requests'    && <OngletRequetes     toast={toast} />}
-              {activeTab === 'questions'   && <OngletQuestions    toast={toast} />}
-              {activeTab === 'testimonial' && <OngletTemoignage   toast={toast} profil={profil} />}
+              {activeTab === 'equipe'      && <OngletMessagesEquipe toast={toast} profil={profil} />}
+              {activeTab === 'comments'    && <OngletCommentaires  toast={toast} profil={profil} />}
+              {activeTab === 'conferes'    && <OngletConfreres     toast={toast} profil={profil} />}
+              {activeTab === 'requests'    && <OngletRequetes      toast={toast} />}
+              {activeTab === 'questions'   && <OngletQuestions     toast={toast} />}
+              {activeTab === 'testimonial' && <OngletTemoignage    toast={toast} profil={profil} />}
             </motion.div>
           </AnimatePresence>
         </div>

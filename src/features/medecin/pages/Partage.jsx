@@ -371,9 +371,9 @@ function OngletDossiers({ addToast, refreshKey, onCountChange }) {
 
 // ── Onglet 2b : Mes demandes d'accès envoyées ────────────────────
 const ACCES_CFG = {
-  en_attente: { bg: 'bg-amber-50 dark:bg-amber-900/20',   border: 'border-amber-200 dark:border-amber-800',   dot: 'bg-amber-400',  label: 'En attente',    text: 'text-amber-700 dark:text-amber-400'  },
-  accorde:    { bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-800', dot: 'bg-emerald-500', label: 'Accès accordé', text: 'text-emerald-700 dark:text-emerald-400' },
-  refuse:     { bg: 'bg-red-50 dark:bg-red-900/20',       border: 'border-red-200 dark:border-red-800',       dot: 'bg-red-500',    label: 'Refusé',        text: 'text-red-700 dark:text-red-400'      },
+  en_attente: { bg: 'bg-amber-50 dark:bg-amber-900/20',    border: 'border-amber-400 dark:border-amber-600',    dot: 'bg-amber-400',   label: 'En attente',    text: 'text-amber-700 dark:text-amber-400'   },
+  accorde:    { bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-400 dark:border-emerald-600', dot: 'bg-emerald-500', label: 'Accès accordé', text: 'text-emerald-700 dark:text-emerald-400' },
+  refuse:     { bg: 'bg-red-50 dark:bg-red-900/20',        border: 'border-red-400 dark:border-red-600',        dot: 'bg-red-500',     label: 'Refusé',        text: 'text-red-700 dark:text-red-400'       },
 };
 
 const FILTRE_ACTIVE = {
@@ -569,7 +569,7 @@ function OngletRechercheCode({ addToast }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Explication */}
       <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-2xl p-5">
         <div className="flex items-start gap-3">
@@ -1029,8 +1029,7 @@ export default function Partage() {
   ];
 
   return (
-    <div className="min-h-screen bg-(--bg)">
-      <div className="w-full py-8">
+    <div className="space-y-5">
 
         {/* Header */}
         <div className="mb-8">
@@ -1097,7 +1096,6 @@ export default function Partage() {
         <AnimatePresence>
           {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </AnimatePresence>
-      </div>
     </div>
   );
 }

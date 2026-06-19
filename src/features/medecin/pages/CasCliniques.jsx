@@ -267,7 +267,7 @@ export default function CasCliniques() {
     });
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-5">
+    <div className="space-y-5">
 
       {/* ── En-tête ── */}
       <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>

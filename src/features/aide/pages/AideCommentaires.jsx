@@ -36,7 +36,8 @@ const typeConfigMedecin = {
 };
 
 function formatTime(iso) {
-  const d    = new Date(iso);
+  const utc = iso && !/Z$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso + 'Z' : iso;
+  const d    = new Date(utc);
   const diff = Date.now() - d;
   const h    = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);

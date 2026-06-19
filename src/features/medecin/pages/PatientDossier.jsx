@@ -14,6 +14,12 @@ import {
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
+function getMedecinId() {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  try { return JSON.parse(atob(token.split('.')[1])).sub || null; } catch { return null; }
+}
+
 const apiFetch = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
   const res = await fetch(`${BASE_URL}${endpoint}`, {
@@ -379,6 +385,8 @@ export default function PatientDossier() {
     finally { setSendingAvis(false); }
   };
 
+  const isProprietaire = patient?.created_by === getMedecinId();
+
   // ── Calculs patient ──────────────────────────────────────────────
   const age = patient?.date_naissance ? (() => {
     const today = new Date();
@@ -471,9 +479,11 @@ export default function PatientDossier() {
                   {dernierEtat.label}
                 </span>
               )}
-              <span className="flex items-center gap-1 text-xs text-(--t4) bg-(--sf2) px-2 py-0.5 rounded-lg border border-(--ln)">
-                <Lock className="w-3 h-3" /> Accès partagé
-              </span>
+              {!isProprietaire && (
+                <span className="flex items-center gap-1 text-xs text-(--t4) bg-(--sf2) px-2 py-0.5 rounded-lg border border-(--ln)">
+                  <Lock className="w-3 h-3" /> Accès partagé
+                </span>
+              )}
             </div>
             <p className="text-sm text-(--t3) mt-0.5">
               {age ? `${age} ans` : '—'} · {patient?.sexe === 'M' ? 'Homme' : patient?.sexe === 'F' ? 'Femme' : '—'}
@@ -512,6 +522,26 @@ export default function PatientDossier() {
               <InfoRow label="Téléphone urgence" value={patient?.telephone_urgence} />
             </div>
           </SectionCard>
+
+          {/* Traçabilité */}
+          <div className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-(--ln)">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400">
+                <ClipboardList className="w-4 h-4" />
+              </div>
+              <h3 className="font-semibold text-(--t1) text-sm">Traçabilité</h3>
+            </div>
+            <div className="p-5 space-y-0">
+              <InfoRow label="Médecin propriétaire" value={isProprietaire ? 'Vous' : '(accès partagé)'} />
+              <InfoRow
+                label="Dossier créé par"
+                value={patient?.created_by_aide
+                  ? `Aide soignant (${patient.created_by_aide})`
+                  : 'Médecin traitant'}
+                highlight={!!patient?.created_by_aide}
+              />
+            </div>
+          </div>
 
           {/* Restrictions / Religion */}
           {patient?.religion && (
@@ -627,7 +657,7 @@ export default function PatientDossier() {
                 Consultations
               </h2>
               <button
-                onClick={() => navigate(`/medecin/consultations?patient_id=${patientId}`)}
+                onClick={() => navigate(`/medecin/consultation?patient_id=${patientId}`)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
               >
                 <Stethoscope className="w-3.5 h-3.5" />
@@ -640,7 +670,7 @@ export default function PatientDossier() {
                 <p className="text-sm font-medium text-(--t2) mb-1">Aucune consultation enregistrée</p>
                 <p className="text-xs text-(--t4) mb-4">Ce patient a été créé par l'aide soignant. Démarrez la première consultation pour saisir les symptômes et lancer le diagnostic IA.</p>
                 <button
-                  onClick={() => navigate(`/medecin/consultations?patient_id=${patientId}`)}
+                  onClick={() => navigate(`/medecin/consultation?patient_id=${patientId}`)}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
                 >
                   <Stethoscope className="w-4 h-4" />
@@ -692,37 +722,39 @@ export default function PatientDossier() {
                 </div>
               )}
 
-              {/* Formulaire nouvel avis */}
-              <div>
-                <p className="text-xs font-semibold text-(--t3) uppercase tracking-widest mb-2">Laisser un avis médical</p>
-                <textarea
-                  value={avisText}
-                  onChange={e => setAvisText(e.target.value)}
-                  placeholder="Partagez votre avis clinique, observations complémentaires ou recommandations concernant ce patient…"
-                  rows={4}
-                  className="w-full px-4 py-3 text-sm border-2 border-(--ln) focus:border-indigo-400 rounded-xl bg-(--sf2) text-(--t1) placeholder:text-(--t4) focus:outline-none resize-none transition-colors"
-                />
-                <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-(--t4)">
-                    Votre avis sera notifié au médecin traitant.
-                  </p>
-                  <button onClick={handleAvis} disabled={sendingAvis || !avisText.trim()}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                    {sendingAvis ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    Envoyer l'avis
-                  </button>
-                </div>
+              {/* Formulaire nouvel avis — masqué pour le médecin propriétaire */}
+              {!isProprietaire && (
+                <div>
+                  <p className="text-xs font-semibold text-(--t3) uppercase tracking-widest mb-2">Laisser un avis médical</p>
+                  <textarea
+                    value={avisText}
+                    onChange={e => setAvisText(e.target.value)}
+                    placeholder="Partagez votre avis clinique, observations complémentaires ou recommandations concernant ce patient…"
+                    rows={4}
+                    className="w-full px-4 py-3 text-sm border-2 border-(--ln) focus:border-indigo-400 rounded-xl bg-(--sf2) text-(--t1) placeholder:text-(--t4) focus:outline-none resize-none transition-colors"
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-(--t4)">
+                      Votre avis sera notifié au médecin traitant.
+                    </p>
+                    <button onClick={handleAvis} disabled={sendingAvis || !avisText.trim()}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                      {sendingAvis ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      Envoyer l'avis
+                    </button>
+                  </div>
 
-                <AnimatePresence>
-                  {avisOk && (
-                    <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="mt-2 flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-2.5">
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      Avis envoyé — le médecin traitant a été notifié.
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                  <AnimatePresence>
+                    {avisOk && (
+                      <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        className="mt-2 flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-2.5">
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        Avis envoyé — le médecin traitant a été notifié.
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
             </div>
           </div>
 
