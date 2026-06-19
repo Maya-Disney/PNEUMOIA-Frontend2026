@@ -161,20 +161,9 @@ export default function AideLayout() {
       )}
 
       {/* Logo */}
-      <div className={`flex items-center px-4 py-4 ${!isDesktop && mobileOpen ? 'pt-14' : ''}`}
+      <div className={`flex items-center justify-center px-4 py-4 ${!isDesktop && mobileOpen ? 'pt-14' : ''}`}
         style={{ borderBottom: `1px solid ${sidebarBord}`, minHeight: 70 }}>
-        {expanded ? (
-          <div className="flex items-center gap-2.5 w-full overflow-hidden">
-            <img src={logo} alt="PneumoIA" style={{ height: 30, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
-            <div className="w-px h-6 bg-slate-200 dark:bg-white/10 shrink-0" />
-            <div className="min-w-0">
-              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: P }}>Aide</p>
-              <p className="text-[12px] font-black leading-none" style={{ color: isDark ? '#93c5fd' : P2 }}>Soignant</p>
-            </div>
-          </div>
-        ) : (
-          <img src={logo} alt="PneumoIA" style={{ height: 24, width: 'auto', margin: '0 auto' }} />
-        )}
+        <img src={logo} alt="PneumoIA" style={{ height: expanded ? 44 : 30, width: 'auto', objectFit: 'contain', transition: 'height 0.3s' }} />
       </div>
 
       {/* Nav */}

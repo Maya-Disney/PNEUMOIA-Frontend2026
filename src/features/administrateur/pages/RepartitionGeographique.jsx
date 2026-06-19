@@ -14,7 +14,7 @@ const MOIS_LABELS = [
   "Juillet","Août","Septembre","Octobre","Novembre","Décembre",
 ];
 
-const ANNEES = [2024, 2025, 2026];
+const ANNEES = [2026, 2025, 2026];
 
 export default function RepartitionGeo() {
   const { dark } = useOutletContext() || {};

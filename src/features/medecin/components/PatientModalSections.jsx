@@ -218,7 +218,7 @@ function DossierTab({
           </div>
           <div className="flex justify-between">
             <span className="text-xs text-gray-500">Médecin</span>
-            <p className="font-medium text-xs text-blue-600">Dr. Jean Dupont</p>
+            <p className="font-medium text-xs text-blue-600">Dr. Tagne eKale</p>
           </div>
         </div>
       </div>
@@ -518,7 +518,7 @@ function AccesTab({ patient }) {
               JD
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-xs">Dr. Jean Dupont</p>
+              <p className="font-semibold text-xs">Dr. Tagne eKale</p>
               <p className="text-xs text-gray-500">Propriétaire</p>
             </div>
             <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-400">

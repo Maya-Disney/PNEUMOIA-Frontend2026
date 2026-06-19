@@ -50,8 +50,8 @@ export const PATIENTS_DATA = {
       { label: "Hémoptysie", present: false }
     ],
     timeline: [
-      { date: "2026-03-09", doctor: "Dr. Dupont", title: "Pneumonie bactérienne", note: "Amoxicilline 1g x 3/j.", ia: 85, concordant: true },
-      { date: "2025-10-15", doctor: "Dr. Dupont", title: "Bronchite aiguë", note: "Guérison J+10.", ia: 78, concordant: true }
+      { date: "2026-03-09", doctor: "Dr. Nom", title: "Pneumonie bactérienne", note: "Amoxicilline 1g x 3/j.", ia: 85, concordant: true },
+      { date: "2025-10-15", doctor: "Dr. Nom", title: "Bronchite aiguë", note: "Guérison J+10.", ia: 78, concordant: true }
     ],
     shareAccess: [{ name: "Dr. Martin", role: "Pneumologue", accessDate: "2026-03-07" }]
   },
@@ -73,7 +73,7 @@ export const PATIENTS_DATA = {
     city: "Yaoundé",
     profession: "Commerçante",
     consultations: 12,
-    createdAt: "2024-06-03",
+    createdAt: "2026-06-03",
     iaConcordance: 83,
     iaConfidence: "Haute confiance",
     antecedents: ["Tabagisme actif 25 PA", "Asthme enfance", "Rhinite chronique"],
@@ -102,8 +102,8 @@ export const PATIENTS_DATA = {
       { label: "Dyspnée chronique", present: true }
     ],
     timeline: [
-      { date: "2026-03-10", doctor: "Dr. Dupont", title: "BPCO bilan trim.", note: "Stable. SpO2 92%.", ia: 83, concordant: true },
-      { date: "2025-12-15", doctor: "Dr. Dupont", title: "BPCO exacerbation", note: "Cortico 5j.", ia: 79, concordant: true }
+      { date: "2026-03-10", doctor: "Dr. Nom", title: "BPCO bilan trim.", note: "Stable. SpO2 92%.", ia: 83, concordant: true },
+      { date: "2025-12-15", doctor: "Dr. Nom", title: "BPCO exacerbation", note: "Cortico 5j.", ia: 79, concordant: true }
     ],
     shareAccess: []
   },
@@ -154,8 +154,8 @@ export const PATIENTS_DATA = {
       { label: "Contact TB connu", present: true }
     ],
     timeline: [
-      { date: "2026-02-28", doctor: "Dr. Dupont", title: "TB suivi J+105", note: "BK négatif.", ia: 79, concordant: true },
-      { date: "2025-11-15", doctor: "Dr. Dupont", title: "TB diagnostic", note: "BK+ confirmé.", ia: 82, concordant: true }
+      { date: "2026-02-28", doctor: "Dr. Nom", title: "TB suivi J+105", note: "BK négatif.", ia: 79, concordant: true },
+      { date: "2025-11-15", doctor: "Dr. Nom", title: "TB diagnostic", note: "BK+ confirmé.", ia: 82, concordant: true }
     ],
     shareAccess: []
   },
@@ -204,7 +204,7 @@ export const PATIENTS_DATA = {
       { label: "Terrain atopique", present: true }
     ],
     timeline: [
-      { date: "2026-03-05", doctor: "Dr. Dupont", title: "Asthme contrôlé", note: "VEMS 78%.", ia: 91, concordant: true }
+      { date: "2026-03-05", doctor: "Dr. Nom", title: "Asthme contrôlé", note: "VEMS 78%.", ia: 91, concordant: true }
     ],
     shareAccess: [{ name: "Dr. Kamga", role: "Allergologue", accessDate: "2025-12-10" }]
   },
@@ -253,7 +253,7 @@ export const PATIENTS_DATA = {
       { label: "SpO2 < 90%", present: true }
     ],
     timeline: [
-      { date: "2026-02-22", doctor: "Dr. Dupont", title: "BPCO aggravation", note: "VEMS 38%.", ia: 81, concordant: true }
+      { date: "2026-02-22", doctor: "Dr. Nom", title: "BPCO aggravation", note: "VEMS 38%.", ia: 81, concordant: true }
     ],
     shareAccess: []
   },
@@ -275,7 +275,7 @@ export const PATIENTS_DATA = {
     city: "Yaoundé",
     profession: "Infirmière",
     consultations: 6,
-    createdAt: "2024-07-12",
+    createdAt: "2026-07-12",
     iaConcordance: 88,
     iaConfidence: "Haute confiance",
     antecedents: ["Asthme léger", "Allergie saisonnière"],
@@ -300,7 +300,7 @@ export const PATIENTS_DATA = {
       { label: "CRP élevée", present: true }
     ],
     timeline: [
-      { date: "2026-04-01", doctor: "Dr. Dupont", title: "Pneumonie aiguë", note: "Azithromycine 5j.", ia: 88, concordant: true }
+      { date: "2026-04-01", doctor: "Dr. Nom", title: "Pneumonie aiguë", note: "Azithromycine 5j.", ia: 88, concordant: true }
     ],
     shareAccess: []
   },
@@ -322,7 +322,7 @@ export const PATIENTS_DATA = {
     city: "Garoua",
     profession: "Boulanger",
     consultations: 9,
-    createdAt: "2024-02-18",
+    createdAt: "2026-02-18",
     iaConcordance: 76,
     iaConfidence: "Confiance moyenne",
     antecedents: ["Tabagisme 30 PA", "Exposition à la biomasse"],
@@ -347,7 +347,7 @@ export const PATIENTS_DATA = {
       { label: "Exposition tabagique", present: true }
     ],
     timeline: [
-      { date: "2026-03-30", doctor: "Dr. Dupont", title: "BPCO exacerbation", note: "Corticothérapie majorée.", ia: 76, concordant: true }
+      { date: "2026-03-30", doctor: "Dr. Nom", title: "BPCO exacerbation", note: "Corticothérapie majorée.", ia: 76, concordant: true }
     ],
     shareAccess: []
   },
@@ -369,7 +369,7 @@ export const PATIENTS_DATA = {
     city: "Douala",
     profession: "Enseignante",
     consultations: 4,
-    createdAt: "2024-09-03",
+    createdAt: "2026-09-03",
     iaConcordance: 79,
     iaConfidence: "Confiance moyenne",
     antecedents: ["Rhinite allergique", "Eczéma"],
@@ -392,7 +392,7 @@ export const PATIENTS_DATA = {
       { label: "Terrain atopique", present: true }
     ],
     timeline: [
-      { date: "2026-03-20", doctor: "Dr. Dupont", title: "Asthme intermittent", note: "Contrôle satisfaisant.", ia: 79, concordant: true }
+      { date: "2026-03-20", doctor: "Dr. Nom", title: "Asthme intermittent", note: "Contrôle satisfaisant.", ia: 79, concordant: true }
     ],
     shareAccess: []
   }

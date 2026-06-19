@@ -52,7 +52,7 @@ export default function StorySection() {
             
             {/* Description */}
             <p className="text-[var(--t2)] leading-relaxed mb-8">
-              En 2024, un pneumologue de Douala reçoit un patient en détresse respiratoire. Son confrère 
+              En 2026, un pneumologue de Douala reçoit un patient en détresse respiratoire. Son confrère 
               l'avait examiné la veille et posé une conclusion différente. Ni l'un ni l'autre n'avait tort 
               – il n'existait simplement pas de cadre commun.
               <br /><br />

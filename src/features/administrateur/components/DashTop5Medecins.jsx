@@ -54,7 +54,7 @@ export default function DashTop5Medecins({ dark }) {
   const timerRef = useRef(null);
 
   const yearList = Array.from(
-    { length: Math.max(1, now.getFullYear() - 2024) },
+    { length: Math.max(1, now.getFullYear() - 2026) },
     (_, i) => now.getFullYear() - i,
   );
 

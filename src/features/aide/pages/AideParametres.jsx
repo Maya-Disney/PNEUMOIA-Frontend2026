@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, Moon, Sun, Bell, Shield, LogOut,
   Lock, Check, AlertCircle, Eye, EyeOff,
-  Loader2, Palette, User
+  Loader2, Palette, User, KeyRound
 } from 'lucide-react';
 import { useTheme } from '../../medecin/contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
@@ -64,25 +64,55 @@ export default function AideParametres() {
   const [notifSys,   setNotifSys]   = useState(true);
   const [notifCode,  setNotifCode]  = useState(true);
   const [saved,      setSaved]      = useState(false);
+  const [prefLoading, setPrefLoading] = useState(false);
 
-  const [pw, setPw]             = useState({ ancien:'', nouveau:'' });
-  const [showOld,  setShowOld]  = useState(false);
-  const [showNew,  setShowNew]  = useState(false);
+  const [pw, setPw]               = useState({ ancien:'', nouveau:'', confirmer:'' });
+  const [showOld,     setShowOld]     = useState(false);
+  const [showNew,     setShowNew]     = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError,  setPwError]  = useState('');
   const [pwOk,     setPwOk]     = useState(false);
 
-  const handleSaveNotifs = () => { setSaved(true); setTimeout(() => setSaved(false), 2500); };
+  // Charger les préférences au montage
+  useEffect(() => {
+    fetch(`${API_URL}/aides/me/preferences`, { headers: hdrs() })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        setNotifEmail(d.notif_email         ?? true);
+        setNotifSys(  d.notif_systeme       ?? true);
+        setNotifCode( d.notif_code_referent ?? true);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveNotifs = async () => {
+    setPrefLoading(true);
+    try {
+      await fetch(`${API_URL}/aides/me/preferences`, {
+        method: 'PATCH',
+        headers: hdrs(),
+        body: JSON.stringify({
+          notif_email:         notifEmail,
+          notif_systeme:       notifSys,
+          notif_code_referent: notifCode,
+        }),
+      });
+      setSaved(true); setTimeout(() => setSaved(false), 2500);
+    } catch { /* silent */ } finally { setPrefLoading(false); }
+  };
 
   const handleChangePassword = async () => {
-    if (!pw.ancien || !pw.nouveau) { setPwError('Remplissez les deux champs.'); return; }
-    if (pw.nouveau.length < 6)    { setPwError('Minimum 6 caractères.'); return; }
+    if (!pw.ancien || !pw.nouveau || !pw.confirmer) { setPwError('Remplissez tous les champs.'); return; }
+    if (pw.nouveau.length < 6) { setPwError('Minimum 6 caractères.'); return; }
+    if (pw.nouveau !== pw.confirmer) { setPwError('Les mots de passe ne correspondent pas.'); return; }
     setPwSaving(true); setPwError('');
     try {
       const res  = await fetch(`${API_URL}/aides/me/password`, { method:'PATCH', headers:hdrs(), body:JSON.stringify({ ancien_password:pw.ancien, nouveau_password:pw.nouveau }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Erreur');
-      setPwOk(true); setPw({ ancien:'', nouveau:'' });
+      setPwOk(true); setPw({ ancien:'', nouveau:'', confirmer:'' });
       setTimeout(() => setPwOk(false), 3500);
     } catch (err) { setPwError(err.message || 'Erreur réseau.'); }
     finally { setPwSaving(false); }
@@ -94,7 +124,7 @@ export default function AideParametres() {
   };
 
   return (
-    <div className="space-y-5 w-full max-w-6xl mx-auto">
+    <div className="space-y-5 w-full">
 
       {/* ── Header ─── */}
       <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }}
@@ -140,14 +170,14 @@ export default function AideParametres() {
 
       {/* Notifications */}
       <SectionCard icon={Bell} iconCls="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" title="Notifications" delay={0.10}>
-        <Row label="Notifications email" description="Recevoir les alertes par email" right={<Toggle value={notifEmail} onChange={setNotifEmail} />} />
-        <Row label="Notifications système" description="Alertes dans l'interface PneumoIA" right={<Toggle value={notifSys} onChange={setNotifSys} />} />
-        <Row label="Alerte code référent" description="Notifié lors d'un changement de code" right={<Toggle value={notifCode} onChange={setNotifCode} />} />
+        <Row label="Notifications" description="Recevoir les alertes par email (lors de la connexion)" right={<Toggle value={notifEmail} onChange={setNotifEmail} />} />
+        <Row label="Notifications plateforme" description="Bloquer toutes les notifications dans l'interface PneumoIA" right={<Toggle value={notifSys} onChange={setNotifSys} />} />
+        <Row label="Alerte code référent" description="Notifié lors d'un changement de code référent" right={<Toggle value={notifCode} onChange={setNotifCode} />} />
         <div className="px-5 py-4">
-          <button onClick={handleSaveNotifs}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl transition-all active:scale-95"
+          <button onClick={handleSaveNotifs} disabled={prefLoading}
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl transition-all active:scale-95 disabled:opacity-60"
             style={{ background:`linear-gradient(135deg,${P2},${P})`, boxShadow:`0 4px 14px rgba(37,99,235,0.28)` }}>
-            <Check size={14} /> Enregistrer
+            {prefLoading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14} />} Enregistrer
           </button>
         </div>
       </SectionCard>
@@ -171,8 +201,9 @@ export default function AideParametres() {
           </AnimatePresence>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              { key:'ancien',  label:'Mot de passe actuel',  show:showOld, toggle:()=>setShowOld(s=>!s) },
-              { key:'nouveau', label:'Nouveau mot de passe', show:showNew, toggle:()=>setShowNew(s=>!s) },
+              { key:'ancien',    label:'Mot de passe actuel',             show:showOld,     toggle:()=>setShowOld(s=>!s)     },
+              { key:'nouveau',   label:'Nouveau mot de passe',            show:showNew,     toggle:()=>setShowNew(s=>!s)     },
+              { key:'confirmer', label:'Confirmer le nouveau mot de passe', show:showConfirm, toggle:()=>setShowConfirm(s=>!s) },
             ].map(f => (
               <div key={f.key}>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-(--t4) mb-1.5">{f.label}</label>

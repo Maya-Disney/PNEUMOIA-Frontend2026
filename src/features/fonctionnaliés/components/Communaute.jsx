@@ -122,7 +122,7 @@ export default function Communaute() {
                 <p className="text-sm font-medium text-(--t2) mb-4">Top contributeurs</p>
                 <div className="space-y-3">
                   {[
-                    { name: "Dr Jean Dupont", score: "91%", rank: 1 },
+                    { name: "Dr Tagne eKale", score: "91%", rank: 1 },
                     { name: "Dr Marie Camara", score: "81%", rank: 2 },
                     { name: "Dr Paul Ngassa", score: "70%", rank: 3 }
                   ].map((doc, i) => (
