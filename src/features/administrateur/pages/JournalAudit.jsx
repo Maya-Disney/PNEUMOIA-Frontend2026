@@ -26,8 +26,8 @@ function matchType(l, t) {
   if (t === "Validation") return l.action.toLowerCase().includes("valid") || l.action.toLowerCase().includes("rejeté");
   if (t === "Suspension") return l.action.toLowerCase().includes("suspendu");
   if (t === "Consultation") return l.action.toLowerCase().includes("consultation") || l.action.toLowerCase().includes("cas");
-  if (t === "Système") return l.role === "Système" || l.action.toLowerCase().includes("mis à jour") || l.action.toLowerCase().includes("sauvegarde") || l.action.toLowerCase().includes("paramètre");
-  if (t === "Erreur") return l.statut === "danger";
+  if (t === "Système") return l.role === "Système" || l.action === "erreur_systeme" || l.action.toLowerCase().includes("mis à jour") || l.action.toLowerCase().includes("sauvegarde") || l.action.toLowerCase().includes("paramètre");
+  if (t === "Erreur") return l.statut === "danger" || l.action === "erreur_systeme" || l.action === "compte_bloque_tentatives";
   return true;
 }
 

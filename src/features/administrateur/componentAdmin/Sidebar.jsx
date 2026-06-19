@@ -50,7 +50,6 @@ function getNav(counts) {
         { to: "/administrateur/medecins",          icon: Stethoscope, label: "Médecins actifs", badge: counts.actifs, badgeColor: "teal" },
         { to: "/administrateur/suspendus",          icon: UserMinus,   label: "Suspendus" },
         { to: "/administrateur/faq",               icon: HelpCircle,  label: "FAQ Médecins" },
-        { to: "/administrateur/patients-supprimes", icon: Trash2,      label: "Patients supprimés" },
       ]
     },
     {
