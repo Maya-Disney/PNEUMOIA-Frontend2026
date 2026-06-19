@@ -186,7 +186,11 @@ export default function LoginModal({ isOpen, onClose }) {
         const data = await resMedecin.json();
         setRole('medecin'); setMedecinId(data.medecin_id); setOtp('');
         setOtpTrigger(n => n + 1); setStep('otp');
-        toast.info('Code OTP envoyé à votre email. Valable 5 minutes.', { title: 'Code envoyé ' });
+        if (data.email_sent === false) {
+          toast.warning("L'envoi de l'email a échoué. Si vous ne recevez pas le code, contactez l'administrateur.", { title: 'Problème email' });
+        } else {
+          toast.info('Code OTP envoyé à votre email. Valable 5 minutes.', { title: 'Code envoyé' });
+        }
         return;
       }
 
@@ -284,7 +288,11 @@ export default function LoginModal({ isOpen, onClose }) {
       if (!res.ok) throw new Error(data.detail || 'Erreur');
       setResetMedecinId(data.medecin_id); setResetOtp('');
       setResetAttempts(0); setOtpTriggerReset(n => n + 1); setStep('forgot_otp');
-      toast.info('Code OTP envoyé à votre email.', { title: 'Code envoyé ✉️' });
+      if (data.email_sent === false) {
+        toast.warning("L'envoi de l'email a échoué. Contactez l'administrateur.", { title: 'Problème email' });
+      } else {
+        toast.info('Code OTP envoyé à votre email.', { title: 'Code envoyé' });
+      }
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };

@@ -262,21 +262,23 @@ export default function Monitoring() {
     !urgents.find(x => x.consultation_id === c.consultation_id)
   );
 
-  /* ── Alertes construites depuis les signes vitaux réels ── */
-  const alertesReelles = casGraves.flatMap(c => {
-    const sv = c.signes_vitaux || {};
-    const nm = `${c.patient_prenom} ${c.patient_nom}`;
-    const av = `${c.patient_prenom?.[0] || ''}${c.patient_nom?.[0] || ''}`.toUpperCase();
-    const t  = new Date(c.updated_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    const out = [];
+  /* ── Alertes construites depuis les signes vitaux réels (1 entrée / patient) ── */
+  const alertesReelles = casGraves.map(c => {
+    const sv       = c.signes_vitaux || {};
+    const nm       = `${c.patient_prenom} ${c.patient_nom}`;
+    const av       = `${c.patient_prenom?.[0] || ''}${c.patient_nom?.[0] || ''}`.toUpperCase();
+    const t        = new Date(c.updated_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const anomalies = [];
     if (sv.saturation_o2 && sv.saturation_o2 < 94)
-      out.push({ id: `${c.consultation_id}-spo2`, patient: nm, avatar: av, level: 'critical', message: `SpO₂ critique : ${sv.saturation_o2}%`, time: t, metric: 'SpO₂', value: `${sv.saturation_o2}%` });
+      anomalies.push({ metric: 'SpO₂', value: `${sv.saturation_o2}%`, level: 'critical' });
     if (sv.frequence_cardiaque && (sv.frequence_cardiaque > 100 || sv.frequence_cardiaque < 50))
-      out.push({ id: `${c.consultation_id}-fc`, patient: nm, avatar: av, level: 'warning', message: `FC anormale : ${sv.frequence_cardiaque} bpm`, time: t, metric: 'FC', value: `${sv.frequence_cardiaque} bpm` });
+      anomalies.push({ metric: 'FC', value: `${sv.frequence_cardiaque} bpm`, level: 'warning' });
     if (sv.temperature && sv.temperature >= 38.5)
-      out.push({ id: `${c.consultation_id}-temp`, patient: nm, avatar: av, level: 'warning', message: `Fièvre : ${sv.temperature}°C`, time: t, metric: 'Temp', value: `${sv.temperature}°C` });
-    return out;
-  });
+      anomalies.push({ metric: 'Temp', value: `${sv.temperature}°C`, level: 'warning' });
+    const level   = anomalies.some(a => a.level === 'critical') ? 'critical' : 'warning';
+    const message = anomalies.map(a => `${a.metric} : ${a.value}`).join(' · ');
+    return { id: c.consultation_id, patient: nm, avatar: av, level, message: message || 'Anomalie détectée', time: t, anomalies };
+  }).filter(a => a.anomalies.length > 0);
 
   const allAlerts     = alertesReelles;
   const filteredAlerts = alertFilter === 'all' ? allAlerts : allAlerts.filter(a => a.level === alertFilter);
@@ -580,10 +582,18 @@ export default function Monitoring() {
                       <span className="font-semibold text-sm text-(--t1)">{alert.patient}</span>
                       <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded-full ${cfg.badgeBg} ${cfg.badgeTx}`}>{cfg.label}</span>
                     </div>
-                    <p className="text-sm text-(--t2) truncate">{alert.message}</p>
-                    <div className="flex items-center gap-3 mt-1">
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {(alert.anomalies || [{ metric: alert.metric, value: alert.value, level: alert.level }]).map((a, idx) => {
+                        const ac = levelConfig[a.level] || levelConfig.info;
+                        return (
+                          <span key={idx} className={`text-xs px-2 py-0.5 rounded-full font-medium ${ac.badgeBg} ${ac.badgeTx}`}>
+                            {a.metric} : {a.value}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1.5">
                       <span className="text-xs text-(--t4) flex items-center gap-1"><Clock className="w-3 h-3" />{alert.time}</span>
-                      <span className="text-xs text-(--t4)">{alert.metric} : <strong className={cfg.badgeTx}>{alert.value}</strong></span>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-(--t4) shrink-0 mt-1" />

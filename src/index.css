@@ -19,8 +19,8 @@
     --tint-default: #F8FAFC;
 
     /* ── Bordures ── */
-    --ln:  #E2E8F0;           /* bordure standard */
-    --ln2: #CBD5E1;           /* bordure accentuée */
+    --ln:  #CBD5E1;           /* bordure standard */
+    --ln2: #94A3B8;           /* bordure accentuée */
 
     /* ── Texte ── */
     --t1:  #0F172A;           /* titre principal — slate-900 */

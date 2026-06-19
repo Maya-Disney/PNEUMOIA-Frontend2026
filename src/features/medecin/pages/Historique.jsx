@@ -227,7 +227,7 @@ function ConsultationModal({ consultation: c, onClose, onDownload }) {
             <Section title="Médecin" icon={Stethoscope} color="indigo">
               <InfoRow label="Nom"        value={`Dr. ${medecin.prenom || ''} ${medecin.nom || ''}`} />
               <InfoRow label="Spécialité" value={medecin.specialite} />
-              <InfoRow label="Ville"      value={medecin.ville} />
+              <InfoRow label="Ville / Établissement" value={medecin.ville || medecin.etablissement} />
               <div className="mt-3 pt-3 border-t border-(--ln)">
                 <InfoRow label="Date"   value={formatDate(c.created_at)} />
                 <InfoRow label="Heure"  value={formatTime(c.created_at)} />
@@ -471,7 +471,7 @@ function ConsultationModal({ consultation: c, onClose, onDownload }) {
             Fermer
           </button>
           {c.statut !== 'en_attente' && (
-            <button onClick={() => onDownload(c.id)}
+            <button onClick={() => onDownload(c.id, c.patient)}
               className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2">
               <FileText className="w-4 h-4" /> Télécharger le rapport
             </button>
@@ -529,7 +529,7 @@ export default function ConsultationHistory() {
   useEffect(() => { loadConsultations(); }, [loadConsultations]);
 
   // ── Télécharger PDF ───────────────────────────────────────────
-  const handleDownload = async (consultationId) => {
+  const handleDownload = async (consultationId, patient) => {
     try {
       const token = localStorage.getItem('pneumoia_token') || localStorage.getItem('access_token') || localStorage.getItem('token');
       const res   = await fetch(`${BASE_URL}/consultations/${consultationId}/pdf`, {
@@ -540,9 +540,12 @@ export default function ConsultationHistory() {
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      a.download = `bilan_${consultationId}.pdf`;
+      const nom    = patient?.nom    || '';
+      const prenom = patient?.prenom || '';
+      const pid    = patient?.id     || consultationId;
+      a.download = `bilan_${nom}_${prenom}_ID-${pid}.pdf`;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       console.error('Erreur téléchargement PDF:', err);
     }

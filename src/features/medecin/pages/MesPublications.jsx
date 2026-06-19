@@ -237,7 +237,7 @@ export default function MesPublications() {
   const totalDl   = publiees.reduce((s, r) => s + (r.nb_telechargements ?? 0), 0);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="space-y-6">
 
       {/* ── En-tête avec stats intégrées ───────────────────────────── */}
       <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}

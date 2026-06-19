@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Stethoscope, Users, Share2,
   FolderOpen, Users2, Bell, Search,
   User, Settings, History, X,
-  ChevronLeft, Activity, MessageSquare, BookOpen, Trash2,
+  ChevronLeft, Activity, MessageSquare, BookOpen,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import logo from '../../../assets/images/logo.png';
@@ -28,11 +28,10 @@ async function fetchPartageBadge() {
 }
 
 const NAV_MAIN = [
-  { path: '/medecin/dashboard',    icon: LayoutDashboard, label: 'Tableau de bord'          },
-  { path: '/medecin/consultation', icon: Stethoscope,     label: 'Consultation'             },
-  { path: '/medecin/patients',     icon: Users,           label: 'Patients'                 },
-  { path: '/medecin/corbeille',    icon: Trash2,          label: 'Comptes patients supprimés' },
-  { path: '/medecin/partage',      icon: Share2,          label: 'Partage'                  },
+  { path: '/medecin/dashboard',    icon: LayoutDashboard, label: 'Tableau de bord' },
+  { path: '/medecin/consultation', icon: Stethoscope,     label: 'Consultation'   },
+  { path: '/medecin/patients',     icon: Users,           label: 'Patients'       },
+  { path: '/medecin/partage',      icon: Share2,          label: 'Partage'        },
 ];
 const NAV_COMMUNITY = [
   { path: '/medecin/cas-cliniques',    icon: FolderOpen,     label: 'Cas cliniques'    },
