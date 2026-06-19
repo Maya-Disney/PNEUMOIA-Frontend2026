@@ -49,11 +49,12 @@ export default function AideProfil() {
   const [toast,    setToast]    = useState(null);
   const [error,    setError]    = useState('');
   const [pwMode,   setPwMode]   = useState(false);
-  const [showOld,  setShowOld]  = useState(false);
-  const [showNew,  setShowNew]  = useState(false);
+  const [showOld,     setShowOld]     = useState(false);
+  const [showNew,     setShowNew]     = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError,  setPwError]  = useState('');
-  const [pw,       setPw]       = useState({ ancien:'', nouveau:'' });
+  const [pw,       setPw]       = useState({ ancien:'', nouveau:'', confirmer:'' });
 
   const aideId = localStorage.getItem('aide_id') || '';
   const [profile, setProfile] = useState({ id:'', prenom:'', nom:'', email:'', telephone:'' });
@@ -99,14 +100,15 @@ export default function AideProfil() {
   };
 
   const handleChangePassword = async () => {
-    if (!pw.ancien || !pw.nouveau) { setPwError('Remplissez les deux champs.'); return; }
+    if (!pw.ancien || !pw.nouveau || !pw.confirmer) { setPwError('Remplissez tous les champs.'); return; }
     if (pw.nouveau.length < 8) { setPwError('Minimum 8 caractères.'); return; }
+    if (pw.nouveau !== pw.confirmer) { setPwError('Les mots de passe ne correspondent pas.'); return; }
     setPwSaving(true); setPwError('');
     try {
       const res  = await fetch(`${API_URL}/aides/me/password`, { method:'PATCH', headers:hdrs(), body:JSON.stringify({ ancien_password:pw.ancien, nouveau_password:pw.nouveau }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Erreur');
-      setPwMode(false); setPw({ ancien:'', nouveau:'' }); showToast('Mot de passe modifié.');
+      setPwMode(false); setPw({ ancien:'', nouveau:'', confirmer:'' }); showToast('Mot de passe modifié.');
     } catch (e) { setPwError(e.message || 'Erreur réseau.'); } finally { setPwSaving(false); }
   };
 
@@ -126,7 +128,7 @@ export default function AideProfil() {
   );
 
   return (
-    <div className="space-y-5 w-full max-w-6xl mx-auto">
+    <div className="space-y-5 w-full">
 
       {/* ── Profile hero card ─── */}
       <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.35 }}
@@ -266,8 +268,9 @@ export default function AideProfil() {
                       </div>
                     )}
                     {[
-                      { key:'ancien', label:'Mot de passe actuel', show:showOld, toggle:()=>setShowOld(s=>!s) },
-                      { key:'nouveau', label:'Nouveau mot de passe', show:showNew, toggle:()=>setShowNew(s=>!s) },
+                      { key:'ancien',   label:'Mot de passe actuel',      show:showOld,     toggle:()=>setShowOld(s=>!s)     },
+                      { key:'nouveau',  label:'Nouveau mot de passe',      show:showNew,     toggle:()=>setShowNew(s=>!s)     },
+                      { key:'confirmer',label:'Confirmer le nouveau mot de passe', show:showConfirm, toggle:()=>setShowConfirm(s=>!s) },
                     ].map(f => (
                       <div key={f.key}>
                         <label className="block text-[10px] font-bold uppercase tracking-widest text-(--t4) mb-1.5">{f.label}</label>

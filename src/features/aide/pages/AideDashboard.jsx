@@ -144,14 +144,27 @@ export default function AideDashboard() {
     { label:'Notifications',      icon:Bell,          to:'/aide/notifications',    show: true,                     g1:'#d97706', g2:'#b45309', shadow:'rgba(217,119,6,0.35)'   },
   ].filter(q => q.show);
 
-  /* ─── Chart: activité hebdo ─── */
+  /* ─── Chart: activité hebdo (patients créés par jour sur les 7 derniers jours) ─── */
+  const weekActivity = (() => {
+    const counts = [0, 0, 0, 0, 0, 0, 0]; // Lun→Dim
+    const now = new Date();
+    patients.forEach(p => {
+      if (!p.created_at) return;
+      const d = new Date(p.created_at);
+      const diffDays = Math.floor((now - d) / 86400000);
+      if (diffDays < 0 || diffDays >= 7) return;
+      // jour de la semaine 0=Lun … 6=Dim (JS: 0=Dim 1=Lun … 6=Sam)
+      const dow = (d.getDay() + 6) % 7;
+      counts[dow]++;
+    });
+    return counts;
+  })();
   const days = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-  const fakeActivity = [2, 5, 3, 7, 4, 6, patients.length || 3];
   const lineData = {
     labels: days,
     datasets: [{
-      label: 'Patients',
-      data: fakeActivity,
+      label: 'Patients créés',
+      data: weekActivity,
       fill: true,
       tension: 0.45,
       borderColor: P,
@@ -192,7 +205,7 @@ export default function AideDashboard() {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
 
       {/* ══ WELCOME BANNER ═════════════════════════════════════ */}
       <motion.div initial={{ opacity:0, y:-12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.4 }}

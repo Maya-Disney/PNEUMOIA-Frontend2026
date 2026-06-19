@@ -135,7 +135,7 @@ export default function AideNouveauPatient() {
   );
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-5">
+    <div className="w-full space-y-5">
 
       {/* ── Header ─── */}
       <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }}
@@ -224,7 +224,7 @@ export default function AideNouveauPatient() {
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Prénom" required><input className={inp} value={form.prenom} onChange={e => set('prenom',e.target.value)} placeholder="Jean" /></Field>
-                <Field label="Nom" required><input className={inp} value={form.nom} onChange={e => set('nom',e.target.value)} placeholder="Dupont" /></Field>
+                <Field label="Nom" required><input className={inp} value={form.nom} onChange={e => set('nom',e.target.value)} placeholder="Nom" /></Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Date de naissance"><input type="date" className={inp} value={form.date_naissance} onChange={e => set('date_naissance',e.target.value)} /></Field>
@@ -255,7 +255,7 @@ export default function AideNouveauPatient() {
               <div className="pt-2 border-t border-(--ln)">
                 <p className="text-[10px] font-black uppercase tracking-widest text-(--t4) mb-3">Contact d'urgence</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Nom / Lien de parenté"><input className={inp} value={form.personne_a_contacter} onChange={e => set('personne_a_contacter',e.target.value)} placeholder="Mère – Marie Dupont" /></Field>
+                  <Field label="Nom / Lien de parenté"><input className={inp} value={form.personne_a_contacter} onChange={e => set('personne_a_contacter',e.target.value)} placeholder="Mère – Marie Nom" /></Field>
                   <Field label="Téléphone d'urgence"><input type="tel" className={inp} value={form.telephone_urgence} onChange={e => set('telephone_urgence',e.target.value)} /></Field>
                 </div>
               </div>

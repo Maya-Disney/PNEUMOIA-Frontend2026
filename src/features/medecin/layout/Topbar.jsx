@@ -10,11 +10,32 @@ import { useTheme } from '../contexts/ThemeContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
+function playNotifSound() {
+  try {
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    const t    = ctx.currentTime;
+    [[587.33, 0], [739.99, 0.13], [880, 0.26]].forEach(([freq, delay]) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, t + delay);
+      gain.gain.linearRampToValueAtTime(0.22, t + delay + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.5);
+      osc.start(t + delay);
+      osc.stop(t + delay + 0.55);
+    });
+  } catch { /* audio non supporté ou bloqué */ }
+}
+
 export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
   const [searchQuery,  setSearchQuery]  = useState('');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifCount,   setNotifCount]   = useState(0);
   const [refreshing,   setRefreshing]   = useState(false);
+  const prevNotifCount = useRef(null);
   const userMenuRef = useRef(null);
   const navigate    = useNavigate();
   const { theme, toggleTheme } = useTheme();
@@ -30,7 +51,12 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
         });
         if (res.ok) {
           const data = await res.json();
-          setNotifCount(data.count || 0);
+          const newCount = data.count || 0;
+          if (prevNotifCount.current !== null && newCount > prevNotifCount.current) {
+            playNotifSound();
+          }
+          prevNotifCount.current = newCount;
+          setNotifCount(newCount);
         }
       } catch {}
     };

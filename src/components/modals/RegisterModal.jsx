@@ -344,7 +344,7 @@ export default function RegisterModal({ isOpen, onClose }) {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className={labelClass}>Nom *</label>
-                            <input type="text" value={form.nom} onChange={e => upd('nom', e.target.value)} placeholder="Dupont" className={inputClass} />
+                            <input type="text" value={form.nom} onChange={e => upd('nom', e.target.value)} placeholder="Nom" className={inputClass} />
                           </div>
                           <div>
                             <label className={labelClass}>Prénom *</label>
@@ -461,7 +461,7 @@ export default function RegisterModal({ isOpen, onClose }) {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className={labelClass}>Nom *</label>
-                            <input type="text" value={form.nom} onChange={e => upd('nom', e.target.value)} placeholder="Dupont" className={inputClass} />
+                            <input type="text" value={form.nom} onChange={e => upd('nom', e.target.value)} placeholder="Nom" className={inputClass} />
                           </div>
                           <div>
                             <label className={labelClass}>Prénom *</label>

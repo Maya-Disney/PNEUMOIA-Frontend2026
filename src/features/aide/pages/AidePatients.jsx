@@ -62,7 +62,7 @@ export default function AidePatients() {
   const attenteCount = patients.filter(p => p.statut === 'attente').length;
 
   if (error === 'access') return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col items-center justify-center py-24 text-center gap-5">
+    <div className="w-full flex flex-col items-center justify-center py-24 text-center gap-5">
       <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
         style={{ background:`linear-gradient(135deg,${P2},${P})`, boxShadow:`0 8px 32px rgba(37,99,235,0.30)` }}>
         <Lock className="w-9 h-9 text-white" />
@@ -75,7 +75,7 @@ export default function AidePatients() {
   );
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-5">
+    <div className="w-full space-y-5">
 
       {/* ── Banner ─── */}
       <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.35 }}

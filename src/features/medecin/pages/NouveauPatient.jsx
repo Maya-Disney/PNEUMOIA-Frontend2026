@@ -233,7 +233,7 @@ export default function NouveauPatient() {
                       <input
                         type="text"
                         required
-                        placeholder="DUPONT"
+                        placeholder="Nom"
                         value={form.nom}
                         onChange={e => set('nom', e.target.value)}
                         className={inp}
@@ -386,7 +386,7 @@ export default function NouveauPatient() {
                   <Field label="Personne à contacter">
                     <input
                       type="text"
-                      placeholder="Marie DUPONT (épouse)"
+                      placeholder="Marie Nom (épouse)"
                       value={form.personne_a_contacter}
                       onChange={e => set('personne_a_contacter', e.target.value)}
                       className={inp}

@@ -127,7 +127,7 @@ export default function AidePatientDossier() {
   const canConsult = perms.peut_saisir_symptomes || perms.peut_voir_diagnostic;
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-5">
+    <div className="w-full space-y-5">
 
       {/* ── Patient hero ─── */}
       <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }}

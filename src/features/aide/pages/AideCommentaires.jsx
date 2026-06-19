@@ -570,7 +570,7 @@ export default function AideCommentaires() {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
 
       {/* En-tête */}
       <div className="flex items-center justify-between">
