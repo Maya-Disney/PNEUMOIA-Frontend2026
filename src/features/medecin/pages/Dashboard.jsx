@@ -49,33 +49,42 @@ export default function Dashboard() {
 
 
 
-  const generateChartData = (period) => {
+  const generateChartData = (period, consultations = []) => {
+    const now = new Date();
     if (period === 'weekly') {
-      return [
-        { day: "Lun", consultations: 12, patients: 8 },
-        { day: "Mar", consultations: 18, patients: 14 },
-        { day: "Mer", consultations: 14, patients: 11 },
-        { day: "Jeu", consultations: 22, patients: 18 },
-        { day: "Ven", consultations: 26, patients: 22 },
-        { day: "Sam", consultations: 20, patients: 16 },
-        { day: "Dim", consultations: 16, patients: 13 }
-      ];
+      const labels = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+      const counts = [0, 0, 0, 0, 0, 0, 0];
+      consultations.forEach(c => {
+        if (!c.created_at) return;
+        const d = new Date(c.created_at);
+        const diffDays = Math.floor((now - d) / 86400000);
+        if (diffDays < 0 || diffDays >= 7) return;
+        const dow = (d.getDay() + 6) % 7;
+        counts[dow]++;
+      });
+      return labels.map((day, i) => ({ day, consultations: counts[i], patients: Math.round(counts[i] * 0.75) }));
     } else if (period === 'monthly') {
-      return [
-        { day: "Sem 1", consultations: 45, patients: 38 },
-        { day: "Sem 2", consultations: 52, patients: 44 },
-        { day: "Sem 3", consultations: 48, patients: 41 },
-        { day: "Sem 4", consultations: 62, patients: 55 }
-      ];
+      const labels = ["Sem 1", "Sem 2", "Sem 3", "Sem 4"];
+      const counts = [0, 0, 0, 0];
+      consultations.forEach(c => {
+        if (!c.created_at) return;
+        const d = new Date(c.created_at);
+        const diffDays = Math.floor((now - d) / 86400000);
+        if (diffDays < 0 || diffDays >= 28) return;
+        const week = Math.min(3, Math.floor(diffDays / 7));
+        counts[3 - week]++;
+      });
+      return labels.map((day, i) => ({ day, consultations: counts[i], patients: Math.round(counts[i] * 0.75) }));
     } else {
-      return [
-        { day: "Jan", consultations: 180, patients: 145 },
-        { day: "Fév", consultations: 195, patients: 160 },
-        { day: "Mar", consultations: 210, patients: 178 },
-        { day: "Avr", consultations: 225, patients: 190 },
-        { day: "Mai", consultations: 240, patients: 205 },
-        { day: "Juin", consultations: 235, patients: 200 }
-      ];
+      const labels = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+      const counts = new Array(12).fill(0);
+      consultations.forEach(c => {
+        if (!c.created_at) return;
+        const d = new Date(c.created_at);
+        if (d.getFullYear() === now.getFullYear()) counts[d.getMonth()]++;
+      });
+      const month = now.getMonth();
+      return labels.slice(0, month + 1).map((day, i) => ({ day, consultations: counts[i], patients: Math.round(counts[i] * 0.75) }));
     }
   };
 
@@ -85,23 +94,29 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     setStatsLoading(true);
-    const chartData = generateChartData(period);
 
     try {
-      // Appels parallèles : patients, consultations historique, cas graves, rang, IA métriques
-      const [patients, consultations, casGraves, rang, iaMetrics] = await Promise.allSettled([
+      // Appels parallèles : patients, stats consultations, historique enrichi, cas graves, rang, IA métriques
+      const [patients, consStats, consultations, casGraves, rang, iaMetrics] = await Promise.allSettled([
         apiFetch('/patients/mes-patients'),
+        apiFetch('/consultations/mes-stats'),
         apiFetch('/consultations/historique'),
         apiFetch('/consultations/cas-graves'),
         apiFetch('/medecins/mon-rang'),
         apiFetch('/monitoring/ia-metrics'),
       ]);
 
-      const pts   = patients.status      === 'fulfilled' ? (patients.value      || []) : [];
-      const conss = consultations.status === 'fulfilled' ? (consultations.value || []) : [];
-      const grv   = casGraves.status     === 'fulfilled' ? (casGraves.value     || []) : [];
-      const rg    = rang.status          === 'fulfilled' ?  rang.value                 : null;
-      const ia    = iaMetrics.status     === 'fulfilled' ?  iaMetrics.value            : null;
+      const pts        = patients.status      === 'fulfilled' ? (patients.value      || []) : [];
+      const consStatsVal = consStats.status   === 'fulfilled' ?  consStats.value            : null;
+      const conss      = consultations.status === 'fulfilled' ? (consultations.value || []) : [];
+      const grv        = casGraves.status     === 'fulfilled' ? (casGraves.value     || []) : [];
+      const rg         = rang.status          === 'fulfilled' ?  rang.value                 : null;
+      const ia         = iaMetrics.status     === 'fulfilled' ?  iaMetrics.value            : null;
+
+      // Vrais totaux depuis mes-stats (toutes statuts), historique sert uniquement aux détails
+      const totalConss = consStatsVal?.total      ?? conss.length;
+      const terminees  = consStatsVal?.terminee   ?? conss.filter(c => c.statut === 'terminee').length;
+      const enAttente  = consStatsVal?.en_attente ?? conss.filter(c => c.statut === 'en_attente').length;
 
       // grv contient déjà uniquement les cas graves (filtrage fait côté backend)
       const urgents = grv;
@@ -165,12 +180,12 @@ export default function Dashboard() {
         },
         {
           title:    'Consultations',
-          value:    conss.length,
+          value:    totalConss,
           icon:     Stethoscope,
-          increase: `${conss.filter(c => c.statut === 'terminee').length} terminées`,
+          increase: `${terminees} terminées`,
           trend:    'up',
           gradient: 'from-emerald-500 to-emerald-600',
-          subtitle: `${conss.filter(c => c.statut === 'en_attente').length} en attente`,
+          subtitle: `${enAttente} en attente`,
           link:     '/medecin/historique',
         },
         {
@@ -208,6 +223,8 @@ export default function Dashboard() {
           patients: count,
           value: Math.round((count / Math.max(conss.length, 1)) * 100),
         }));
+
+      const chartData = generateChartData(period, conss);
 
       setDashboardData(prev => ({
         ...prev,
@@ -258,9 +275,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       {/* En-tête — carte blanche avec accents bleus */}
-      <div className="relative overflow-hidden bg-[var(--sf)] border border-[var(--ln)] rounded-2xl p-8 shadow-sm">
+      <div className="relative overflow-hidden bg-(--sf) border border-(--ln) rounded-2xl p-8 shadow-sm">
         {/* Bande de couleur en haut */}
-        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#0066CC] via-blue-400 to-blue-300 rounded-t-2xl" />
+        <div className="absolute top-0 left-0 right-0 h-0.75 bg-linear-to-r from-[#0066CC] via-blue-400 to-blue-300 rounded-t-2xl" />
         {/* Blob décoratif subtil */}
         <div className="absolute top-0 right-0 w-72 h-44 bg-blue-50 dark:bg-blue-950/20 rounded-full blur-3xl opacity-60 pointer-events-none" />
 
@@ -269,8 +286,8 @@ export default function Dashboard() {
             <div className="flex items-center gap-5">
               {/* Photo de profil */}
               <div className="relative shrink-0">
-                <div className="relative w-20 h-20 rounded-full p-[2.5px] bg-gradient-to-br from-[#0066CC] to-blue-400 shadow-lg">
-                  <div className="w-full h-full rounded-full overflow-hidden bg-[var(--sf2)] flex items-center justify-center">
+                <div className="relative w-20 h-20 rounded-full p-[2.5px] bg-linear-to-br from-[#0066CC] to-blue-400 shadow-lg">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-(--sf2) flex items-center justify-center">
                     {profil?.photo_url
                       ? <img src={profil.photo_url} alt="Profil" className="w-full h-full object-cover" />
                       : <span className="text-xl font-black text-[#0066CC] tracking-tight select-none">
@@ -280,7 +297,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 {/* Indicateur de présence */}
-                <div className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-emerald-400 border-[2.5px] border-[var(--sf)] shadow-md">
+                <div className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-emerald-400 border-[2.5px] border-(--sf) shadow-md">
                   <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-50" />
                 </div>
               </div>
@@ -292,7 +309,7 @@ export default function Dashboard() {
                     Tableau de bord
                   </span>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold text-[var(--t1)]">
+                <h1 className="text-3xl md:text-4xl font-bold text-(--t1)">
                   Bienvenue,{' '}
                   <span className="text-[#0066CC]">
                     {profil ? `${profil.civilite || 'Dr'}. ${profil.prenom} ${profil.nom}` : 'Dr.'}
@@ -300,8 +317,8 @@ export default function Dashboard() {
                 </h1>
                 <div className="flex items-center gap-2 mt-2.5">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <p className="text-[var(--t3)] text-sm">
-                    {profil?.specialite && <span className="font-medium text-[var(--t2)]">{profil.specialite} · </span>}
+                  <p className="text-(--t3) text-sm">
+                    {profil?.specialite && <span className="font-medium text-(--t2)">{profil.specialite} · </span>}
                     {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </p>
                 </div>
@@ -311,7 +328,7 @@ export default function Dashboard() {
             <div className="flex gap-3">
               <button
                 onClick={() => navigate('/medecin/historique')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--sf2)] border border-[var(--ln)] rounded-xl text-sm font-medium text-[var(--t2)] hover:bg-[var(--sf3)] transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 bg-(--sf2) border border-(--ln) rounded-xl text-sm font-medium text-(--t2) hover:bg-(--sf3) transition-all"
               >
                 <CalendarIcon className="w-4 h-4" />
                 Cette semaine
@@ -576,7 +593,7 @@ export default function Dashboard() {
                 </span>
                 <span className="text-lg text-white/50 font-medium">/ {dashboardData.ranking.total}</span>
               </div>
-              <p className="text-sm text-blue-200/70 font-medium">Classement médecins</p>
+              <p className="text-sm text-blue-200/70 font-medium">Classement médecins · ce mois</p>
 
               {/* Score */}
               <div className="mt-3 mb-3 px-4 py-1.5 bg-white/8 rounded-full inline-flex items-center gap-1.5 border border-white/10">

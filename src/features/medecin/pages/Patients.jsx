@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { TablePagination } from '../../../components/ui/TablePagination';
 import { useNavigate } from "react-router-dom";
+import { useProfil } from '../hooks/useAuth';
 import {
   LayoutGrid, UserRound, Stethoscope, Share2, MessageSquare,
   Bell, Search, Settings, ShieldCheck, History, Activity,
@@ -117,7 +118,7 @@ function VitalCard({ label, value, unit, warn }) {
       initial={{ y: 10, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       whileHover={{ scale: 1.05 }}
-      className={`rounded-xl p-3 border transition-all ${warn ? "bg-red-50 border-red-200 shadow-sm shadow-red-100 dark:bg-red-500/10 dark:border-red-500/20" : "bg-emerald-50 border-emerald-200 shadow-sm shadow-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/20"}`}
+      className={`rounded-xl p-3 border transition-all ${warn ? "bg-red-50 border-red-200 dark:bg-red-500/10 dark:border-red-500/20" : "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20"}`}
     >
       <div className="text-[10px] font-black uppercase tracking-widest text-(--t4) mb-1.5">{label}</div>
       <div className={`text-base font-black leading-none tracking-tight ${warn ? "text-red-600 dark:text-red-400" : "text-emerald-700 dark:text-emerald-300"}`}>
@@ -283,7 +284,7 @@ function DossierTab({ p }) {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-linear-to-br from-blue-50 to-blue-100/50 border border-blue-200 rounded-2xl p-4 mb-4 shadow-sm dark:from-blue-500/10 dark:to-blue-500/5 dark:border-blue-500/20"
+        className="bg-linear-to-br from-blue-50 to-blue-100/50 border border-blue-200 rounded-2xl p-4 mb-4 shadow-sm dark:bg-none dark:bg-(--sf2) dark:border-(--ln)"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -1059,10 +1060,9 @@ const CLINIQUE_CONFIG = {
   critique:  { label: "Critique",   dot: "bg-red-500",     color: "text-red-700 dark:text-red-300",        bg: "bg-red-50 dark:bg-red-900/20",        border: "border-red-200 dark:border-red-700/40",       desc: "État critique — intervention immédiate" },
 };
 
-function StatusTab({ p, onStatusChange, onStatutCliniqueChange }) {
-  const avis      = p.statut_avis     || (p.status === 'actif' ? 'terminee' : 'en_attente');
+function StatusTab({ p, onStatusChange }) {
+  const avis      = p.statut_avis || null;
   const clinique  = p.statut_clinique || null;
-  const cliniqueOptions = ["stable", "surveille", "urgent", "critique"];
   const [suiviDate,    setSuiviDate]    = useState(p.antecedents?.prochain_suivi || '');
   const [suiviLoading, setSuiviLoading] = useState(false);
   const [suiviSaved,   setSuiviSaved]   = useState(false);
@@ -1091,68 +1091,47 @@ function StatusTab({ p, onStatusChange, onStatutCliniqueChange }) {
       {/* ── Section 1 : Statut avis médecin (lecture seule) ── */}
       <div>
         <p className="text-xs font-black uppercase tracking-widest text-(--t4) mb-3">Statut avis médecin</p>
-        <div className={`flex items-center gap-3 p-3.5 rounded-xl border ${
-          avis === 'terminee'
-            ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700/40'
-            : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/40'
-        }`}>
-          <motion.span
-            className={`w-2.5 h-2.5 rounded-full shrink-0 ${avis === 'terminee' ? 'bg-emerald-500' : 'bg-amber-500'}`}
-            animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 2, repeat: Infinity }}
-          />
-          <div className="flex-1">
-            <p className={`text-sm font-bold ${avis === 'terminee' ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}>
-              {avis === 'terminee' ? 'Avis donné' : 'En attente d\'avis'}
-            </p>
-            <p className="text-xs text-(--t4) mt-0.5">
-              {avis === 'terminee' ? 'Consultation terminée — prescription enregistrée' : 'Le médecin n\'a pas encore validé cette consultation'}
-            </p>
+        {avis === null ? (
+          <p className="text-xs text-(--t4) italic text-center py-3">Aucune consultation enregistrée</p>
+        ) : (
+          <div className={`flex items-center gap-3 p-3.5 rounded-xl border ${
+            avis === 'terminee'
+              ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700/40'
+              : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/40'
+          }`}>
+            <motion.span
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${avis === 'terminee' ? 'bg-emerald-500' : 'bg-amber-500'}`}
+              animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 2, repeat: Infinity }}
+            />
+            <div className="flex-1">
+              <p className={`text-sm font-bold ${avis === 'terminee' ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                {avis === 'terminee' ? 'Avis donné' : 'En attente d\'avis'}
+              </p>
+              <p className="text-xs text-(--t4) mt-0.5">
+                {avis === 'terminee' ? 'Consultation terminée — prescription enregistrée' : 'Le médecin n\'a pas encore validé cette consultation'}
+              </p>
+            </div>
+            <CheckCircle2 size={16} className={avis === 'terminee' ? 'text-emerald-500' : 'text-amber-400 opacity-40'} />
           </div>
-          <CheckCircle2 size={16} className={avis === 'terminee' ? 'text-emerald-500' : 'text-amber-400 opacity-40'} />
-        </div>
+        )}
       </div>
 
-      {/* ── Section 2 : État clinique IA (modifiable) ── */}
+      {/* ── Section 2 : État clinique IA (lecture seule, déterminé par l'IA) ── */}
       <div>
         <p className="text-xs font-black uppercase tracking-widest text-(--t4) mb-3">État clinique</p>
-        {clinique && (
+        {clinique ? (
           <motion.div
             initial={{ scale: 0.95 }} animate={{ scale: 1 }}
-            className={`${CLINIQUE_CONFIG[clinique].bg} ${CLINIQUE_CONFIG[clinique].border} border rounded-2xl p-3.5 mb-3 shadow-sm`}
+            className={`${CLINIQUE_CONFIG[clinique].bg} ${CLINIQUE_CONFIG[clinique].border} border rounded-2xl p-3.5 shadow-sm`}
           >
             <div className="flex items-center gap-2 mb-1">
               <motion.span className={`w-3 h-3 rounded-full ${CLINIQUE_CONFIG[clinique].dot}`} animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
               <span className={`text-sm font-bold ${CLINIQUE_CONFIG[clinique].color}`}>{CLINIQUE_CONFIG[clinique].label}</span>
-              <span className="ml-auto text-[10px] text-(--t4) uppercase tracking-wider">État actuel</span>
+              <span className="ml-auto text-[10px] text-(--t4) uppercase tracking-wider">Déterminé par l'IA</span>
             </div>
             <p className="text-xs text-(--t3)">{CLINIQUE_CONFIG[clinique].desc}</p>
           </motion.div>
-        )}
-
-        <div className="grid grid-cols-2 gap-2">
-          {cliniqueOptions.map((s, i) => {
-            const cfg    = CLINIQUE_CONFIG[s];
-            const active = s === clinique;
-            return (
-              <motion.button
-                key={s}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => onStatutCliniqueChange?.(s)}
-                className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left
-                  ${active ? `${cfg.bg} ${cfg.border} ${cfg.color} shadow-md` : "bg-(--sf) border-(--ln) text-(--t2) hover:bg-(--sf2)"}`}
-              >
-                <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
-                <span className="text-xs font-bold">{cfg.label}</span>
-                {active && <CheckCircle2 size={14} className="ml-auto" />}
-              </motion.button>
-            );
-          })}
-        </div>
-        {!clinique && (
+        ) : (
           <p className="text-xs text-(--t4) text-center mt-2 italic">Aucun diagnostic IA disponible</p>
         )}
       </div>
@@ -1354,7 +1333,7 @@ function AccessTab({ p }) {
 
 // ─── DETAIL PANEL ──────────────────────────────────────────────────────
 
-function DetailPanel({ patient, onClose, onStatusChange, onStatutCliniqueChange, onPatientUpdated, onPatientDeleted }) {
+function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPatientDeleted }) {
   const navigate = useNavigate();
   const [tab,             setTab]             = useState("dossier");
   const [showModal,       setShowModal]       = useState(false);
@@ -1535,7 +1514,7 @@ function DetailPanel({ patient, onClose, onStatusChange, onStatutCliniqueChange,
             statut_avis: 'terminee',
           });
         }} />}
-        {tab === "status" && <StatusTab p={patient} onStatusChange={onStatusChange} onStatutCliniqueChange={onStatutCliniqueChange} />}
+        {tab === "status" && <StatusTab p={patient} onStatusChange={onStatusChange} />}
         {tab === "access" && <AccessTab p={patient} />}
       </motion.div>
 
@@ -1838,6 +1817,7 @@ function Toast({ toasts, remove }) {
 // ─── MAIN APP ──────────────────────────────────────────────────────────
 
 export default function PatientsPage() {
+  const { profil } = useProfil();
   const [patients,   setPatients]   = useState({});
   const [selected,   setSelected]   = useState(null);
   const [filter,     setFilter]     = useState("all");
@@ -1895,6 +1875,7 @@ export default function PatientsPage() {
             telephone_urgence:    p.telephone_urgence    || null,
             allergies:   Array.isArray(p.allergies) ? p.allergies : ['Aucune allergie connue'],
             antecedents: _formaterAntecedents(p.antecedents || {}),
+            medecin_referent: profil ? `Dr. ${profil.prenom} ${profil.nom}` : null,
             diag:        'Chargement...',
             diagSince:   '',
             iaPct:       0,
@@ -2080,26 +2061,6 @@ export default function PatientsPage() {
     addToast("success", "Statut mis à jour", STATUS_CONFIG[newStatus]?.label);
   };
 
-  const handleStatutCliniqueChange = async (newStatut) => {
-    if (!selected) return;
-    const consultationId = patients[selected]?.derniere_consultation_id;
-    if (!consultationId) return;
-    try {
-      const token   = localStorage.getItem('token') || localStorage.getItem('access_token') || localStorage.getItem('pneumoia_token');
-      const BASE    = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-      const res     = await fetch(`${BASE}/consultations/${consultationId}/statut-clinique`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ statut_clinique: newStatut }),
-      });
-      if (!res.ok) throw new Error('Erreur réseau');
-      setPatients(prev => ({ ...prev, [selected]: { ...prev[selected], statut_clinique: newStatut } }));
-      addToast("success", "État clinique mis à jour", newStatut);
-    } catch {
-      addToast("error", "Impossible de mettre à jour l'état clinique", "");
-    }
-  };
-
   const handlePatientUpdated = (id, updates) => {
     setPatients(prev => ({ ...prev, [id]: { ...prev[id], ...updates } }));
     addToast("success", "Patient mis à jour", "Modifications enregistrées");
@@ -2275,7 +2236,6 @@ export default function PatientsPage() {
               patient={currentPatient}
               onClose={() => setSelected(null)}
               onStatusChange={handleStatusChange}
-              onStatutCliniqueChange={handleStatutCliniqueChange}
               onPatientUpdated={handlePatientUpdated}
               onPatientDeleted={handlePatientDeleted}
             />

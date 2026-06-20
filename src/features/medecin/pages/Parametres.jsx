@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  User, Bell, Shield, Share2, Lock,
+  User, Bell, Lock,
   Eye, EyeOff, CheckCircle, AlertCircle,
   Save, Sun, Moon, Download, Loader2,
   ChevronRight, Trash2, Globe, Settings,
