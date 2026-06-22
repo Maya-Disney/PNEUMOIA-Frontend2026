@@ -46,7 +46,7 @@ export default function MedecinLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--t1)] transition-colors duration-300">
+    <div className="min-h-screen bg-(--bg) text-(--t1) transition-colors duration-300">
       <Sidebar 
         sidebarOpen={sidebarOpen} 
         setSidebarOpen={setSidebarOpen}

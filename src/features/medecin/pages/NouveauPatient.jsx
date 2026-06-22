@@ -129,11 +129,12 @@ export default function NouveauPatient() {
     <div className="flex flex-col h-screen overflow-hidden bg-(--bg)" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
 
       {/* ── Barre de titre ────────────────────────────────────────────── */}
-      <motion.div
+      {/* <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="shrink-0 px-6 py-4 border-b border-(--ln) bg-(--sf) flex items-center justify-between gap-4"
-      >
+      > */}
+
         <div className="flex items-center gap-4">
           <motion.button
             whileHover={{ scale: 1.08 }}
@@ -145,7 +146,7 @@ export default function NouveauPatient() {
             <ArrowLeft size={17} />
           </motion.button>
 
-          <div>
+          {/* <div>
             <div className="flex items-center gap-2 mb-0.5">
               <div className="w-1 h-4 bg-[#0066CC] rounded-full" />
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0066CC]">
@@ -153,10 +154,10 @@ export default function NouveauPatient() {
               </span>
             </div>
             <h1 className="text-xl font-bold text-(--t1) leading-tight">Nouveau dossier patient</h1>
-          </div>
+          </div> */}
         </div>
 
-      </motion.div>
+      {/* </motion.div> */}
 
       {/* ── Corps ─────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">

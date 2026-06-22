@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import '../admin.css';
 import { AdminThemeProvider, useAdminTheme } from "../context/useAdminTheme";
@@ -8,6 +9,13 @@ import { getSurface } from "../theme";
 function AdminLayoutInner() {
   const { dark, setDark } = useAdminTheme();
   const surface = getSurface(dark);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const wasDark = html.classList.contains('dark');
+    html.classList.remove('dark');
+    return () => { if (wasDark) html.classList.add('dark'); };
+  }, []);
 
   return (
     <div className="admin-theme flex h-screen overflow-hidden" style={{ minWidth: 0, background: surface.bg }}>
