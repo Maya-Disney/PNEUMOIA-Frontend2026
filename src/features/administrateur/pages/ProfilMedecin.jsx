@@ -209,7 +209,7 @@ export default function ProfilMedecin() {
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
       <style>{`@media print{body *{visibility:hidden!important}#pp,#pp *{visibility:visible!important}#pp{position:absolute;left:0;top:0;width:100%;padding:28px;background:#fff!important}.np{display:none!important}}`}</style>
 
-      <div className="flex items-center justify-between np">
+      <div className="flex items-center justify-between gap-3 flex-wrap np">
         <button onClick={()=>navigate("/administrateur/medecins")}
           className={`flex items-center gap-2 text-[14px] font-medium transition-colors ${tx3} hover:${tx1}`}>
           <ArrowLeft size={13}/> Retour aux médecins
@@ -225,9 +225,9 @@ export default function ProfilMedecin() {
 
       <div id="pp" className="flex flex-col gap-4">
 
-        <div className={`${surface} px-6 py-5`}>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
+        <div className={`${surface} px-4 sm:px-6 py-5`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <button onClick={()=>setModalePhoto(true)} title="Voir la photo CNI"
                 style={{width:56,height:56,borderRadius:"50%",flexShrink:0,padding:0,border:"none",cursor:"pointer",position:"relative"}}
                 className="group">
@@ -270,11 +270,11 @@ export default function ProfilMedecin() {
           </div>
         </div>
 
-        <div className="grid gap-4" style={{gridTemplateColumns:"minmax(0,1fr) 280px"}}>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-4">
 
-          <div className={`${surface} px-6 py-5`}>
+          <div className={`${surface} px-4 sm:px-6 py-5`}>
             <p className={`text-[14px] font-medium mb-4 ${tx1}`}>Informations du membre</p>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px 32px"}}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
               <InfoField label="Email"              value={m.email}/>
               <InfoField label="Statut"             value={m.statut}       badge/>
               <InfoField label="Téléphone"         value={m.telephone}/>
@@ -286,7 +286,7 @@ export default function ProfilMedecin() {
             </div>
           </div>
 
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div className="hidden lg:flex flex-col gap-2.5">
             <KpiCard bg="#f0fdf4" bdr="#bbf7d0" iconBg="#009e82" icon={<User size={17}/>}
               label="Statut" labelColor="#059669" value={m.statut} valueColor="#065f46"/>
             <KpiCard bg="#fff7ed" bdr="#fed7aa" iconBg="#f97316" icon={<Cpu size={17}/>}
@@ -297,9 +297,9 @@ export default function ProfilMedecin() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-          <div className={`${surface} px-6 py-5`}>
+          <div className={`${surface} px-4 sm:px-6 py-5`}>
             <p className={`text-[14px] font-medium mb-4 ${tx1}`}>Statistiques d'activité</p>
             <div className="grid grid-cols-2 gap-4">
               {[
@@ -316,7 +316,7 @@ export default function ProfilMedecin() {
             </div>
           </div>
 
-          <div className={`${surface} px-6 py-5`}>
+          <div className={`${surface} px-4 sm:px-6 py-5`}>
             <p className={`text-[14px] font-medium mb-4 ${tx1}`}>Activité récente</p>
             {(!m.activiteRecente||m.activiteRecente.length===0)
               ? <p className={`text-[14px] ${tx3}`}>Aucune activité récente</p>

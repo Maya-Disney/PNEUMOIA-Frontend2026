@@ -144,7 +144,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
   const location = useLocation();
 
   const [notifOpen,       setNotifOpen]       = useState(false);
-  const [panelPos,        setPanelPos]        = useState({ top: 0, right: 0 });
+  const [panelPos,        setPanelPos]        = useState({ top: 0, right: 0, width: 360, left: null });
   const [inscriptions,    setInscriptions]    = useState([]);
   const [faqNotifs,       setFaqNotifs]       = useState([]);
   const [commentNotifs,   setCommentNotifs]   = useState([]);
@@ -268,7 +268,17 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
   function toggleNotif() {
     if (bellRef.current) {
       const rect = bellRef.current.getBoundingClientRect();
-      setPanelPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+      const vw   = window.innerWidth;
+      if (vw < 480) {
+        // Mobile : panel pleine largeur avec marge de 8px de chaque côté
+        setPanelPos({ top: rect.bottom + 8, left: 8, right: null, width: vw - 16 });
+      } else {
+        const rightPos  = vw - rect.right;
+        const panelW    = 360;
+        // S'assurer que le panel ne dépasse pas à gauche
+        const safeRight = Math.min(rightPos, vw - panelW - 8);
+        setPanelPos({ top: rect.bottom + 8, right: Math.max(4, safeRight), left: null, width: panelW });
+      }
     }
     setNotifOpen(o => !o);
   }
@@ -292,12 +302,12 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
 
   return (
     <header
-      className="h-14 flex items-center justify-between px-4 md:px-6 shrink-0 border-b"
+      className="h-14 flex items-center gap-2 px-3 sm:px-4 md:px-6 shrink-0 border-b"
       style={{ background: surface.card, borderColor: surface.border }}
     >
       {/* Mobile menu btn */}
       <button
-        className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg mr-2"
+        className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg shrink-0"
         style={{ color: txt.muted }}
         onClick={() => document.getElementById("sidebar-toggle")?.click()}
       >
@@ -306,7 +316,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
 
       {/* Search */}
       <div
-        className="flex items-center gap-2 h-9 px-3 rounded-xl border w-full max-w-xs transition-all"
+        className="flex items-center gap-2 h-9 px-3 rounded-xl border flex-1 min-w-0 max-w-xs transition-all"
         style={{
           background:  surface.bg,
           borderColor: searchQuery ? brand.DEFAULT : surface.border,
@@ -317,8 +327,16 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
         <input
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Rechercher médecin, ville, CNOM…"
+          placeholder="Rechercher…"
+          className="hidden sm:block"
           style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: txt.secondary }}
+        />
+        <input
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Médecin, CNOM…"
+          className="sm:hidden"
+          style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", fontSize: 13, color: txt.secondary }}
         />
         {searchQuery && (
           <button onClick={() => setSearchQuery("")} style={{ color: txt.subtle, display: "flex", alignItems: "center" }}>
@@ -327,10 +345,10 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
         )}
       </div>
 
-      <div className="flex items-center gap-2 ml-3">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
 
-        {/* Dark / Light toggle */}
-        <div className="flex gap-0.5 p-1 rounded-xl border" style={{ background: surface.bg, borderColor: surface.border }}>
+        {/* Dark toggle — version complète sur sm+ */}
+        <div className="hidden sm:flex gap-0.5 p-1 rounded-xl border" style={{ background: surface.bg, borderColor: surface.border }}>
           {[
             { mode: false, icon: <Sun  size={13} />, label: "Clair"  },
             { mode: true,  icon: <Moon size={13} />, label: "Sombre" },
@@ -340,25 +358,35 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
               <button
                 key={label}
                 onClick={() => setDark(mode)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-bold transition-all"
+                className="flex items-center justify-center w-7 h-7 rounded-lg transition-all"
                 style={{
                   background: isActive ? (dark ? brand.DEFAULT : "#ffffff") : "transparent",
                   color:      isActive ? (dark ? "#ffffff" : brand.dark)    : txt.muted,
                   boxShadow:  isActive ? "0 1px 3px rgba(0,0,0,.1)"        : "none",
                 }}
+                title={label}
               >
                 {icon}
-                <span className="hidden sm:inline">{label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Corbeille */}
+        {/* Dark toggle — icône seule sur mobile */}
+        <button
+          className="sm:hidden w-8 h-8 flex items-center justify-center rounded-xl border transition-colors"
+          style={{ borderColor: surface.border, color: txt.muted, background: "transparent" }}
+          onClick={() => setDark(d => !d)}
+          title={dark ? "Mode clair" : "Mode sombre"}
+        >
+          {dark ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
+
+        {/* Corbeille — masquée sur mobile */}
         <button
           onClick={() => navigate("/administrateur/corbeille")}
           title="Corbeille"
-          className="relative w-9 h-9 flex items-center justify-center rounded-xl border transition-colors"
+          className="relative hidden sm:flex w-9 h-9 items-center justify-center rounded-xl border transition-colors"
           style={{
             borderColor: surface.border,
             color:       corbeilleCount > 0 ? "#dc2626" : txt.muted,
@@ -414,9 +442,11 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
               style={{
                 position:     "fixed",
                 top:          panelPos.top,
-                right:        panelPos.right,
-                width:        360,
-                maxHeight:    "80vh",
+                ...(panelPos.left !== null
+                  ? { left: panelPos.left }
+                  : { right: panelPos.right }),
+                width:        panelPos.width,
+                maxHeight:    "75vh",
                 overflowY:    "auto",
                 zIndex:       100,
                 background:   surface.card,

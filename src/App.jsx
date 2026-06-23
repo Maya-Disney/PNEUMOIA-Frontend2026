@@ -30,6 +30,7 @@ import CorbeilleMedecin      from './features/medecin/pages/Corbeille';
 import PatientDossier  from './features/medecin/pages/PatientDossier';
 import NouveauPatient  from './features/medecin/pages/NouveauPatient';
 import MesPublications from './features/medecin/pages/MesPublications';
+import RequetesMedecin  from './features/medecin/pages/Requetes';
 
 import AideLayout          from './features/aide/layout/AideLayout';
 import AideDashboard       from './features/aide/pages/AideDashboard';
@@ -62,6 +63,7 @@ import CorbeilleAdmin      from './features/administrateur/pages/Corbeille';
 import FAQ                 from './features/administrateur/pages/FAQ';
 import Commentaires        from './features/administrateur/pages/Commentaires';
 import ConsultationsAnnuelles from './features/administrateur/pages/ConsultationsAnnuelles';
+import RequetesMedecins    from './features/administrateur/pages/RequetesMedecins';
 
 
 
@@ -119,6 +121,7 @@ function App() {
               <Route path="mes-publications"     element={<MesPublications />} />
               <Route path="patients/nouveau"     element={<NouveauPatient />} />
               <Route path="patients/:patientId"  element={<PatientDossier />} />
+              <Route path="requetes"             element={<RequetesMedecin />} />
             </Route>
 
             {/* SECTION AIDE SOIGNANT */}
@@ -157,6 +160,7 @@ function App() {
           <Route path="faq"                 element={<FAQ />} />
           <Route path="commentaires"        element={<Commentaires />} />
           <Route path="consultations-annuelles" element={<ConsultationsAnnuelles />} />
+          <Route path="requetes"            element={<RequetesMedecins />} />
         </Route>
         </Route>
             {/* PAGE D'ACTIVATION */}
@@ -182,6 +186,7 @@ function App() {
               <Route path="corbeille"          element={<CorbeilleAdmin />} />
               <Route path="faq"                element={<FAQ />} />
               <Route path="commentaires"       element={<Commentaires />} />
+              <Route path="requetes"           element={<RequetesMedecins />} />
             </Route>
 
           </Routes>

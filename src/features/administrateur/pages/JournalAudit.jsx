@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { Download, Search, ChevronLeft, ChevronRight, Trash2, X, AlertTriangle, Activity, CheckCircle2, XCircle, ShieldAlert } from "lucide-react";
+import { Download, Search, ChevronLeft, ChevronRight, Trash2, X, AlertTriangle, Activity, CheckCircle2, XCircle, ShieldAlert, RefreshCw } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
 import {
   Th, Tr, Td, EmptyCell, MutedText, SubtleText, PaginationBar,
@@ -124,7 +124,8 @@ export default function JournalAudit() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showClean, setShowClean] = useState(false);
-  const [lastClean, setLastClean] = useState(() => localStorage.getItem("auditLastClean") || null);
+  const [lastClean,  setLastClean]  = useState(() => localStorage.getItem("auditLastClean") || null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const PER_PAGE = 8;
 
   useEffect(() => {
@@ -136,7 +137,7 @@ export default function JournalAudit() {
       })
       .catch(() => setData([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [refreshKey]);
 
   async function handleClean(days) {
     try {
@@ -189,7 +190,14 @@ export default function JournalAudit() {
           <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${dark ? "text-white" : "text-gray-900"}`}>Journal d'audit</h1>
           <p className={`text-[15px] mt-1 ${dark ? "text-[#8b949e]" : "text-gray-400"}`}>Traçabilité complète de chaque action</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            disabled={loading}
+            title="Actualiser"
+            className={`p-2 rounded-xl border transition-colors ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-[#21262d]" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
           <button
             onClick={() => setShowClean(true)}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-red-900/20 hover:border-red-700/40 hover:text-red-400" : "border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-500"}`}
@@ -285,6 +293,7 @@ export default function JournalAudit() {
             {[1,2,3,4].map(i => <div key={i} className="h-10 rounded-xl animate-pulse" style={{ background: dark ? "#21262d" : "#f3f4f6" }} />)}
           </div>
         ) : (
+          <div>
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -332,6 +341,7 @@ export default function JournalAudit() {
               }
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

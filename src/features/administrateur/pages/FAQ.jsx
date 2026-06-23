@@ -16,7 +16,7 @@ import { useOutletContext } from "react-router-dom";
 import {
   HelpCircle, MessageSquare, CheckCircle, Clock, Plus, X,
   Send, ChevronDown, ChevronUp, Search, Wind, PauseCircle,
-  AlertCircle, Trash2, Calendar,
+  AlertCircle, Trash2, Calendar, RefreshCw,
 } from "lucide-react";
 import { getQuestions, repondreQuestion, getFAQ, creerFAQ, modifierFAQ, toggleFAQPublie, supprimerFAQ, viderTouteFAQ, supprimerQuestion, viderHistoriqueQuestions, publierQuestionFAQ } from "../api/adminApi";
 import { brand, getSurface, getText } from "../theme";
@@ -126,6 +126,7 @@ export default function FAQ() {
   const [reponse,          setReponse]          = useState("");
   const [toast,            setToast]            = useState(null);
   const [modaleSupprimer,  setModaleSupprimer]  = useState(null);
+  const [refreshKey,       setRefreshKey]       = useState(0);
   // { id, label, type: "faq" | "question" }
 
   useEffect(() => {
@@ -142,7 +143,7 @@ export default function FAQ() {
       })
       .catch(()=>{})
       .finally(()=>setLoadingQ(false));
-  }, []);
+  }, [refreshKey]);
 
   useEffect(() => {
     setLoadingF(true);
@@ -158,7 +159,7 @@ export default function FAQ() {
       })
       .catch(()=>{})
       .finally(()=>setLoadingF(false));
-  }, []);
+  }, [refreshKey]);
 
   const qFiltered = questions.filter(q => {
     const okSearch = !search || q.question.toLowerCase().includes(search.toLowerCase()) || q.medecin.toLowerCase().includes(search.toLowerCase());
@@ -271,7 +272,15 @@ export default function FAQ() {
             }
           </p>
         </div>
-        <div className={`flex gap-1 p-1 rounded-xl border ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-100 border-gray-200"}`}>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            disabled={loadingQ || loadingF}
+            title="Actualiser"
+            className={`p-2 rounded-xl border transition-colors ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+            <RefreshCw size={16} className={(loadingQ || loadingF) ? "animate-spin" : ""} />
+          </button>
+          <div className={`flex gap-1 p-1 rounded-xl border ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-100 border-gray-200"}`}>
           <button onClick={()=>setOnglet("attente")}
             className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[15px] font-bold transition-all"
             style={onglet==="attente"?{background:brand.DEFAULT,color:"#fff"}:{color:dark?"#484f58":"#9ca3af"}}>
@@ -302,6 +311,7 @@ export default function FAQ() {
               {faqList.filter(f=>!f.publie).length}
             </span>
           </button>
+        </div>
         </div>
       </div>
 

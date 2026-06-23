@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useAdminTheme } from "../context/useAdminTheme";
-import { Trash2, X, AlertTriangle, RotateCcw, MoreVertical } from "lucide-react";
+import { Trash2, X, AlertTriangle, RotateCcw, MoreVertical, RefreshCw } from "lucide-react";
 import { reactiverMedecin, supprimerMedecin, getMedecinsSuspendus } from "../api/adminApi";
 import { brand, getSurface, getText } from "../theme";
 import {
@@ -79,7 +79,8 @@ export default function MedecinsSuspendus() {
   const [page,           setPage]           = useState(1);
   const [perPage,        setPerPage]        = useState(10);
 
-  const [openMenuId, setOpenMenuId] = useState(null);
+  const [openMenuId,  setOpenMenuId]  = useState(null);
+  const [refreshKey,  setRefreshKey]  = useState(0);
 
   const q       = searchQuery.toLowerCase().trim();
   const liste   = suspendus.filter(m => !q || [m.nom, m.hopital, m.cnom, m.email, m.specialite]
@@ -114,7 +115,7 @@ export default function MedecinsSuspendus() {
       })
       .catch(() => {})
       .finally(() => setLoadingData(false));
-  }, []);
+  }, [refreshKey]);
 
   useEffect(() => {
     if (!toast) return;
@@ -184,14 +185,23 @@ export default function MedecinsSuspendus() {
   return (
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
 
-      <div>
-        <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${dark?"text-white":"text-gray-900"}`}>
-          Comptes suspendus
-        </h1>
-        <p className={`text-[14px] mt-1 ${dark?"text-[#8b949e]":"text-gray-400"}`}>
-          {suspendus.length} compte{suspendus.length>1?"s":""} suspendu{suspendus.length>1?"s":""}
-          {" "}· Réactiver ou supprimer avec notification e-mail automatique
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div>
+          <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${dark?"text-white":"text-gray-900"}`}>
+            Comptes suspendus
+          </h1>
+          <p className={`text-[14px] mt-1 ${dark?"text-[#8b949e]":"text-gray-400"}`}>
+            {suspendus.length} compte{suspendus.length>1?"s":""} suspendu{suspendus.length>1?"s":""}
+            {" "}· Réactiver ou supprimer avec notification e-mail automatique
+          </p>
+        </div>
+        <button
+          onClick={() => setRefreshKey(k => k + 1)}
+          disabled={loadingData}
+          title="Actualiser"
+          className={`p-2 rounded-xl border transition-colors ${dark?"border-[#30363d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+          <RefreshCw size={16} className={loadingData ? "animate-spin" : ""} />
+        </button>
       </div>
 
       <TableCard dark={dark}>

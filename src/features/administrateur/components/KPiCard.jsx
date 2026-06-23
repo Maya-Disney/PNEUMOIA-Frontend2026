@@ -1,15 +1,33 @@
-import { TrendingUp } from "lucide-react";
+export default function KpiCard({ icon: Icon, label, val, gradient, tintLight, tintDark, dark }) {
+  const tint = dark ? tintDark : tintLight;
+  const cardBg     = dark ? "#111827" : "#ffffff";
+  const borderCol  = dark ? "#1f2937" : "#f1f5f9";
+  const numColor   = dark ? "#ffffff" : "#111827";
+  const labelColor = dark ? "#d1d5db" : "#4b5563";
+  const subColor   = dark ? "#6b7280" : "#9ca3af";
 
-export default function KpiCard({ icon: Icon, label, val, trend, ibg, ic, dark }) {
   return (
-    <div className={`rounded-2xl border p-5 transition-all ${dark ? "bg-[#111827] border-[#1f2937]" : "bg-white border-slate-100 shadow-sm"}`}>
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${ibg}`}>
-        <Icon size={18} className={ic} />
+    <div
+      className="overflow-hidden rounded-2xl border transition-all hover:shadow-lg group cursor-default"
+      style={{ background: cardBg, borderColor: borderCol }}
+    >
+      {/* Zone haute — fond teinté, chiffre + titre */}
+      <div className="px-5 pt-5 pb-5" style={{ backgroundColor: tint }}>
+        <p className="text-4xl font-black tracking-tight leading-none tabular-nums" style={{ color: numColor }}>
+          {val}
+        </p>
+        <p className="text-sm font-semibold mt-2" style={{ color: labelColor }}>{label}</p>
       </div>
-      <p className={`text-2xl font-black tracking-tight ${dark ? "text-white" : "text-gray-900"}`}>{val}</p>
-      <p className={`text-[11px] mt-1 mb-2 ${dark ? "text-[#8b949e]" : "text-gray-500"}`}>{label}</p>
-      <div className={`flex items-center gap-1 text-[10px] font-bold text-blue-700 dark:text-blue-400`}>
-        <TrendingUp size={10} /> {trend}
+
+      {/* Séparateur */}
+      <div className="h-px" style={{ backgroundColor: borderCol }} />
+
+      {/* Zone basse — icône + label */}
+      <div className="px-5 py-3.5 flex items-center gap-3" style={{ backgroundColor: cardBg }}>
+        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-200`}>
+          <Icon size={16} className="text-white" />
+        </div>
+        <p className="text-xs truncate" style={{ color: subColor }}>{label}</p>
       </div>
     </div>
   );

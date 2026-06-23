@@ -3,7 +3,7 @@ import { getDemandes, validerMedecin, rejeterMedecin } from "../api/adminApi";
 import { useOutletContext } from "react-router-dom";
 import { useAdminTheme } from "../context/useAdminTheme";
 import * as XLSX from "xlsx";
-import { Download, Eye, CheckCircle, XCircle, FileText, MoreVertical } from "lucide-react";
+import { Download, Eye, CheckCircle, XCircle, FileText, MoreVertical, RefreshCw } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
 import {
   TableContainer, Th, Tr, Td, EmptyCell, PersonCell,
@@ -25,7 +25,18 @@ const DOC_CFG = {
   missing: {label:"Manquant",   cls:"bg-red-100 text-red-700 border-red-300 font-bold"},
 };
 
-const MOTIFS = ["— Choisir un motif —","N° CNOM invalide ou introuvable","Spécialité non couverte","Documents manquants ou expirés","Informations incohérentes","Dossier incomplet","Autre"];
+const MOTIFS = [
+  "— Choisir un motif —",
+  "Documents incomplets",
+  "Documents flous / illisibles",
+  "Document bientôt périmé",
+  "Document expiré",
+  "N° CNOM invalide ou introuvable",
+  "Photo d'identité non conforme",
+  "Informations incohérentes",
+  "Signature manquante",
+  "Autre",
+];
 
 function docState(doc) {
   if (doc.documents.every(d => d.status==="verified")) return "ok";
@@ -395,6 +406,7 @@ export default function NouvellesDemandes() {
   const [toast,          setToast]          = useState(null);
 
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => { const t = setInterval(()=>setClock(new Date()),1000); return ()=>clearInterval(t); }, []);
 
@@ -418,7 +430,7 @@ export default function NouvellesDemandes() {
       .then(data => setDemandes(Array.isArray(data) ? data.map(mapMedecin) : []))
       .catch(() => setDemandes([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [refreshKey]);
 
   const pending = useMemo(() => demandes, [demandes]);
 
@@ -466,10 +478,12 @@ export default function NouvellesDemandes() {
         const motif = extra.motif || "Dossier incomplet";
         await rejeterMedecin(id, motif);
       }
+      setDemandes(p => p.map(item => item.id === id ? { ...item, status: action } : item));
+      return true;
     } catch(e) {
       console.error("[handleAction]", e.message);
+      return false;
     }
-    setDemandes(p => p.map(item => item.id === id ? { ...item, status: action } : item));
   }
 
   function handleUpdateDocs(id, newDocs) {
@@ -481,11 +495,17 @@ export default function NouvellesDemandes() {
     setToast({msg:`${modaleValider.name} validé — e-mail d'activation envoyé`, type:"success"});
     setModaleValider(null);
   }
-  function handleRefuser({motif, msg}) {
+  async function handleRefuser({motif, msg}) {
+    const nom = modaleRefuser.name;
+    const id  = modaleRefuser.id;
     const motifFull = msg ? `${motif} : ${msg}` : motif;
-    handleAction(modaleRefuser.id, "rejete", {motif:motifFull});
-    setToast({msg:`Demande de ${modaleRefuser.name} refusée`, type:"error"});
     setModaleRefuser(null);
+    const ok = await handleAction(id, "rejete", {motif:motifFull});
+    if (ok) {
+      setToast({msg:`Demande de ${nom} refusée`, type:"error"});
+    } else {
+      setToast({msg:`Erreur : impossible de refuser la demande de ${nom}`, type:"error"});
+    }
   }
 
   function exportExcel() {
@@ -514,8 +534,8 @@ export default function NouvellesDemandes() {
             {pending.length} demande{pending.length!==1?"s":""} en attente · validation manuelle obligatoire
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <span className="text-[14px] tabular-nums" style={{ color: txt.subtle }}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="hidden md:inline text-[14px] tabular-nums" style={{ color: txt.subtle }}>
             {JOURS[clock.getDay()]} {clock.getDate()} {MOIS[clock.getMonth()]} {clock.getFullYear()}
             &nbsp;{pad(clock.getHours())}:{pad(clock.getMinutes())}:{pad(clock.getSeconds())}
           </span>
@@ -525,6 +545,14 @@ export default function NouvellesDemandes() {
             onMouseEnter={e=>{e.currentTarget.style.background=brand.DEFAULT;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=brand.DEFAULT;}}
             onMouseLeave={e=>{e.currentTarget.style.background="";e.currentTarget.style.color=txt.muted;e.currentTarget.style.borderColor=surface.border;}}>
             <Download size={13}/> Export Excel
+          </button>
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            disabled={loading}
+            title="Actualiser"
+            className="p-2 rounded-xl border transition-colors"
+            style={{ borderColor: surface.border, color: txt.muted }}>
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
@@ -543,6 +571,7 @@ export default function NouvellesDemandes() {
           )}
         </div>
 
+        <div>
         <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -698,6 +727,7 @@ export default function NouvellesDemandes() {
               })}
             </tbody>
         </table>
+        </div>
 
       </div>
 

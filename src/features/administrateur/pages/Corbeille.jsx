@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Trash2, X, RotateCcw, AlertTriangle, Clock, MoreVertical } from "lucide-react";
+import { Trash2, X, RotateCcw, AlertTriangle, Clock, MoreVertical, RefreshCw } from "lucide-react";
 import { brand, status, getSurface, getText } from "../theme";
 import { getCorbeille, restaurerMedecin, supprimerDefinitivement } from "../api/adminApi";
 import {
@@ -117,17 +117,21 @@ export default function Corbeille() {
   const [villeFiltre,   setVilleFiltre]   = useState("Toutes");
   const [statutFiltre,  setStatutFiltre]  = useState("Tous");
 
-  const [openMenuId, setOpenMenuId] = useState(null);
+  const [openMenuId,  setOpenMenuId]  = useState(null);
+  const [loading,     setLoading]     = useState(false);
+  const [refreshKey,  setRefreshKey]  = useState(0);
 
   useEffect(() => {
+    setLoading(true);
     getCorbeille()
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           setRows(data.map(mapCorbeille));
         }
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [refreshKey]);
 
   const VILLES_CM = ["Toutes","Yaoundé","Douala","Bafoussam","Garoua","Maroua","Ngaoundéré","Bertoua","Ebolowa","Buéa","Limbé"];
   const STATUTS   = ["Tous","valide","rejete","suspendu"];
@@ -212,6 +216,14 @@ export default function Corbeille() {
             </p>
           </div>
         </div>
+        <button
+          onClick={() => setRefreshKey(k => k + 1)}
+          disabled={loading}
+          title="Actualiser"
+          className="p-2 rounded-xl border transition-colors"
+          style={{ borderColor: surface.border, color: txt.subtle }}>
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+        </button>
       </div>
 
       {/* ── Bandeau urgence ── */}

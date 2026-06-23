@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { brand, status, getSurface, getText } from "./theme";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -85,20 +86,23 @@ export function EmptyCell({ dark, colSpan, children }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export function PersonCell({ dark, avatarColor, initials, name, subtitle, onClick, photoUrl }) {
   const txt = getText(dark);
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => { setImgError(false); }, [photoUrl]);
+  const showImg = photoUrl && !imgError;
   return (
     <div className="flex items-center gap-3">
-      {photoUrl ? (
+      {showImg ? (
         <img
           src={photoUrl}
           alt={name}
           className={`w-9 h-9 rounded-full object-cover shrink-0 border ${dark ? "border-[#30363d]" : "border-gray-200"} ${onClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
           onClick={onClick}
-          onError={e => { e.currentTarget.style.display="none"; e.currentTarget.nextSibling.style.display="flex"; }}
+          onError={() => setImgError(true)}
         />
       ) : null}
       <div
         className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-[12px] font-bold shrink-0 ${onClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
-        style={{ background: avatarColor || brand.DEFAULT, display: photoUrl ? "none" : "flex" }}
+        style={{ background: avatarColor || brand.DEFAULT, display: showImg ? "none" : "flex" }}
         onClick={onClick}
       >
         {initials}

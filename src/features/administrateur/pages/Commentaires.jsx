@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Trash2, X, Star, Search, AlertTriangle, Bell, MessageSquare, CheckCircle } from "lucide-react";
+import { Trash2, X, Star, Search, AlertTriangle, Bell, MessageSquare, CheckCircle, RefreshCw } from "lucide-react";
 import { brand, status, getSurface, getText } from "../theme";
 import { getAvis, supprimerAvis, marquerAvisVus } from "../api/adminApi";
 
@@ -65,13 +65,15 @@ export default function Commentaires() {
     statut:      a.statut || "publie",
   });
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
   useEffect(() => {
     setLoading(true);
     getAvis()
       .then(data => setRows(Array.isArray(data) ? data.map(mapAvis) : []))
       .catch(() => setRows([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [refreshKey]);
 
   const nbNouveaux = rows.filter(r => r.nouveau).length;
   const moyNote    = rows.length > 0
@@ -139,15 +141,25 @@ export default function Commentaires() {
             <span className="font-bold" style={{ color: "#b45309" }}>★ {moyNote}/5</span>
           </p>
         </div>
-        {rows.length > 0 && (
-          <button onClick={()=>setModaleVider(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[14px] font-semibold transition-all"
-            style={{ borderColor: surface.border, color: txt.subtle }}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor="#fca5a5";e.currentTarget.style.color="#dc2626";e.currentTarget.style.background=dark?"rgba(220,38,38,0.10)":"#fef2f2";}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=surface.border;e.currentTarget.style.color=txt.subtle;e.currentTarget.style.background="transparent";}}>
-            <Trash2 size={14}/> Vider la page
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            disabled={loading}
+            title="Actualiser"
+            className="p-2 rounded-xl border transition-colors"
+            style={{ borderColor: surface.border, color: txt.subtle }}>
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
-        )}
+          {rows.length > 0 && (
+            <button onClick={()=>setModaleVider(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[14px] font-semibold transition-all"
+              style={{ borderColor: surface.border, color: txt.subtle }}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor="#fca5a5";e.currentTarget.style.color="#dc2626";e.currentTarget.style.background=dark?"rgba(220,38,38,0.10)":"#fef2f2";}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=surface.border;e.currentTarget.style.color=txt.subtle;e.currentTarget.style.background="transparent";}}>
+              <Trash2 size={14}/> Vider la page
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Bandeau nouveaux ── */}

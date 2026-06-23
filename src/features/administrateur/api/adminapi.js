@@ -527,3 +527,25 @@ export async function getAdminNotifications(nonLuesSeulement = false) {
   return request("GET", `/api/admin/notifications${nonLuesSeulement ? "?non_lues_seulement=true" : ""}`, null, true);
 }
 
+// ── 13. Requêtes Médecins ─────────────────────────────────────────────────────
+export async function getRequetesMedecins(statut = "") {
+  const qs = statut ? `?statut=${encodeURIComponent(statut)}` : "";
+  return request("GET", `/api/admin/requetes${qs}`, null, true);
+}
+
+export async function countRequetesEnAttente() {
+  return request("GET", "/api/admin/requetes/count", null, true);
+}
+
+export async function repondreRequete(reqId, body) {
+  return request("PUT", `/api/admin/requetes/${reqId}/repondre`, body, true);
+}
+
+export async function modifierReponseRequete(reqId, body) {
+  return request("PUT", `/api/admin/requetes/${reqId}/modifier-reponse`, body, true);
+}
+
+export async function changerStatutRequete(reqId, statut) {
+  return request("PUT", `/api/admin/requetes/${reqId}/statut`, { statut }, true);
+}
+

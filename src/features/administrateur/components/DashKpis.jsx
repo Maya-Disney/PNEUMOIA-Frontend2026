@@ -1,13 +1,29 @@
 import { useState, useEffect } from "react";
 import { Users, Clock, Activity, Brain } from "lucide-react";
-import KpiCard from "./KpiCard";
+import KpiCard from "./KPiCard";
 import { getKpis } from "../api/adminapi";
 
 const KPIS_CONFIG = [
-  { icon: Users,    label: "Médecins actifs",        val: "—", trend: "", urgent: false, ibg: "bg-blue-50 dark:bg-blue-900/20",     ic: "text-blue-600"   },
-  { icon: Clock,    label: "Inscriptions en attente", val: "—", trend: "", urgent: false, ibg: "bg-orange-50 dark:bg-orange-900/20",  ic: "text-orange-500" },
-  { icon: Activity, label: "Consultations totales",   val: "—", trend: "", urgent: false, ibg: "bg-emerald-50 dark:bg-emerald-900/20", ic: "text-emerald-600" },
-  { icon: Brain,    label: "Précision modèle IA",     val: "—", trend: "", urgent: false, ibg: "bg-purple-50 dark:bg-purple-900/20",   ic: "text-purple-600"  },
+  {
+    icon: Users,    label: "Médecins actifs",        val: "—",
+    gradient: "from-[#009e82] to-[#007a64]",
+    tintLight: "#e6f7f4", tintDark: "rgba(0,158,130,0.12)",
+  },
+  {
+    icon: Clock,    label: "Inscriptions en attente", val: "—",
+    gradient: "from-amber-500 to-amber-600",
+    tintLight: "#fffbeb", tintDark: "rgba(180,83,9,0.12)",
+  },
+  {
+    icon: Activity, label: "Consultations totales",   val: "—",
+    gradient: "from-emerald-600 to-emerald-700",
+    tintLight: "#ecfdf5", tintDark: "rgba(6,95,70,0.12)",
+  },
+  {
+    icon: Brain,    label: "Précision modèle IA",     val: "—",
+    gradient: "from-blue-600 to-blue-700",
+    tintLight: "#eff6ff", tintDark: "rgba(29,78,216,0.12)",
+  },
 ];
 
 export default function DashKpis({ dark }) {
