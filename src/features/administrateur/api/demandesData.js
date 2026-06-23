@@ -1,5 +1,10 @@
 export const pad = (n) => String(n).padStart(2, "0");
 
+function parseUTC(iso) {
+  if (!iso) return new Date();
+  return new Date(/Z$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + "Z");
+}
+
 export function elapsedStr(d) {
   const dm = Math.floor((Date.now() - d.getTime()) / 60000);
   const dh = Math.floor(dm / 60);
@@ -28,7 +33,7 @@ export function mapMedecin(m) {
     telephone:   m.telephone || "—",
     cnom:        m.numero_rpps || "—",
     photo_url:   m.photo_url || null,
-    submittedAt: new Date(m.created_at),
+    submittedAt: parseUTC(m.created_at),
     status:      m.statut || "en_attente",
     avatarBg:    avatarColor(`${m.prenom}${m.nom}`),
     documents:   (m.documents || []).map(d => ({
