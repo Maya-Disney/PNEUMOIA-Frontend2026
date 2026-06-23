@@ -11,7 +11,7 @@ import {
   FileQuestion, LifeBuoy, Quote, ShieldAlert,
   FolderSearch, HelpCircle, Loader2, ThumbsDown,
   Stethoscope, Award, ChevronRight, Info,
-  RotateCcw, FileText, User, Users
+  RotateCcw, FileText, User, Users, Download
 } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
 
@@ -60,312 +60,297 @@ function formatTime(iso) {
 
 // ─── Onglet Commentaires ───────────────────────────────────────────────────────
 function OngletCommentaires({ toast, profil }) {
-  const [comments, setComments]     = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [expandedReplies, setExpandedReplies] = useState({});
+  const [messages, setMessages]     = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText]   = useState('');
+  const [expanded, setExpanded]     = useState({});
   const [showNew, setShowNew]       = useState(false);
+  const [newTitle, setNewTitle]     = useState('');
   const [newText, setNewText]       = useState('');
-  const [newCas, setNewCas]         = useState('');
-  const [newType, setNewType]       = useState('feedback');
 
-  const myName     = profil ? `Dr. ${profil.prenom} ${profil.nom}` : 'Dr.';
   const myInitials = profil ? `${(profil.prenom || '')[0] || ''}${(profil.nom || '')[0] || ''}`.toUpperCase() : '?';
-  const mySpecialty = profil?.specialite || 'Pneumologue';
-  const myHospital  = profil?.etablissement || '';
+  const myId       = profil?.id || '';
 
-  // Charger les publications du médecin avec leurs commentaires
   useEffect(() => {
-    fetch(`${API_URL}/publications?mine=true&with_comments=true`, {
-      headers: { Authorization: `Bearer ${tok()}` },
-    })
-      .then(r => r.ok ? r.json() : [])
-      .then(pubs => {
-        const flat = [];
-        for (const pub of pubs) {
+    if (!myId) return;
+    setLoading(true);
+    const headers = { Authorization: `Bearer ${tok()}` };
+    Promise.all([
+      fetch(`${API_URL}/publications?mine=true&with_comments=true`, { headers }).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/publications?with_comments=true`, { headers }).then(r => r.ok ? r.json() : []),
+      fetch(`${API_URL}/publications/mes-commentaires`, { headers }).then(r => r.ok ? r.json() : []),
+    ])
+      .then(([myPubs, allPubs, myComments]) => {
+        const list = [];
+        for (const pub of (Array.isArray(myPubs) ? myPubs : [])) {
           for (const com of (pub.commentaires || [])) {
-            flat.push({
-              id:       com.id,
-              pub_id:   pub.id,
-              casTitle: pub.casTitle || pub.titre || '—',
-              casId:    pub.casId   || pub.id,
-              author:   com.author,
-              text:     com.text,
-              time:     com.time,
-              likes:    com.likes,
-              liked:    com.liked,
-              pinned:   false,
-              type:     'feedback',
-              replies:  (com.replies || []).map(r => ({
-                id:    r.id,
-                author: r.author,
-                text:  r.text,
-                time:  r.time,
-                likes: r.likes,
-                liked: r.liked,
-              })),
+            list.push({
+              id:      com.id,
+              pub_id:  pub.id,
+              context: pub.casTitle || pub.titre || '—',
+              author:  com.author,
+              text:    com.text,
+              time:    com.time,
+              likes:   com.likes  || 0,
+              liked:   com.liked  || false,
+              isMe:    com.isMe   || false,
+              replies: com.replies || [],
+              kind:    'comment',
             });
           }
         }
-        flat.sort((a, b) => new Date(b.time) - new Date(a.time));
-        setComments(flat);
+        for (const pub of (Array.isArray(allPubs) ? allPubs : [])) {
+          if (!['discussion', 'question'].includes(pub.type)) continue;
+          list.push({
+            id:      pub.id,
+            pub_id:  pub.id,
+            context: null,
+            author:  pub.author,
+            text:    pub.text || pub.contenu,
+            time:    pub.time || pub.created_at,
+            likes:   pub.nb_reactions || 0,
+            liked:   pub.liked        || false,
+            isMe:    pub.auteur_id === myId,
+            replies: (pub.commentaires || []).map(c => ({ id: c.id, author: c.author, text: c.text, time: c.time })),
+            kind:    'discussion',
+          });
+        }
+        const existingIds = new Set(list.map(m => m.id));
+        for (const com of (Array.isArray(myComments) ? myComments : [])) {
+          if (existingIds.has(com.id)) continue;
+          list.push({
+            id:      com.id,
+            pub_id:  com.pub_id,
+            context: com.context,
+            author:  { name: profil ? `Dr. ${profil.prenom} ${profil.nom}` : 'Moi', avatar: myInitials },
+            text:    com.text,
+            time:    com.time,
+            likes:   com.likes || 0,
+            liked:   com.liked || false,
+            isMe:    true,
+            replies: com.replies || [],
+            kind:    'my_comment',
+          });
+        }
+        list.sort((a, b) => new Date(b.time) - new Date(a.time));
+        setMessages(list);
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => setMessages([]))
+      .finally(() => setLoading(false));
+  }, [myId]);
 
-  const handleLike = (cid, rid = null) => {
-    setComments(prev => prev.map(c => {
-      if (c.id !== cid) return c;
-      if (rid !== null) return { ...c, replies: c.replies.map(r => r.id === rid ? { ...r, liked: !r.liked, likes: r.liked ? r.likes - 1 : r.likes + 1 } : r) };
-      return { ...c, liked: !c.liked, likes: c.liked ? c.likes - 1 : c.likes + 1 };
-    }));
-  };
-
-  const handleReply = async (cid) => {
-    if (!replyText.trim()) return;
-    const comment = comments.find(c => c.id === cid);
-    try {
-      if (comment?.pub_id) {
-        const r = await fetch(`${API_URL}/publications/${comment.pub_id}/commentaires/${cid}/reply`, {
+  const handleLike = async (msg) => {
+    if (msg.kind === 'discussion') {
+      try {
+        const r = await fetch(`${API_URL}/publications/${msg.pub_id}/react`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${tok()}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contenu: replyText.trim() }),
+          body: JSON.stringify({ type: 'utile' }),
         });
         if (r.ok) {
-          const saved = await r.json();
-          const reply = { id: saved.id, author: saved.author || { name: myName, avatar: myInitials, specialty: mySpecialty }, text: saved.text, time: saved.time, likes: 0, liked: false };
-          setComments(prev => prev.map(c => c.id === cid ? { ...c, replies: [...c.replies, reply] } : c));
-          setExpandedReplies(prev => ({ ...prev, [cid]: true }));
-          setReplyText(''); setReplyingTo(null);
-          toast.success('Réponse publiée');
-          return;
+          const data = await r.json();
+          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, liked: data.reacted, likes: data.nb_reactions } : m));
         }
-      }
-    } catch { /* fallback local */ }
-    // Fallback local si pas de pub_id ou erreur API
-    const reply = { id: Date.now(), author: { name: myName, avatar: myInitials, specialty: mySpecialty }, text: replyText.trim(), time: new Date().toISOString(), likes: 0, liked: false };
-    setComments(prev => prev.map(c => c.id === cid ? { ...c, replies: [...c.replies, reply] } : c));
-    setExpandedReplies(prev => ({ ...prev, [cid]: true }));
-    setReplyText(''); setReplyingTo(null);
-    toast.success('Réponse publiée');
+      } catch { /* silent */ }
+    } else {
+      try {
+        await fetch(`${API_URL}/publications/${msg.pub_id}/commentaires/${msg.id}/like`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${tok()}` },
+        });
+      } catch { /* silent */ }
+      setMessages(prev => prev.map(m => m.id === msg.id
+        ? { ...m, liked: !m.liked, likes: m.liked ? m.likes - 1 : m.likes + 1 }
+        : m));
+    }
+  };
+
+  const handleReply = async (msg) => {
+    if (!replyText.trim()) return;
+    const endpoint = msg.kind === 'discussion'
+      ? `${API_URL}/publications/${msg.pub_id}/commentaires`
+      : `${API_URL}/publications/${msg.pub_id}/commentaires/${msg.id}/reply`;
+    try {
+      const r = await fetch(endpoint, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contenu: replyText.trim() }),
+      });
+      if (!r.ok) { toast.error('Erreur lors de l\'envoi'); return; }
+      const saved = await r.json().catch(() => ({}));
+      const newReply = {
+        id:     saved.id || Date.now(),
+        author: saved.author || { name: 'Moi', avatar: myInitials },
+        text:   replyText.trim(),
+        time:   saved.time || new Date().toISOString(),
+      };
+      setMessages(prev => prev.map(m =>
+        m.id === msg.id ? { ...m, replies: [...(m.replies || []), newReply] } : m
+      ));
+      setExpanded(prev => ({ ...prev, [msg.id]: true }));
+      setReplyText(''); setReplyingTo(null);
+      toast.success('Réponse publiée');
+    } catch { toast.error('Erreur réseau'); }
   };
 
   const handlePost = async () => {
-    if (!newText.trim() || !newCas.trim()) { toast.warning('Remplissez le cas et le commentaire'); return; }
+    if (!newTitle.trim() || !newText.trim()) { toast.warning('Remplissez le titre et le message'); return; }
     try {
       const r = await fetch(`${API_URL}/publications`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${tok()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ titre: newCas.trim(), contenu: newText.trim(), type: 'discussion' }),
+        body: JSON.stringify({ titre: newTitle.trim(), contenu: newText.trim(), type: 'discussion' }),
       });
-      if (r.ok) {
-        const saved = await r.json();
-        setComments(prev => [{
-          id: saved.id, pub_id: saved.id, casTitle: newCas,
-          casId: saved.id,
-          author: { name: myName, avatar: myInitials, specialty: mySpecialty, hospital: myHospital },
-          text: newText.trim(), time: new Date().toISOString(), likes: 0, liked: false, pinned: false, type: newType, replies: []
-        }, ...prev]);
-        setNewText(''); setNewCas(''); setShowNew(false);
-        toast.success('Commentaire publié');
-        return;
-      }
-      const err = await r.json().catch(() => ({}));
-      toast.error(err.detail || `Erreur ${r.status} lors de la publication`);
-    } catch (e) { toast.error(`Serveur inaccessible — vérifiez que le backend est démarré (${e?.message || 'réseau'})`); }
+      if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.detail || `Erreur ${r.status}`); return; }
+      setNewTitle(''); setNewText(''); setShowNew(false);
+      toast.success('Discussion publiée');
+    } catch { toast.error('Erreur réseau'); }
   };
 
-  const filtered = comments.filter(c => {
-    const q = searchTerm.toLowerCase();
-    return (c.casTitle.toLowerCase().includes(q) || c.author.name.toLowerCase().includes(q) || c.text.toLowerCase().includes(q))
-      && (filterType === 'all' || c.type === filterType);
-  });
+  const handleDelete = async (msg) => {
+    const url = msg.kind === 'discussion'
+      ? `${API_URL}/publications/${msg.pub_id}`
+      : `${API_URL}/publications/${msg.pub_id}/commentaires/${msg.id}`;
+    try {
+      const r = await fetch(url, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${tok()}` },
+      });
+      if (r.ok || r.status === 204) {
+        setMessages(prev => prev.filter(m => m.id !== msg.id));
+        toast.info(msg.kind === 'discussion' ? 'Discussion supprimée' : 'Commentaire supprimé');
+      } else {
+        toast.error('Erreur lors de la suppression');
+      }
+    } catch { toast.error('Erreur réseau'); }
+  };
+
+  if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>;
 
   return (
-    <div className="space-y-5">
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: 'Commentaires', value: comments.length, icon: MessageCircle, color: 'text-blue-600' },
-          { label: 'J\'aimes reçus', value: comments.reduce((s, c) => s + c.likes, 0), icon: Heart, color: 'text-pink-600' },
-          { label: 'Épinglés', value: comments.filter(c => c.pinned).length, icon: Pin, color: 'text-amber-600' },
-          { label: 'Questions ouvertes', value: comments.filter(c => c.type === 'question').length, icon: AlertCircle, color: 'text-purple-600' },
-        ].map((s, i) => {
-          const Icon = s.icon;
-          return (
-            <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-              className="bg-(--sf) border border-(--ln) rounded-xl p-4">
-              <Icon className={`w-5 h-5 ${s.color} mb-2`} />
-              <p className="text-xl font-bold text-(--t1)">{s.value}</p>
-              <p className="text-xs text-(--t4) mt-0.5">{s.label}</p>
-            </motion.div>
-          );
-        })}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-black uppercase tracking-widest text-(--t4)">
+          Commentaires & discussions ({messages.length})
+        </p>
+        <button onClick={() => setShowNew(!showNew)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition-colors">
+          <Send className="w-3 h-3" />Nouveau
+        </button>
       </div>
 
-      {/* Barre d'actions */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--t4)" />
-          <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Rechercher..."
-            className="w-full pl-10 pr-4 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {[{ key: 'all', label: 'Tous' }, { key: 'feedback', label: 'Avis' }, { key: 'question', label: 'Questions' }, { key: 'suggestion', label: 'Suggestions' }].map(f => (
-            <button key={f.key} onClick={() => setFilterType(f.key)}
-              className={`px-3 py-2 text-sm font-medium rounded-xl transition-colors ${filterType === f.key ? 'bg-blue-600 text-white' : 'bg-(--sf) border border-(--ln) text-(--t3) hover:bg-(--sf2)'}`}>
-              {f.label}
-            </button>
-          ))}
-          <button onClick={() => setShowNew(!showNew)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
-            <MessageCircle className="w-4 h-4" />Nouveau
-          </button>
-        </div>
-      </div>
-
-      {/* Nouveau commentaire */}
       <AnimatePresence>
         {showNew && (
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className="bg-(--sf) border border-(--ln) rounded-2xl p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-(--t1)">Nouveau commentaire</h3>
-              <button onClick={() => setShowNew(false)} className="p-1 rounded-lg hover:bg-(--sf2)"><X className="w-4 h-4 text-(--t3)" /></button>
-            </div>
-            <input value={newCas} onChange={e => setNewCas(e.target.value)} placeholder="Cas clinique concerné..."
-              className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <div className="flex gap-2">
-              {Object.entries(typeConfig).map(([k, v]) => {
-                const Icon = v.icon;
-                return (
-                  <button key={k} onClick={() => setNewType(k)}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${newType === k ? 'bg-blue-600 text-white border-blue-600' : 'border-(--ln) text-(--t3) hover:bg-(--sf2)'}`}>
-                    <Icon className="w-3.5 h-3.5" />{v.label}
-                  </button>
-                );
-              })}
-            </div>
-            <textarea value={newText} onChange={e => setNewText(e.target.value)} placeholder="Rédigez votre commentaire..." rows={3}
-              className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="bg-(--sf) border border-(--ln) rounded-2xl p-4 space-y-3">
+            <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Sujet de la discussion..."
+              className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf2) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <textarea value={newText} onChange={e => setNewText(e.target.value)} rows={3}
+              placeholder="Rédigez votre message..."
+              className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf2) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowNew(false)} className="px-4 py-2 text-sm text-(--t3) hover:bg-(--sf2) rounded-xl">Annuler</button>
-              <button onClick={handlePost} className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700">
-                <Send className="w-4 h-4" />Publier
+              <button onClick={() => setShowNew(false)} className="text-xs text-(--t3) hover:bg-(--sf2) px-3 py-1 rounded-lg">Annuler</button>
+              <button onClick={handlePost} disabled={!newTitle.trim() || !newText.trim()}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
+                <Send className="w-3 h-3" />Publier
               </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Liste */}
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <div className="text-center py-12 bg-(--sf) border border-(--ln) rounded-xl">
-            <MessageCircle className="w-10 h-10 text-(--t4) mx-auto mb-3" />
-            <p className="text-(--t3) font-medium">Aucun commentaire trouvé</p>
-          </div>
-        ) : filtered.map((c, i) => {
-          const tc = typeConfig[c.type] || typeConfig.feedback;
-          const TIcon = tc.icon;
-          const open = expandedReplies[c.id];
-          return (
-            <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-              className={`bg-(--sf) border border-(--ln) rounded-xl overflow-hidden ${c.pinned ? 'border-l-4 border-l-amber-400' : ''}`}>
-              <div className="p-5">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {c.pinned && <Pin className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
-                    <FolderOpen className="w-3.5 h-3.5 text-(--t4) shrink-0" />
-                    <span className="text-xs text-blue-600 font-medium truncate">{c.casTitle}</span>
-                    <span className="text-xs text-(--t4) shrink-0 hidden sm:block">{c.casId}</span>
-                  </div>
-                  <span className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full shrink-0 ${tc.color}`}>
-                    <TIcon className="w-3 h-3" />{tc.label}
-                  </span>
+      {messages.length === 0 ? (
+        <div className="py-14 text-center bg-(--sf) border border-(--ln) rounded-2xl">
+          <MessageCircle className="w-10 h-10 text-(--t4) mx-auto mb-3" />
+          <p className="text-sm text-(--t3) font-medium">Aucun commentaire ou discussion</p>
+          <p className="text-xs text-(--t4) mt-1">Les commentaires sur vos cas cliniques apparaîtront ici.</p>
+        </div>
+      ) : messages.map((msg, i) => {
+        const open = expanded[msg.id];
+        return (
+          <motion.div key={msg.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+            className="bg-(--sf) border border-(--ln) rounded-xl overflow-hidden">
+            <div className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                  {msg.author?.avatar || '?'}
                 </div>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
-                    {c.author.avatar}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                    <span className="text-sm font-bold text-(--t1)">{msg.author?.name}</span>
+                    {msg.context ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                        <FolderOpen className="w-2.5 h-2.5" />{msg.context}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                        <MessageCircle className="w-2.5 h-2.5" />Discussion
+                      </span>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-(--t1)">{c.author.name}</p>
-                    <p className="text-xs text-(--t4)">{c.author.specialty} · {c.author.hospital}</p>
-                  </div>
-                  <span className="ml-auto flex items-center gap-1 text-xs text-(--t4)">
-                    <Clock className="w-3 h-3" />{formatTime(c.time)}
-                  </span>
-                </div>
-                <p className="text-sm text-(--t2) leading-relaxed">{c.text}</p>
-                <div className="flex items-center gap-1 mt-4 pt-3 border-t border-(--ln)">
-                  <button onClick={() => handleLike(c.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${c.liked ? 'text-blue-600 bg-blue-50' : 'text-(--t3) hover:bg-(--sf2)'}`}>
-                    <ThumbsUp className="w-4 h-4" />{c.likes}
-                  </button>
-                  <button onClick={() => { setReplyingTo(replyingTo === c.id ? null : c.id); setReplyText(''); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-(--t3) hover:bg-(--sf2) transition-colors">
-                    <Reply className="w-4 h-4" />Répondre
-                  </button>
-                  {c.replies.length > 0 && (
-                    <button onClick={() => setExpandedReplies(p => ({ ...p, [c.id]: !p[c.id] }))}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-(--t3) hover:bg-(--sf2) transition-colors">
-                      {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      {c.replies.length} réponse{c.replies.length > 1 ? 's' : ''}
+                  <p className="text-sm text-(--t2) leading-relaxed">{msg.text}</p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="text-xs text-(--t4) flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(msg.time)}</span>
+                    <button onClick={() => handleLike(msg)}
+                      className={`text-xs flex items-center gap-1 transition-colors ${msg.liked ? 'text-blue-600' : 'text-(--t3) hover:text-blue-600'}`}>
+                      <ThumbsUp className="w-3 h-3" />{msg.likes}
                     </button>
-                  )}
-                  <button onClick={() => { setComments(prev => prev.filter(x => x.id !== c.id)); toast.info('Commentaire supprimé'); }}
-                    className="ml-auto p-1.5 rounded-lg text-(--t4) hover:text-red-500 hover:bg-red-50 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <button onClick={() => { setReplyingTo(replyingTo === msg.id ? null : msg.id); setReplyText(''); }}
+                      className="text-xs text-(--t3) hover:text-blue-600 flex items-center gap-1 transition-colors">
+                      <Reply className="w-3 h-3" />Répondre
+                    </button>
+                    {(msg.replies?.length > 0) && (
+                      <button onClick={() => setExpanded(p => ({ ...p, [msg.id]: !p[msg.id] }))}
+                        className="text-xs text-blue-600 flex items-center gap-1">
+                        {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        {msg.replies.length} réponse{msg.replies.length > 1 ? 's' : ''}
+                      </button>
+                    )}
+                    {(msg.isMe || msg.kind === 'comment' || msg.kind === 'my_comment') && (
+                      <button onClick={() => handleDelete(msg)} className="ml-auto text-(--t4) hover:text-red-500 transition-colors">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <AnimatePresence>
-                  {replyingTo === c.id && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                      className="mt-3 flex gap-3 overflow-hidden">
-                      <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-1">{myInitials}</div>
-                      <div className="flex-1 flex gap-2">
-                        <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleReply(c.id)}
-                          placeholder="Écrire une réponse..." autoFocus
-                          className="flex-1 px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        <button onClick={() => handleReply(c.id)} disabled={!replyText.trim()}
-                          className="px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-40 transition-colors">
-                          <Send className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
+
               <AnimatePresence>
-                {open && c.replies.length > 0 && (
+                {replyingTo === msg.id && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                    className="border-t border-(--ln) bg-(--sf2) px-5 py-4 space-y-4 overflow-hidden">
-                    {c.replies.map(r => (
-                      <div key={r.id} className="flex gap-3">
-                        <div className="w-8 h-8 rounded-full bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shrink-0">{r.author.avatar}</div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-semibold text-(--t1)">{r.author.name}</span>
-                            <span className="text-xs text-(--t4)">{r.author.specialty}</span>
-                            <span className="ml-auto text-xs text-(--t4)">{formatTime(r.time)}</span>
-                          </div>
-                          <p className="text-sm text-(--t2)">{r.text}</p>
-                          <button onClick={() => handleLike(c.id, r.id)}
-                            className={`flex items-center gap-1 mt-2 text-xs font-medium transition-colors ${r.liked ? 'text-blue-600' : 'text-(--t4) hover:text-(--t2)'}`}>
-                            <ThumbsUp className="w-3 h-3" />{r.likes}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                    className="mt-3 pl-12 space-y-2 overflow-hidden">
+                    <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={2}
+                      placeholder="Votre réponse..."
+                      className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf2) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => { setReplyingTo(null); setReplyText(''); }} className="text-xs text-(--t3) hover:bg-(--sf2) px-3 py-1 rounded-lg">Annuler</button>
+                      <button onClick={() => handleReply(msg)} disabled={!replyText.trim()}
+                        className="flex items-center gap-1.5 px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                        <Send className="w-3 h-3" />Répondre
+                      </button>
+                    </div>
                   </motion.div>
                 )}
+
+                {open && msg.replies?.map((rep, ri) => (
+                  <motion.div key={rep.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: ri * 0.03 }}
+                    className="mt-2 pl-12 flex gap-3">
+                    <div className="w-7 h-7 rounded-full bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                      {rep.author?.avatar || '?'}
+                    </div>
+                    <div className="flex-1 bg-(--sf2) border border-(--ln) rounded-xl p-2.5">
+                      <span className="text-xs font-bold text-(--t1)">{rep.author?.name}</span>
+                      <p className="text-xs text-(--t2) mt-0.5">{rep.text}</p>
+                      <span className="text-[10px] text-(--t4)">{formatTime(rep.time)}</span>
+                    </div>
+                  </motion.div>
+                ))}
               </AnimatePresence>
-            </motion.div>
-          );
-        })}
-      </div>
+            </div>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
@@ -985,31 +970,46 @@ function OngletConfreres({ toast, profil }) {
   const [replyText, setReplyText]   = useState('');
 
   useEffect(() => {
-    fetch(`${API_URL}/publications?with_comments=true`, {
-      headers: { Authorization: `Bearer ${tok()}` },
-    })
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
-        const list = Array.isArray(data) ? data : [];
-        setPosts(myId ? list.filter(p => p.auteur_id !== myId) : list);
+    const load = () => {
+      fetch(`${API_URL}/publications?with_comments=true`, {
+        headers: { Authorization: `Bearer ${tok()}` },
       })
-      .catch(() => setPosts([]))
-      .finally(() => setLoading(false));
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+          const list = Array.isArray(data) ? data : [];
+          // Publications tab = cas cliniques et articles des confrères uniquement
+          setPosts(list.filter(p =>
+            p.auteur_id !== myId &&
+            ['cas_clinique', 'article'].includes(p.type)
+          ));
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    };
+    load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
   }, [myId]);
 
   const handleComment = async (pubId) => {
     if (!replyText.trim()) return;
     try {
-      await fetch(`${API_URL}/publications/${pubId}/commentaires`, {
+      const r = await fetch(`${API_URL}/publications/${pubId}/commentaires`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${tok()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ contenu: replyText.trim() }),
       });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        toast.error(e.detail || `Erreur ${r.status}`);
+        return;
+      }
+      const saved = await r.json().catch(() => ({}));
       setPosts(prev => prev.map(p =>
         p.id !== pubId ? p : {
           ...p,
           commentaires: [...(p.commentaires || []), {
-            id: Date.now(),
+            id: saved.id || Date.now(),
             author: { name: profil ? `Dr. ${profil.prenom} ${profil.nom}` : 'Moi', avatar: profil ? (profil.prenom[0] + profil.nom[0]).toUpperCase() : '?', role: 'Médecin' },
             text: replyText.trim(),
             time: new Date().toISOString(),
@@ -1021,8 +1021,8 @@ function OngletConfreres({ toast, profil }) {
       setReplyingTo(null);
       setReplyText('');
       toast.success('Commentaire publié');
-    } catch {
-      toast.error('Erreur lors de l\'envoi');
+    } catch (e) {
+      toast.error(`Erreur réseau — ${e?.message || 'vérifiez le backend'}`);
     }
   };
 
@@ -1118,6 +1118,25 @@ function OngletConfreres({ toast, profil }) {
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-(--t3) hover:bg-(--sf2) transition-colors">
                         {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         {comments.length} commentaire{comments.length > 1 ? 's' : ''}
+                      </button>
+                    )}
+                    {p.ressource_id && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`${API_URL}/publications/${p.id}/telecharger`, {
+                              headers: { Authorization: `Bearer ${tok()}` },
+                            });
+                            if (!res.ok) { toast.error('Aucun PDF disponible'); return; }
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url; a.download = `${p.casTitle || 'publication'}.pdf`; a.click();
+                            URL.revokeObjectURL(url);
+                          } catch { toast.error('Erreur lors du téléchargement'); }
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-emerald-600 hover:bg-emerald-50 transition-colors">
+                        <Download className="w-4 h-4" />PDF
                       </button>
                     )}
                     <span className="ml-auto text-xs text-(--t4)">{p.nb_reactions || 0} réaction{(p.nb_reactions || 0) > 1 ? 's' : ''}</span>
