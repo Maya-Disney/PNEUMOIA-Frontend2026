@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { Download, Eye, X, AlertTriangle } from "lucide-react";
+import { Download, Eye, X, AlertTriangle, RefreshCw } from "lucide-react";
 import { getMedecinsActifs } from "../api/adminApi";
 import { brand, getSurface, getText } from "../theme";
 import { useAdminTheme } from "../context/useAdminTheme";
@@ -49,6 +49,7 @@ export default function MedecinsActifs() {
   const [modalePhoto, setModalePhoto] = useState(null);
   const [page,        setPage]        = useState(1);
   const [perPage,     setPerPage]     = useState(10);
+  const [refreshKey,  setRefreshKey]  = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -81,7 +82,7 @@ export default function MedecinsActifs() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [refreshKey]);
 
   const medecinsAvecStatut = medecins.map(m => ({
     ...m,
@@ -130,18 +131,27 @@ export default function MedecinsActifs() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${dark?"text-white":"text-gray-900"}`}>
-            Médecins actifs
+            Médecins
           </h1>
           <p className={`text-[14px] mt-1 ${dark?"text-[#8b949e]":"text-gray-400"}`}>
             {medecins.length} médecin{medecins.length>1?"s":""} · Inactif si pas connecté depuis plus de 14 jours
           </p>
         </div>
-        <button onClick={exportExcel}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all border-gray-200 dark:border-[#21262d] text-gray-600 dark:text-[#8b949e]"
-          onMouseEnter={e=>{e.currentTarget.style.background=brand.DEFAULT;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=brand.DEFAULT;}}
-          onMouseLeave={e=>{e.currentTarget.style.background="";e.currentTarget.style.color="";e.currentTarget.style.borderColor="";}}>
-          <Download size={13}/> Export Excel
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            disabled={loading}
+            title="Actualiser"
+            className={`p-2 rounded-xl border transition-colors ${dark?"border-[#30363d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button onClick={exportExcel}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all border-gray-200 dark:border-[#21262d] text-gray-600 dark:text-[#8b949e]"
+            onMouseEnter={e=>{e.currentTarget.style.background=brand.DEFAULT;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=brand.DEFAULT;}}
+            onMouseLeave={e=>{e.currentTarget.style.background="";e.currentTarget.style.color="";e.currentTarget.style.borderColor="";}}>
+            <Download size={13}/> Export Excel
+          </button>
+        </div>
       </div>
 
       {nbInactifs > 0 && (

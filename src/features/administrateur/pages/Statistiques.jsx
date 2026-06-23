@@ -5,7 +5,7 @@ import {
   Chart as ChartJS, BarElement, LineElement, PointElement,
   LinearScale, CategoryScale, Tooltip, Filler,
 } from "chart.js";
-import { Users, Activity, Brain, TrendingUp } from "lucide-react";
+import { Users, Activity, Brain, TrendingUp, RefreshCw } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
 import {
   getKpis,
@@ -52,11 +52,19 @@ export default function Statistiques() {
   const [kpis,   setKpis]   = useState({ medecins_actifs: null, consultations_total: null, precision_ia: null, concordance_moy: null });
   const [villes, setVilles] = useState([]);
   const [top,    setTop]    = useState([]);
-  const [rawData, setRawData] = useState([]);
+  const [rawData,    setRawData]    = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const doRefresh = () => {
+    setRefreshing(true);
+    setRefreshKey(k => k + 1);
+    setTimeout(() => setRefreshing(false), 900);
+  };
 
   useEffect(() => {
     getKpis().then(data => setKpis(prev => ({ ...prev, ...data }))).catch(() => {});
-  }, []);
+  }, [refreshKey]);
 
   useEffect(() => {
     getRepartitionGeo()
@@ -66,7 +74,7 @@ export default function Statistiques() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [refreshKey]);
 
   useEffect(() => {
     getTopMedecinsConcordance(now.getMonth() + 1, now.getFullYear())
@@ -81,7 +89,7 @@ export default function Statistiques() {
         })));
       })
       .catch(() => {});
-  }, []);
+  }, [refreshKey]);
 
   useEffect(() => {
     if (vue === "jours") {
@@ -106,7 +114,7 @@ export default function Statistiques() {
         })
         .catch(() => setRawData([]));
     }
-  }, [vue, annee, mois]);
+  }, [vue, annee, mois, refreshKey]);
 
   const chartLabels = rawData.map(d => d.label);
   const chartValues = rawData.map(d => d.v);
@@ -152,13 +160,23 @@ export default function Statistiques() {
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
 
       {/* ── Header ── */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: txt.primary }}>
-          Statistiques
-        </h1>
-        <p className="text-[15px] mt-1" style={{ color: txt.muted }}>
-          Vue globale de l'activité PneumoIA CEMAC
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: txt.primary }}>
+            Statistiques
+          </h1>
+          <p className="text-[15px] mt-1" style={{ color: txt.muted }}>
+            Vue globale de l'activité PneumoIA CEMAC
+          </p>
+        </div>
+        <button
+          onClick={doRefresh}
+          disabled={refreshing}
+          title="Actualiser"
+          className="p-2 rounded-xl border transition-colors"
+          style={{ borderColor: surface.border, color: txt.subtle }}>
+          <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+        </button>
       </div>
 
       {/* ── KPIs ── */}

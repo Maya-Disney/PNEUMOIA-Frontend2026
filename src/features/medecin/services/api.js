@@ -100,3 +100,10 @@ export const publierMonAvis = (note, contenu) =>
     method: 'POST',
     body: JSON.stringify({ note, contenu }),
   });
+
+// ── Requêtes médecins ─────────────────────────────────────────
+export const soumettreRequete = (data) =>
+  apiFetch('/requetes', { method: 'POST', body: JSON.stringify(data) });
+
+export const mesRequetes = () =>
+  apiFetch('/requetes/mes-requetes');

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useAdminTheme } from "../context/useAdminTheme";
 import * as XLSX from "xlsx";
-import { Download, Trash2, X, Send, Mail, MoreVertical } from "lucide-react";
+import { Download, Trash2, X, Send, Mail, MoreVertical, RefreshCw } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
 import { getMedecinsRefuses, supprimerDossierRefuse, relancerMedecin as relancerMedecinApi } from "../api/adminApi";
 import {
@@ -116,33 +116,38 @@ export default function Refusees() {
   const [villeFiltre,   setVilleFiltre]  = useState("Toutes");
   const [motifFiltre,   setMotifFiltre]  = useState("Tous");
 
-  const [openMenuId, setOpenMenuId] = useState(null);
+  const [openMenuId,  setOpenMenuId]  = useState(null);
+  const [loading,     setLoading]     = useState(false);
+  const [refreshKey,  setRefreshKey]  = useState(0);
 
   useEffect(() => {
+    setLoading(true);
     getMedecinsRefuses()
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setRows(data.map(m => ({
-            id:          m.id,
-            initials:    `${(m.prenom?.[0]||"").toUpperCase()}${(m.nom?.[0]||"").toUpperCase()}`,
-            nom:         `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
-            specialite:  m.specialite    || "Pneumologue",
-            hopital:     m.etablissement || "—",
-            ville:       m.ville || m.adresse || "—",
-            cnom:        m.numero_rpps   || "—",
-            email:       m.email         || "—",
-            telephone:   m.telephone     || "—",
-            dateDemande: m.date_demande || (m.created_at ? fmt(new Date(m.created_at)) : "—"),
-            dateRefus:   m.date_refus   || (m.updated_at ? fmt(new Date(m.updated_at)) : "—"),
-            motif:       m.motif_rejet   || "—",
-            refusePar:   m.refuse_par    || "Administrateur",
-            photo_url:   m.photo_url     || null,
-            relanceSent: m.relance_sent  || false,
-          })));
-        }
+        setRows(Array.isArray(data) ? data.map(m => ({
+          id:          m.id,
+          initials:    `${(m.prenom?.[0]||"").toUpperCase()}${(m.nom?.[0]||"").toUpperCase()}`,
+          nom:         `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
+          specialite:  m.specialite    || "Pneumologue",
+          hopital:     m.etablissement || "—",
+          ville:       m.ville || m.adresse || "—",
+          cnom:        m.numero_rpps   || "—",
+          email:       m.email         || "—",
+          telephone:   m.telephone     || "—",
+          dateDemande: m.date_demande || (m.created_at ? fmt(new Date(m.created_at)) : "—"),
+          dateRefus:   m.date_refus   || (m.updated_at ? fmt(new Date(m.updated_at)) : "—"),
+          motif:       m.motif_rejet   || "—",
+          refusePar:   m.refuse_par    || "Administrateur",
+          photo_url:   m.photo_url     || null,
+          relanceSent: m.relance_sent  || false,
+        })) : []);
       })
-      .catch(() => {});
-  }, []);
+      .catch(e => {
+        console.error("[Refuses] fetch error:", e?.message);
+        setToast({msg: "Erreur lors du chargement des dossiers refusés", type: "error"});
+      })
+      .finally(() => setLoading(false));
+  }, [refreshKey]);
 
   const motifs = ["Tous", ...new Set(rows.map(r=>r.motif))];
 
@@ -221,12 +226,21 @@ export default function Refusees() {
             {filtered.length} dossier{filtered.length>1?"s":""} refusé{filtered.length>1?"s":""}
           </p>
         </div>
-        <button onClick={exportExcel}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all border-gray-200 dark:border-[#21262d] text-gray-600 dark:text-[#8b949e]"
-          onMouseEnter={e=>{e.currentTarget.style.background=brand.DEFAULT;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=brand.DEFAULT;}}
-          onMouseLeave={e=>{e.currentTarget.style.background="";e.currentTarget.style.color="";e.currentTarget.style.borderColor="";}}>
-          <Download size={13}/> Export Excel
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            disabled={loading}
+            title="Actualiser"
+            className={`p-2 rounded-xl border transition-colors ${dark?"border-[#30363d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button onClick={exportExcel}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all border-gray-200 dark:border-[#21262d] text-gray-600 dark:text-[#8b949e]"
+            onMouseEnter={e=>{e.currentTarget.style.background=brand.DEFAULT;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=brand.DEFAULT;}}
+            onMouseLeave={e=>{e.currentTarget.style.background="";e.currentTarget.style.color="";e.currentTarget.style.borderColor="";}}>
+            <Download size={13}/> Export Excel
+          </button>
+        </div>
       </div>
 
       <TableCard dark={dark}>

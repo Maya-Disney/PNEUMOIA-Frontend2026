@@ -14,6 +14,7 @@ import {
   RotateCcw, FileText, User, Users
 } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
+import { soumettreRequete, mesRequetes } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 const tok = () => localStorage.getItem('token') || localStorage.getItem('access_token') || localStorage.getItem('pneumoia_token') || '';
@@ -359,6 +360,7 @@ function OngletCommentaires({ toast, profil }) {
 // ─── Onglet Requêtes admin ─────────────────────────────────────────────────────
 function OngletRequetes({ toast }) {
   const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     type: 'recuperation',
@@ -367,31 +369,64 @@ function OngletRequetes({ toast }) {
   });
   const [sending, setSending] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    function load(first = false) {
+      if (first) setLoading(true);
+      mesRequetes()
+        .then(data => { if (!cancelled) setRequests(Array.isArray(data) ? data : []); })
+        .catch(() => {})
+        .finally(() => { if (first && !cancelled) setLoading(false); });
+    }
+    load(true);
+    const t = setInterval(() => load(false), 30000);
+    return () => { cancelled = true; clearInterval(t); };
+  }, []);
+
   const handleSubmit = async () => {
     if (form.type === 'recuperation' && (!form.patientNom || !form.dateNaissance || !form.motif)) {
       toast.warning('Remplissez tous les champs obligatoires'); return;
     }
     if (form.type === 'autre' && (!form.autreObjet || !form.autreMessage)) {
-      toast.warning('Remplissez l\'objet et le message'); return;
+      toast.warning("Remplissez l'objet et le message"); return;
     }
     setSending(true);
-    await new Promise(r => setTimeout(r, 900));
-    const newReq = {
-      id: Date.now(),
-      type: form.type,
-      patientNom: form.patientNom || '—',
-      dateNaissance: form.dateNaissance || '—',
-      dateSuppression: form.dateSuppression || '—',
-      motif: form.type === 'recuperation' ? form.motif : form.autreMessage,
-      objet: form.autreObjet || null,
-      statut: 'en_attente',
-      date: new Date().toLocaleDateString('fr-FR'),
-    };
-    setRequests(prev => [newReq, ...prev]);
-    setForm({ type: 'recuperation', patientNom: '', dateNaissance: '', dateSuppression: '', motif: '', autreObjet: '', autreMessage: '' });
-    setShowForm(false);
-    setSending(false);
-    toast.success('Requête envoyée à l\'administrateur');
+    try {
+      let titre, description;
+      if (form.type === 'recuperation') {
+        titre = `Récupération dossier — ${form.patientNom}`;
+        description = `Patient : ${form.patientNom}\nDate de naissance : ${form.dateNaissance}${form.dateSuppression ? `\nDate de suppression : ${form.dateSuppression}` : ''}\nMotif : ${form.motif}`;
+      } else {
+        titre = form.autreObjet;
+        description = form.autreMessage;
+      }
+      const data = await soumettreRequete({ titre, categorie: 'autre', description });
+      setRequests(prev => [{
+        id: data.id,
+        titre,
+        categorie: 'autre',
+        description,
+        statut: 'en_attente',
+        reponse_admin: null,
+        action_admin: null,
+        repondu_le: null,
+        created_at: new Date().toISOString(),
+      }, ...prev]);
+      setForm({ type: 'recuperation', patientNom: '', dateNaissance: '', dateSuppression: '', motif: '', autreObjet: '', autreMessage: '' });
+      setShowForm(false);
+      toast.success("Requête envoyée à l'administrateur");
+    } catch (e) {
+      toast.error?.(e?.message || "Erreur lors de l'envoi") ?? toast.warning(e?.message || "Erreur lors de l'envoi");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const reqStatutCfg = {
+    en_attente: { label: 'En attente', color: 'text-amber-600',   bg: 'bg-amber-50',   icon: Clock },
+    en_cours:   { label: 'En cours',   color: 'text-blue-600',    bg: 'bg-blue-50',    icon: MessageCircle },
+    resolu:     { label: 'Résolu',     color: 'text-emerald-600', bg: 'bg-emerald-50', icon: CheckCircle },
+    ferme:      { label: 'Fermé',      color: 'text-gray-500',    bg: 'bg-gray-100',   icon: X },
   };
 
   return (
@@ -502,46 +537,45 @@ function OngletRequetes({ toast }) {
       {/* Liste des requêtes */}
       <div className="space-y-3">
         <p className="text-xs font-black uppercase tracking-widest text-(--t4)">Mes requêtes ({requests.length})</p>
-        {requests.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-10 bg-(--sf) border border-(--ln) rounded-xl">
+            <Loader2 className="w-6 h-6 text-(--t4) mx-auto mb-2 animate-spin" />
+            <p className="text-sm text-(--t3)">Chargement…</p>
+          </div>
+        ) : requests.length === 0 ? (
           <div className="text-center py-10 bg-(--sf) border border-(--ln) rounded-xl">
             <FolderSearch className="w-8 h-8 text-(--t4) mx-auto mb-2" />
             <p className="text-sm text-(--t3)">Aucune requête envoyée</p>
           </div>
         ) : requests.map((r, i) => {
-          const st = statutConfig[r.statut] || statutConfig.en_attente;
-          const StIcon = st.icon;
+          const cfg = reqStatutCfg[r.statut] || reqStatutCfg.en_attente;
+          const StIcon = cfg.icon;
+          const isRecup = r.titre?.startsWith('Récupération dossier');
           return (
             <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               className="bg-(--sf) border border-(--ln) rounded-xl p-4">
               <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="flex items-center gap-2">
-                  {r.type === 'recuperation'
+                <div className="flex items-center gap-2 min-w-0">
+                  {isRecup
                     ? <RotateCcw className="w-4 h-4 text-blue-600 shrink-0" />
                     : <FileText className="w-4 h-4 text-(--t3) shrink-0" />}
-                  <div>
-                    <p className="text-sm font-semibold text-(--t1)">
-                      {r.type === 'recuperation' ? `Récupération — ${r.patientNom}` : (r.objet || 'Autre demande')}
-                    </p>
-                    {r.type === 'recuperation' && (
-                      <p className="text-xs text-(--t4) mt-0.5">Né(e) le {r.dateNaissance || '—'}</p>
-                    )}
-                  </div>
+                  <p className="text-sm font-semibold text-(--t1) truncate">{r.titre}</p>
                 </div>
-                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${st.bg} ${st.color}`}>
-                  <StIcon className="w-3 h-3" />{st.label}
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ${cfg.bg} ${cfg.color}`}>
+                  <StIcon className="w-3 h-3" />{cfg.label}
                 </span>
               </div>
-              <p className="text-xs text-(--t3) leading-relaxed mb-2">{r.motif}</p>
-              {r.type === 'recuperation' && r.dateSuppression !== '—' && (
-                <p className="text-xs text-(--t4) mb-2">Suppression : <span className="font-medium">{r.dateSuppression}</span></p>
-              )}
-              {r.reponseAdmin && (
+              <p className="text-xs text-(--t3) leading-relaxed mb-2 whitespace-pre-line">{r.description}</p>
+              {r.reponse_admin && (
                 <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-                  <p className="text-xs font-semibold text-emerald-800 mb-1 flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" />Réponse de l'administrateur</p>
-                  <p className="text-xs text-emerald-700">{r.reponseAdmin}</p>
+                  <p className="text-xs font-semibold text-emerald-800 mb-1 flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Réponse de l'administrateur{r.action_admin ? ` · ${r.action_admin}` : ''}
+                  </p>
+                  <p className="text-xs text-emerald-700">{r.reponse_admin}</p>
                 </div>
               )}
-              <p className="text-[10px] text-(--t4) mt-2">Envoyée le {r.date}</p>
+              <p className="text-[10px] text-(--t4) mt-2">Envoyée {formatTime(r.created_at)}</p>
             </motion.div>
           );
         })}

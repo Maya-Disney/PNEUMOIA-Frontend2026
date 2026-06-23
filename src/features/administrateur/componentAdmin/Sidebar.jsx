@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
-import { adminLogout, getMedecinsActifs } from "../api/adminApi";
+import { adminLogout, getMedecinsActifs, countRequetesEnAttente } from "../api/adminApi";
 import logo from "../../../assets/images/logo.png";
 import {
   LayoutDashboard, UserPlus, UserCheck, UserX,
   Stethoscope, UserMinus, LineChart, BarChart2,
   Brain, MapPin, FileSearch, Settings, LogOut,
-  Menu, X, HelpCircle, MessageCircle, Trash2
+  Menu, X, HelpCircle, MessageCircle, Trash2, AlertCircle
 } from "lucide-react";
 
 const BRAND    = "#009e82";   // Vert médical
@@ -47,9 +47,10 @@ function getNav(counts) {
     {
       section: "Médecins",
       items: [
-        { to: "/administrateur/medecins",          icon: Stethoscope, label: "Médecins actifs", badge: counts.actifs, badgeColor: "teal" },
-        { to: "/administrateur/suspendus",          icon: UserMinus,   label: "Suspendus" },
-        { to: "/administrateur/faq",               icon: HelpCircle,  label: "FAQ Médecins" },
+        { to: "/administrateur/medecins",  icon: Stethoscope,  label: "Médecins",           badge: counts.actifs,    badgeColor: "teal"   },
+        { to: "/administrateur/suspendus", icon: UserMinus,    label: "Suspendus" },
+        { to: "/administrateur/faq",       icon: HelpCircle,   label: "FAQ Médecins" },
+        { to: "/administrateur/requetes",  icon: AlertCircle,  label: "Requêtes Médecins", badge: counts.requetes,  badgeColor: "orange" },
       ]
     },
     {
@@ -91,12 +92,21 @@ export default function Sidebar({ dark }) {
   const navigate = useNavigate();
   const [open,       setOpen]       = useState(false);
   const [showLogout, setShowLogout] = useState(false);
-  const [counts, setCounts] = useState({ actifs: 0 });
+  const [counts, setCounts] = useState({ actifs: 0, requetes: 0 });
 
   useEffect(() => {
-    getMedecinsActifs()
-      .then(data => setCounts({ actifs: Array.isArray(data) ? data.length : 0 }))
-      .catch(() => setCounts({ actifs: 0 }));
+    function fetchCounts() {
+      getMedecinsActifs()
+        .then(data => setCounts(c => ({ ...c, actifs: Array.isArray(data) ? data.length : 0 })))
+        .catch(() => {});
+      countRequetesEnAttente()
+        .then(data => setCounts(c => ({ ...c, requetes: data?.count ?? 0 })))
+        .catch(() => {});
+    }
+    fetchCounts();
+    // Rafraîchir le badge toutes les 30 s
+    const t = setInterval(fetchCounts, 30000);
+    return () => clearInterval(t);
   }, []);
 
   function confirmLogout() {
