@@ -20,7 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** URL de base du backend — définie dans .env (VITE_API_URL) */
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace('/api/v1', '');
 
 /**
  * Fonction centrale pour tous les appels HTTP.

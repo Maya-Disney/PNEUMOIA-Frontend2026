@@ -20,7 +20,7 @@ function mapRessource(r) {
       age: '—',
       condition: Array.isArray(r.tags) && r.tags.length ? r.tags.join(', ') : '—',
       location: '—',
-      date: r.created_at ? new Date(r.created_at).toLocaleDateString('fr-FR') : '—',
+      date: (r.created_at || r.time) ? new Date(r.created_at || r.time).toLocaleDateString('fr-FR') : '—',
     },
     doctor: r.medecin_id || '—',
     hospital: null,

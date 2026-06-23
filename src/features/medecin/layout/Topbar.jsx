@@ -206,15 +206,9 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[var(--sf2)] border border-[var(--ln)] hover:bg-[var(--sf3)] transition-all"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow overflow-hidden shrink-0">
-                  {photoUrl ? (
-                    <img
-                      src={photoUrl}
-                      alt="Profil"
-                      className="w-full h-full object-cover"
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                    />
-                  ) : initiales}
+                <div className="relative w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow overflow-hidden shrink-0">
+                  {initiales}
+                  {photoUrl && <img src={photoUrl} alt="Profil" className="absolute inset-0 w-full h-full object-cover" onError={e => e.currentTarget.remove()} />}
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-[13px] font-semibold text-[var(--t1)] leading-tight">{nomComplet}</p>
@@ -232,15 +226,9 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
                   {/* En-tête profil */}
                   <div className="p-4 bg-[var(--sf2)] border-b border-[var(--ln)]">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow overflow-hidden shrink-0">
-                        {photoUrl ? (
-                          <img
-                            src={photoUrl}
-                            alt="Profil"
-                            className="w-full h-full object-cover"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                        ) : initiales}
+                      <div className="relative w-11 h-11 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow overflow-hidden shrink-0">
+                        {initiales}
+                        {photoUrl && <img src={photoUrl} alt="Profil" className="absolute inset-0 w-full h-full object-cover" onError={e => e.currentTarget.remove()} />}
                       </div>
                       <div>
                         <p className="text-sm font-bold text-[var(--t1)]">{nomComplet}</p>

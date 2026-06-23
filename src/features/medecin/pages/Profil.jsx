@@ -10,6 +10,8 @@ import {
   Lock, KeyRound, Eye, EyeOff, AlertCircle, X, Download
 } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
 export default function Profile() {
   const { profil, loading: profilLoading, error: profilError } = useProfil();
   const originalData = useRef(null); // snapshot avant édition
@@ -67,7 +69,7 @@ export default function Profile() {
     if (!profil) return;
     const token = localStorage.getItem('token');
     if (!token) return;
-    fetch('http://localhost:8000/api/v1/auth/documents', {
+    fetch(`${API_URL}/auth/documents`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.ok ? r.json() : [])
@@ -145,7 +147,7 @@ export default function Profile() {
     setPwdError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8000/api/v1/auth/change-password', {
+      const res = await fetch(`${API_URL}/auth/change-password`, {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -181,7 +183,7 @@ export default function Profile() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    fetch('http://localhost:8000/api/v1/medecins/mon-rang', {
+    fetch(`${API_URL}/medecins/mon-rang`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.ok ? r.json() : null)
@@ -221,7 +223,7 @@ export default function Profile() {
         website:       formData.social?.website  || null,
       };
 
-      const res = await fetch('http://localhost:8000/api/v1/auth/profil', {
+      const res = await fetch(`${API_URL}/auth/profil`, {
         method:  'PATCH',
         headers: {
           'Content-Type':  'application/json',
@@ -239,7 +241,7 @@ export default function Profile() {
       if (photoFile) {
         const formPhoto = new FormData();
         formPhoto.append('photo', photoFile);
-        const photoRes = await fetch('http://localhost:8000/api/v1/auth/photo', {
+        const photoRes = await fetch(`${API_URL}/auth/photo`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}` },
           body: formPhoto,
