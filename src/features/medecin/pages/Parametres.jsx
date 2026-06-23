@@ -5,7 +5,7 @@ import {
   Eye, EyeOff, CheckCircle, AlertCircle,
   Save, Sun, Moon, Download, Loader2,
   ChevronRight, Trash2, Globe, Settings,
-  Smartphone, Check, KeyRound
+  Smartphone, Check, KeyRound,Share2
 } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';

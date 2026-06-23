@@ -152,15 +152,29 @@ function OngletCommentaires({ toast, profil }) {
     toast.success('Réponse publiée');
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!newText.trim() || !newCas.trim()) { toast.warning('Remplissez le cas et le commentaire'); return; }
-    setComments(prev => [{
-      id: Date.now(), pub_id: null, casTitle: newCas, casId: `CAS-2026-${String(Date.now()).slice(-3)}`,
-      author: { name: myName, avatar: myInitials, specialty: mySpecialty, hospital: myHospital },
-      text: newText.trim(), time: new Date().toISOString(), likes: 0, liked: false, pinned: false, type: newType, replies: []
-    }, ...prev]);
-    setNewText(''); setNewCas(''); setShowNew(false);
-    toast.success('Commentaire publié');
+    try {
+      const r = await fetch(`${API_URL}/publications`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titre: newCas.trim(), contenu: newText.trim(), type: 'discussion' }),
+      });
+      if (r.ok) {
+        const saved = await r.json();
+        setComments(prev => [{
+          id: saved.id, pub_id: saved.id, casTitle: newCas,
+          casId: saved.id,
+          author: { name: myName, avatar: myInitials, specialty: mySpecialty, hospital: myHospital },
+          text: newText.trim(), time: new Date().toISOString(), likes: 0, liked: false, pinned: false, type: newType, replies: []
+        }, ...prev]);
+        setNewText(''); setNewCas(''); setShowNew(false);
+        toast.success('Commentaire publié');
+        return;
+      }
+      const err = await r.json().catch(() => ({}));
+      toast.error(err.detail || `Erreur ${r.status} lors de la publication`);
+    } catch (e) { toast.error(`Serveur inaccessible — vérifiez que le backend est démarré (${e?.message || 'réseau'})`); }
   };
 
   const filtered = comments.filter(c => {

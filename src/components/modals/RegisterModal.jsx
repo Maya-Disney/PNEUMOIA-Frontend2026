@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmationModal from './ConfirmationModal';
 import { useToast } from '../../contexts/ToastContext';
 
-const API_URL = 'http://localhost:8000/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 const DOCUMENTS_REQUIS = [
   { id: 'diplome_specialisation', label: 'Diplôme de spécialisation en pneumologie',      accept: '*' },
@@ -168,7 +168,7 @@ export default function RegisterModal({ isOpen, onClose }) {
     if (!form.photoProfil) { setApiError('Veuillez ajouter une photo de profil.'); return; }
     setLoading(true);
     const controller = new AbortController();
-    const timeoutId  = setTimeout(() => controller.abort(), 60000);
+    const timeoutId  = setTimeout(() => controller.abort(), 300000);
     try {
       const fd = new FormData();
       fd.append('civilite', form.civilite); fd.append('nom', form.nom); fd.append('prenom', form.prenom);
