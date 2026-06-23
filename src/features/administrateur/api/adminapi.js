@@ -344,6 +344,14 @@ export async function supprimerQuestion(questionId) {
   return request("DELETE", `/api/admin/faq/questions/${questionId}`, null, true);
 }
 
+/**
+ * Publie une question de médecin directement en FAQ (landing page + médecins).
+ * POST /api/admin/faq/questions/{id}/publier-faq
+ */
+export async function publierQuestionFAQ(questionId, reponse, categorie = "Autre") {
+  return request("POST", `/api/admin/faq/questions/${questionId}/publier-faq`, { reponse, categorie }, true);
+}
+
 export async function viderHistoriqueQuestions() {
   return request("DELETE", "/api/admin/faq/questions/historique", null, true);
 }
@@ -519,10 +527,3 @@ export async function getAdminNotifications(nonLuesSeulement = false) {
   return request("GET", `/api/admin/notifications${nonLuesSeulement ? "?non_lues_seulement=true" : ""}`, null, true);
 }
 
-export async function getPatientsSupprimesAdmin() {
-  return request("GET", "/api/admin/patients-supprimes", null, true);
-}
-
-export async function restaurerPatientSupprime(patientId) {
-  return request("PATCH", `/api/admin/patients-supprimes/${patientId}/restaurer`, null, true);
-}

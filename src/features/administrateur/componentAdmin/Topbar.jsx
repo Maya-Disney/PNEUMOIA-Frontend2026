@@ -217,7 +217,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
         const data = await getAdminNotifications(true);
         if (data?.notifications) {
           newPatientNotifs = data.notifications.filter(n =>
-            n.type === "patient_supprime" || n.type === "demande_recuperation_patient"
+            n.type === "compte_bloque_tentatives"
           );
         }
       } catch {
@@ -546,24 +546,24 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
                 <>
                   <div style={{ borderTop: `1px solid ${surface.border}` }} />
                   <NotifSectionHeader
-                    label="Patients supprimés" count={patientNotifs.length}
+                    label="Comptes bloqués" count={patientNotifs.length}
                     Icon={Trash2} color="#dc2626" txt={txt}
                   />
                   {patientNotifs.slice(0, 3).map(n => (
                     <NotifItem
                       key={n.id}
-                      initials="PT"
+                      initials="🔒"
                       bg="#dc2626"
                       title={n.titre}
                       sub1={n.message.length > 52 ? n.message.slice(0, 52) + "…" : n.message}
                       sub2={n.created_at ? `Il y a ${notifElapsed(new Date(n.created_at.endsWith("Z") ? n.created_at : n.created_at + "Z"))}` : ""}
-                      onClick={() => goTo("/administrateur/patients-supprimes")}
+                      onClick={() => goTo("/administrateur/corbeille")}
                       dark={dark} txt={txt}
                     />
                   ))}
                   <NotifSeeAll
-                    label="Voir les patients supprimés"
-                    onClick={() => goTo("/administrateur/patients-supprimes")}
+                    label="Voir la corbeille"
+                    onClick={() => goTo("/administrateur/corbeille")}
                     txt={txt}
                   />
                 </>

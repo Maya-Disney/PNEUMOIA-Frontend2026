@@ -566,12 +566,14 @@ function OngletRequetes({ toast }) {
 
 // ─── Onglet Questions / FAQ ────────────────────────────────────────────────────
 function OngletQuestions({ toast }) {
-  const [questions, setQuestions] = useState([]);
-  const [loadingQ, setLoadingQ]   = useState(true);
-  const [showForm, setShowForm]   = useState(false);
-  const [titre, setTitre]         = useState('');
-  const [message, setMessage]     = useState('');
-  const [sending, setSending]     = useState(false);
+  const [questions,    setQuestions]    = useState([]);
+  const [loadingQ,     setLoadingQ]     = useState(true);
+  const [showForm,     setShowForm]     = useState(false);
+  const [titre,        setTitre]        = useState('');
+  const [message,      setMessage]      = useState('');
+  const [sending,      setSending]      = useState(false);
+  const [faqPubList,   setFaqPubList]   = useState([]);
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
   useEffect(() => {
     fetch(`${API_URL}/questions-admin/mes-questions`, {
@@ -581,6 +583,13 @@ function OngletQuestions({ toast }) {
       .then(data => setQuestions(data))
       .catch(() => {})
       .finally(() => setLoadingQ(false));
+
+    fetch(`${API_URL}/questions-admin/faq-publiees`, {
+      headers: { Authorization: `Bearer ${tok()}` },
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setFaqPubList(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
 
   const handleSubmit = async () => {
@@ -618,6 +627,50 @@ function OngletQuestions({ toast }) {
           </p>
         </div>
       </div>
+
+      {/* FAQ publiées par l'administrateur */}
+      {faqPubList.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <HelpCircle className="w-4 h-4 text-blue-600" />
+            <p className="text-xs font-black uppercase tracking-widest text-(--t4)">
+              FAQ officielle PneumoIA ({faqPubList.length})
+            </p>
+          </div>
+          <div className="space-y-2">
+            {faqPubList.map((f, i) => (
+              <div key={f.id}
+                className="bg-(--sf) border border-(--ln) rounded-xl overflow-hidden hover:border-blue-200 transition-colors">
+                <button
+                  onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-(--sf2) transition-colors">
+                  <span className="text-sm font-semibold text-(--t1) flex-1 pr-3">{f.question}</span>
+                  <ChevronDown className={`w-4 h-4 text-blue-600 shrink-0 transition-transform ${openFaqIndex === i ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence>
+                  {openFaqIndex === i && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden">
+                      <div className="px-4 pb-4 pt-1 border-t border-(--ln)">
+                        <p className="text-xs text-(--t2) leading-relaxed">{f.reponse}</p>
+                        {f.categorie && f.categorie !== 'Autre' && (
+                          <span className="inline-block mt-2 px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-50 text-blue-600 border border-blue-100">
+                            {f.categorie}
+                          </span>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <button onClick={() => setShowForm(!showForm)}
         className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">

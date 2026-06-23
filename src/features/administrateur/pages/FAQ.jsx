@@ -18,7 +18,7 @@ import {
   Send, ChevronDown, ChevronUp, Search, Wind, PauseCircle,
   AlertCircle, Trash2, Calendar,
 } from "lucide-react";
-import { getQuestions, repondreQuestion, getFAQ, creerFAQ, modifierFAQ, toggleFAQPublie, supprimerFAQ, viderTouteFAQ, supprimerQuestion, viderHistoriqueQuestions } from "../api/adminApi";
+import { getQuestions, repondreQuestion, getFAQ, creerFAQ, modifierFAQ, toggleFAQPublie, supprimerFAQ, viderTouteFAQ, supprimerQuestion, viderHistoriqueQuestions, publierQuestionFAQ } from "../api/adminApi";
 import { brand, getSurface, getText } from "../theme";
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -435,6 +435,21 @@ export default function FAQ() {
                         className={`px-3 py-1.5 rounded-xl text-[14px] font-bold border ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
                         Modifier
                       </button>
+                      <button onClick={async ()=>{
+                          if (!q.reponse?.trim()) { showToast("Répondez d'abord à la question", "error"); return; }
+                          try {
+                            const created = await publierQuestionFAQ(q.id, q.reponse.trim(), q.categorie || "Autre");
+                            setFaqList(p=>[...p,{...created, created_at:new Date(), updated_at:null}]);
+                            setQuestions(p=>p.map(x=>x.id===q.id ? {...x, statut:"publiee_faq"} : x));
+                            showToast("Publiée sur /apropos et pour tous les médecins ✓");
+                          } catch {
+                            showToast("Erreur lors de la publication", "error");
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-xl text-[14px] font-bold border transition-colors"
+                        style={{borderColor:"#bbf7d0",color:brand.DEFAULT,background:"#f0fdf4"}}>
+                        Publier en FAQ
+                      </button>
                       <button onClick={()=>setModaleSupprimer({id:q.id, label:q.question, type:"question"})}
                         className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[14px] font-bold border transition-colors ${dark?"border-red-900/40 text-red-400 hover:bg-red-900/20":"border-red-100 text-red-500 hover:bg-red-50"}`}>
                         <Trash2 size={11}/> Supprimer
@@ -581,24 +596,12 @@ export default function FAQ() {
               </p>
             </div>
 
-            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${dark?"bg-[#0d1117] border-[#21262d]":"bg-blue-50 border-blue-100"}`}>
-              <HelpCircle size={14} className={dark?"text-[#484f58]":"text-blue-500"}/>
-              <p className={`text-[15px] ${dark?"text-[#484f58]":"text-blue-700"}`}>
-                Ajouter cette Q&R à la FAQ publique ?
-              </p>
-              <button onClick={()=>{
-                  if (!reponse.trim()) return;
-                  setFaqList(p=>[...p,{
-                    id:Date.now(), question:modaleRep.question, reponse,
-                    categorie:modaleRep.categorie, publie:false, nb_vues:0,
-                    created_at:new Date(), updated_at:null,
-                  }]);
-                  showToast("Ajoutée à la FAQ (brouillon)");
-                }}
-                className="ml-auto px-3 py-1 rounded-lg text-[14px] font-bold text-white shrink-0"
-                style={{background:brand.DEFAULT}}>
-                Ajouter
-              </button>
+            <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[13px] ${dark?"bg-[#0d1117] border-[#21262d] text-[#484f58]":"bg-blue-50 border-blue-100 text-blue-700"}`}>
+              <HelpCircle size={13} className="shrink-0 mt-0.5"/>
+              <span>
+                Envoyez d'abord la réponse au médecin. Si la Q&R est intéressante,
+                vous pourrez la <strong>Publier en FAQ</strong> depuis l'onglet Historique.
+              </span>
             </div>
           </div>
         </Modal>
