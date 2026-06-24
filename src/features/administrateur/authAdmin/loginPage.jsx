@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { adminLogin, adminResetRequest, adminResetConfirm } from "../api/adminApi";
 import { useNavigate } from "react-router-dom";
 import logo from "../../../assets/images/logo.png";
-import dashIcon from "../../../assets/favicorn/Happy Bunch - Desk.png";
+import dashIcon from "../../../assets/favicorn/login3.png";
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
@@ -14,9 +14,9 @@ function useIsDesktop() {
   return isDesktop;
 }
 
-const T1 = "#1f7a75";
-const T2 = "#339991";
-const T3 = "#5ab3ac";
+const T1 = "#007a64";
+const T2 = "#009e82";
+const T3 = "#00c2a0";
 
 const MISSIONS = [
   "Supervisez la plateforme et garantissez la qualité des soins.",
@@ -70,9 +70,9 @@ function AnimatedTagline() {
       transition: "opacity .35s, transform .35s",
       opacity: visible ? 1 : 0,
       transform: visible ? "translateY(0)" : "translateY(8px)",
-      color: "rgba(255,255,255,0.92)",
-      fontSize: 18,
-      fontWeight: 600,
+      color: "rgba(255,255,255,0.90)",
+      fontSize: 17,
+      fontWeight: 700,
       lineHeight: 1.5,
       textAlign: "center",
       fontFamily: "'Inter', sans-serif",
@@ -91,11 +91,11 @@ function FieldSm({ label, id, type, value, onChange, placeholder, icon, right, d
     <div>
       <label htmlFor={id} style={{ display: "block", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 4, color: dark ? "rgba(255,255,255,.6)" : "#374151" }}>{label}</label>
       <div style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 9, padding: "0 12px", height: 38,
-          background: dark ? "rgba(255,255,255,.08)" : "#f9fafb",
-          border: focus ? `1.5px solid ${T2}` : dark ? "1px solid rgba(255,255,255,.15)" : "1px solid #e5e7eb",
-          boxShadow: focus ? `0 0 0 3px rgba(51,153,145,.1)` : "none", transition: "all .15s" }}
+          background: dark ? "rgba(255,255,255,.08)" : "#e6f7f4",
+          border: focus ? `1.5px solid ${T2}` : dark ? "1px solid rgba(255,255,255,.15)" : "1px solid #b2e0d8",
+          boxShadow: focus ? `0 0 0 3px rgba(0,158,130,.12)` : "none", transition: "all .15s" }}
         onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}>
-        <span style={{ color: dark ? "rgba(255,255,255,.4)" : "#9ca3af", flexShrink: 0 }}>{icon}</span>
+        <span style={{ color: dark ? "rgba(255,255,255,.4)" : T1, flexShrink: 0 }}>{icon}</span>
         <input id={id} type={type} value={value} onChange={onChange} placeholder={placeholder} autoComplete={id}
           style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 12, color: dark ? "#fff" : "#111827" }}
           onFocus={() => setFocus(true)} onBlur={() => setFocus(false)} />
@@ -112,11 +112,11 @@ function Field({ label, id, type, value, onChange, placeholder, icon, right, dar
     <div>
       <label htmlFor={id} style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6, color: dark ? "rgba(255,255,255,.6)" : "#374151" }}>{label}</label>
       <div style={{ display: "flex", alignItems: "center", gap: 10, borderRadius: 10, padding: "0 14px", height: 44,
-          background: dark ? "rgba(255,255,255,.08)" : "#f9fafb",
-          border: focus ? `1.5px solid ${T2}` : dark ? "1px solid rgba(255,255,255,.15)" : "1px solid #e5e7eb",
-          boxShadow: focus ? `0 0 0 3px rgba(51,153,145,.1)` : "none", transition: "all .15s" }}
+          background: dark ? "rgba(255,255,255,.08)" : "#e6f7f4",
+          border: focus ? `1.5px solid ${T2}` : dark ? "1px solid rgba(255,255,255,.15)" : "1px solid #b2e0d8",
+          boxShadow: focus ? `0 0 0 3px rgba(0,158,130,.12)` : "none", transition: "all .15s" }}
         onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}>
-        <span style={{ color: dark ? "rgba(255,255,255,.4)" : "#9ca3af", flexShrink: 0 }}>{icon}</span>
+        <span style={{ color: dark ? "rgba(255,255,255,.4)" : T1, flexShrink: 0 }}>{icon}</span>
         <input id={id} type={type} value={value} onChange={onChange} placeholder={placeholder} autoComplete={id}
           style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: dark ? "#fff" : "#111827" }}
           onFocus={() => setFocus(true)} onBlur={() => setFocus(false)} />
@@ -244,7 +244,7 @@ export default function AdminLogin() {
   const cardBord = dark ? "rgba(255,255,255,.15)" : "#e5e7eb";
   const topbarBg   = dark ? "#0d1117" : "#ffffff";
   const topbarBord = dark ? "rgba(255,255,255,.1)" : "#e2e8e4";
-  const asideBg  = "linear-gradient(160deg, #2a5f5b 0%, #3d8480 55%, #5aa09c 100%)";
+  const asideBg  = "linear-gradient(145deg, #005c4b 0%, #009e82 100%)";
   const rightBg  = dark ? "#0d1117" : "#f9fafb";
 
   const iconMail = <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>;
@@ -294,67 +294,50 @@ export default function AdminLogin() {
       </header>
 
       {/* ── MAIN ── */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "row", overflow: "hidden", minHeight: 0 }}>
+      <main className="flex flex-1 overflow-hidden flex-row" style={{ minHeight: 0 }}>
 
         {/* ── GAUCHE ── */}
         <aside style={{
           position: "relative",
           background: asideBg,
           flexShrink: 0,
-          display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          padding: "40px 28px",
-          overflow: "hidden"
-        }} className="w-full lg:w-[43%] lg:min-w-[43%] lg:min-h-0 lg:h-auto">
+          justifyContent: "center",
+          padding: "40px 50px 40px 36px",
+          overflow: "hidden",
+          borderRadius: "0 55% 55% 0 / 0 38% 38% 0",
+          zIndex: 1,
+        }} className="hidden md:flex md:w-[40%] lg:w-[45%] lg:min-w-[45%]">
 
-          {/* Background decorations */}
-          <div style={{ position: "absolute", inset: 0, opacity: .04, backgroundImage: "radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)", backgroundSize: "22px 22px" }} />
-          <div style={{ position: "absolute", top: -70, right: -70, width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.10), transparent 70%)" }} />
-          <div style={{ position: "absolute", bottom: -50, left: -50, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.07), transparent 70%)" }} />
+          <div style={{ position: "absolute", inset: 0, opacity: .05, backgroundImage: "radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)", backgroundSize: "22px 22px" }} />
+          <div style={{ position: "absolute", top: -60, right: -60, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.12), transparent 70%)" }} />
+          <div style={{ position: "absolute", bottom: -50, left: -50, width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.08), transparent 70%)" }} />
 
-          {/* ─── Centre : grande icône + tagline animée ──────────── */}
-          <div style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-            zIndex: 1,
-            width: "100%",
-            gap: 32
-          }}>
-            {/* Illustration Happy Bunch */}
-            <img
-              src={dashIcon}
-              alt="Espace Administrateur"
-              style={{
-                width: "min(320px, 80%)",
-                height: "auto",
-                objectFit: "contain",
-                filter: "hue-rotate(-65deg) saturate(1.3) brightness(1.05) drop-shadow(0 16px 32px rgba(31,122,117,0.20))"
-              }}
-            />
-
-            {/* Tagline animée */}
+          <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 20, textAlign: "center", maxWidth: 340 }}>
+            <h1 style={{ fontSize: 38, fontWeight: 900, color: "#ffffff", letterSpacing: "-1px", margin: 0, lineHeight: 1.1 }}>
+              Bienvenue !
+            </h1>
+            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.80)", margin: 0, lineHeight: 1.6 }}>
+              Espace réservé aux administrateurs habilités de la plateforme PneumoIA.
+            </p>
             <AnimatedTagline />
           </div>
 
         </aside>
 
         {/* ── DROITE ── */}
-        <section style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:"24px 16px", background:rightBg, overflow:"auto", transition:"background .25s", flex:1, minWidth:0 }}>
-          <div style={{ width: "100%", maxWidth: 440, borderRadius: 18, background: cardBg, border: `1px solid ${cardBord}`, boxShadow: dark ? "0 8px 40px rgba(0,0,0,.4)" : "0 8px 32px rgba(31,122,117,.12)", padding: "20px 20px", transition: "all .25s" }} className="md:px-7">
+        <section style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:"24px", background: dark ? "#0d1117" : "#ffffff", overflow:"auto", transition:"background .25s", flex:1, minWidth:0 }}>
+          <div style={{ width: "100%", maxWidth: 400, padding: "0 8px", transition: "all .25s" }}>
 
             {view === "login" && (
               <>
-                <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <h2 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-.5px", color: tx1, marginBottom: 6 }}>Connexion</h2>
+                <div style={{ marginBottom: 14, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <h2 style={{ fontSize: 30, fontWeight: 900, letterSpacing: "-.5px", color: T2, marginBottom: 4 }}>Connexion</h2>
                   <p style={{ fontSize: 13.5, color: tx2 }}>Accès réservé aux administrateurs autorisés</p>
                 </div>
                 <ErrorBox msg={error} />
-                <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 14 }} noValidate>
+                <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 10 }} noValidate>
                   <Field label="Adresse email" id="email" type="email" value={email}
                     onChange={e => { setEmail(e.target.value); setError(""); }}
                     placeholder="adminpneumoia@gmail.com" dark={dark} icon={iconMail} />
@@ -373,7 +356,7 @@ export default function AdminLogin() {
                   </div>
                   <BtnPrimary label="Se connecter" loadingLabel="Vérification…" isLoading={loading} />
                 </form>
-                <div style={{ marginTop: 20, display: "flex", gap: 10, borderRadius: 12, padding: "12px 14px", background: dark ? `rgba(51,153,145,.15)` : `rgba(51,153,145,.08)`, border: `1px solid ${dark ? "rgba(51,153,145,.3)" : "rgba(51,153,145,.25)"}` }}>
+                <div style={{ marginTop: 12, display: "flex", gap: 10, borderRadius: 12, padding: "10px 12px", background: dark ? `rgba(51,153,145,.15)` : `rgba(51,153,145,.08)`, border: `1px solid ${dark ? "rgba(51,153,145,.3)" : "rgba(51,153,145,.25)"}` }}>
                   <span style={{ color: T2, flexShrink: 0, marginTop: 2 }}><IcoShield /></span>
                   <p style={{ fontSize: 11.5, color: dark ? `rgba(160,240,230,.9)` : T1, lineHeight: 1.5 }}>
                     <strong>Accès sécurisé.</strong> Réservé aux administrateurs habilités. Toute connexion est enregistrée dans les journaux d'audit.
@@ -483,7 +466,7 @@ export default function AdminLogin() {
               </div>
             )}
 
-            <p style={{ textAlign: "center", fontSize: 11, color: tx3, marginTop: 22 }}>
+            <p style={{ textAlign: "center", fontSize: 11, color: tx3, marginTop: 12 }}>
               © {new Date().getFullYear()} PneumoIA · Tous droits réservés
             </p>
           </div>
