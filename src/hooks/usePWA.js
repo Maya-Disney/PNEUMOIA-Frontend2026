@@ -95,9 +95,16 @@ export function usePWA() {
     return outcome === 'accepted';
   };
 
-  const applyUpdate = () => {
-    if (!swReg.current?.waiting) return;
-    swReg.current.waiting.postMessage({ type: 'SKIP_WAITING' });
+  const applyUpdate = async () => {
+    // Chercher le SW en attente via le ref ET via l'API (fallback si ref périmé)
+    let waiting = swReg.current?.waiting;
+    if (!waiting) {
+      const reg = await navigator.serviceWorker.getRegistration('/');
+      waiting = reg?.waiting;
+    }
+    if (waiting) {
+      waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
     setSwUpdateReady(false);
     window.location.reload();
   };

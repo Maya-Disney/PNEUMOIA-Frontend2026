@@ -1,8 +1,9 @@
-// public/sw.js — PneumoIA Service Worker v2
-const CACHE_STATIC = 'pneumoia-static-v2';
-const CACHE_PAGES  = 'pneumoia-pages-v2';
+// public/sw.js — PneumoIA Service Worker v3
+const CACHE_STATIC = 'pneumoia-static-v3';
+const CACHE_PAGES  = 'pneumoia-pages-v3';
 const CACHE_ONNX   = 'pneumoia-models-v1';
 
+// Fichiers critiques légers — précache atomique au SW install
 const STATIC_PRECACHE = [
   '/',
   '/offline.html',
@@ -10,11 +11,15 @@ const STATIC_PRECACHE = [
   '/favicon.svg',
   '/icon-192.png',
   '/icon-512.png',
+  '/models/metadata.json',
 ];
 
+// Fichiers lourds — précache non-bloquant (échec = pas de plantage SW)
 const MODEL_ASSETS = [
   '/models/model_base.onnx',
   '/models/model_equipe.onnx',
+  '/ort/ort-wasm-simd-threaded.mjs',
+  '/ort/ort-wasm-simd-threaded.wasm',
 ];
 
 // ── Install : précache assets statiques + modèles ─────────────────
@@ -62,8 +67,9 @@ self.addEventListener('fetch', (event) => {
 
   // Assets statiques (JS, CSS, images, fonts) → cache first
   if (
-    url.pathname.match(/\.(js|css|png|svg|ico|woff2?|ttf|webp|jpg|jpeg)$/) ||
-    url.pathname.startsWith('/assets/')
+    url.pathname.match(/\.(js|css|png|svg|ico|woff2?|ttf|webp|jpg|jpeg|wasm)$/) ||
+    url.pathname.startsWith('/assets/') ||
+    url.pathname.startsWith('/ort/')
   ) {
     event.respondWith(cacheFirst(request, CACHE_STATIC));
     return;
@@ -81,7 +87,7 @@ self.addEventListener('fetch', (event) => {
 
 // ── Stratégies de cache ───────────────────────────────────────────
 async function cacheFirst(request, cacheName) {
-  const cached = await caches.match(request);
+  const cached = await caches.match(request, { ignoreVary: true });
   if (cached) return cached;
   try {
     const response = await fetch(request);
@@ -91,6 +97,11 @@ async function cacheFirst(request, cacheName) {
     }
     return response;
   } catch {
+    // Ne pas renvoyer offline.html pour les JS/WASM (erreur MIME)
+    const url = new URL(request.url);
+    if (url.pathname.match(/\.(js|mjs|wasm|json)$/)) {
+      return new Response('', { status: 503, statusText: 'Offline' });
+    }
     return caches.match('/offline.html');
   }
 }

@@ -8,7 +8,7 @@ export default defineConfig({
     tailwindcss(),
   ],
   optimizeDeps: {
-    exclude: ['onnxruntime-web'],
+    exclude: ['onnxruntime-web', 'onnxruntime-web/wasm'],
     include: ['react-markdown'],
   },
 })

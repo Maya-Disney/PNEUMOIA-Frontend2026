@@ -4,10 +4,8 @@
 // Même Random Forest que le serveur, même précision
 // ================================================================
 
-import * as ort from 'onnxruntime-web';
+import * as ort from 'onnxruntime-web/wasm';
 
-// Configuration ONNX — utilise les fichiers WASM inclus dans le package
-ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/';
 ort.env.wasm.numThreads = 1;
 
 let sessionBase   = null;
@@ -15,14 +13,106 @@ let sessionEquipe = null;
 let metadata      = null;
 let loading       = false;
 
-// ── Charger les modèles (une seule fois, mis en cache) ────────────
+// Contenu .mjs stocké en mémoire pour Blob URL offline (24 KB — légère)
+let ortMjsContent = null;
+
+// ── Précache + stockage mémoire des fichiers ORT ─────────────────
+export async function precacheOrtFichiers() {
+  if (!('caches' in window) || !navigator.onLine) return;
+  try {
+    const cache = await caches.open('pneumoia-models-v1');
+
+    // .mjs : cache SW + stocker en mémoire (pour Blob URL offline)
+    const mjsCached = await cache.match('/ort/ort-wasm-simd-threaded.mjs', { ignoreVary: true });
+    if (!mjsCached || !ortMjsContent) {
+      const res = await fetch('/ort/ort-wasm-simd-threaded.mjs');
+      if (res.ok) {
+        const text = await res.text();
+        ortMjsContent = text;
+        if (!mjsCached) {
+          const h = new Headers(res.headers);
+          h.delete('vary');
+          await cache.put('/ort/ort-wasm-simd-threaded.mjs',
+            new Response(text, { status: 200, headers: h }));
+        }
+      }
+    } else if (!ortMjsContent) {
+      ortMjsContent = await mjsCached.clone().text();
+    }
+
+    // .wasm : cache SW uniquement (13 MB — pas de stockage mémoire eager)
+    const wasmCached = await cache.match('/ort/ort-wasm-simd-threaded.wasm', { ignoreVary: true });
+    if (!wasmCached) {
+      const res = await fetch('/ort/ort-wasm-simd-threaded.wasm');
+      if (res.ok) {
+        const h = new Headers(res.headers);
+        h.delete('vary');
+        await cache.put('/ort/ort-wasm-simd-threaded.wasm',
+          new Response(await res.blob(), { status: 200, headers: h }));
+      }
+    }
+  } catch { /* silencieux */ }
+}
+
+// ── Construire wasmPaths selon l'état réseau ──────────────────────
+async function resolveWasmPaths() {
+  if (navigator.onLine) {
+    return '/ort/';
+  }
+
+  // Hors ligne : créer des Blob URLs pour bypasser l'import de module.
+  // Le module loader du navigateur ne peut pas servir un import() depuis le cache SW.
+  // Un Worker créé depuis un Blob URL échappe aussi au scope SW pour ses fetches.
+  let mjsUrl  = null;
+  let wasmUrl = null;
+
+  try {
+    const cache = await caches.open('pneumoia-models-v1');
+
+    // .mjs → Blob URL (depuis mémoire ou cache SW)
+    const mjsText = ortMjsContent
+      || await cache.match('/ort/ort-wasm-simd-threaded.mjs', { ignoreVary: true })
+           .then(r => r?.text());
+    if (mjsText) {
+      mjsUrl = URL.createObjectURL(
+        new Blob([mjsText], { type: 'application/javascript' })
+      );
+    }
+
+    // .wasm → Blob URL
+    const wasmResp = await cache.match('/ort/ort-wasm-simd-threaded.wasm', { ignoreVary: true });
+    if (wasmResp) {
+      const buf = await wasmResp.arrayBuffer();
+      wasmUrl = URL.createObjectURL(
+        new Blob([buf], { type: 'application/wasm' })
+      );
+    }
+  } catch { /* silencieux */ }
+
+  if (!mjsUrl) {
+    throw new Error(
+      'Fichiers WASM non disponibles offline.\n' +
+      'Ouvrez la page Consultation une fois connecté pour activer le mode offline.'
+    );
+  }
+
+  return {
+    'ort-wasm-simd-threaded.mjs':  mjsUrl,
+    'ort-wasm-simd-threaded.wasm': wasmUrl || '/ort/ort-wasm-simd-threaded.wasm',
+  };
+}
+
+// ── Charger les modèles (une seule fois) ──────────────────────────
 export async function chargerModeles() {
   if (sessionBase && sessionEquipe) return true;
   if (loading) return false;
   loading = true;
 
   try {
-    console.log('Chargement modèles ONNX offline...');
+    console.log('⚙️  Chargement modèles ONNX...');
+
+    ort.env.wasm.wasmPaths  = await resolveWasmPaths();
+    ort.env.wasm.numThreads = 1;
 
     const [metaRes, base, equipe] = await Promise.all([
       fetch('/models/metadata.json').then(r => r.json()),
@@ -34,7 +124,7 @@ export async function chargerModeles() {
     sessionBase   = base;
     sessionEquipe = equipe;
 
-    console.log('✅ Modèles ONNX chargés — mode offline disponible');
+    console.log('✅ Modèles ONNX prêts — mode offline actif');
     return true;
   } catch (err) {
     console.error('❌ Échec chargement modèles ONNX:', err);

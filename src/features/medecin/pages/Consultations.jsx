@@ -19,6 +19,7 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sauvegarderAction, isNetworkError, genLocalId, synchroniserAvecServeur } from '../../../services/offlineManager';
+import { diagnosticOffline, precacheOrtFichiers, chargerModeles } from '../../../services/offlineDiagnostic';
 
 // ==================== COMPOSANTS UI ====================
 
@@ -339,6 +340,13 @@ export default function Consultation() {
   const addToast = (message, type) => setToast({ message, type });
 
   // Reprendre une consultation existante via ?consultation_id=XXX (médecin continue après aide)
+  useEffect(() => {
+    precacheOrtFichiers();
+    // Pré-charger les sessions ONNX pendant qu'on est en ligne.
+    // Ainsi, offline, chargerModeles() retourne immédiatement (sessions déjà en mémoire).
+    if (navigator.onLine) chargerModeles().catch(() => {});
+  }, []);
+
   useEffect(() => {
     const cid = searchParams.get('consultation_id');
     const pid = searchParams.get('patient_id');
@@ -1082,7 +1090,6 @@ const createAndContinue = async () => {
 
         console.log('🔄 Diagnostic offline', err.message);
         try {
-          const { diagnosticOffline } = await import('../../../services/offlineDiagnostic');
           result = await diagnosticOffline({
             age:            diagPayload.age,
             gender:         diagPayload.gender,
