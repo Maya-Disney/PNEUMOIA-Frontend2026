@@ -10,7 +10,19 @@ import { getAuditLogs, purgerAuditLogs } from "../api/adminapi";
 
 const pad = (n) => String(n).padStart(2, "0");
 function fmtDT(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
-function elapsed(d) { const dm = Math.floor((Date.now() - d) / 60000), dh = Math.floor(dm / 60), dd = Math.floor(dh / 24); if (dm < 60) return `${dm} min`; if (dh < 24) return `${dh}h`; if (dd === 1) return "Hier"; return `${dd}j`; }
+function elapsed(d) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const eventDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dm = Math.floor((Date.now() - d) / 60000);
+  const dh = Math.floor(dm / 60);
+  if (dm < 60) return `${dm} min`;
+  if (eventDay.getTime() === today.getTime()) return `${dh}h`;
+  if (eventDay.getTime() === yesterday.getTime()) return "Hier";
+  const dd = Math.round((today - eventDay) / 86400000);
+  return `${dd}j`;
+}
 
 const TYPES = ["Tous","Connexion","Validation","Suspension","Consultation","Système","Erreur"];
 const STATUT_CFG = {
