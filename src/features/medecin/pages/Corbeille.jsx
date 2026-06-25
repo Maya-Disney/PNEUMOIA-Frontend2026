@@ -3,19 +3,16 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Trash2, ChevronRight, LayoutDashboard, AlertTriangle, Clock,
-  RotateCcw, User, Calendar, Send, CheckCircle2, X, Info, Loader2
+  Trash2, ChevronRight, LayoutDashboard, Clock,
+  RotateCcw, User, Calendar, CheckCircle2, X, Info, Loader2
 } from 'lucide-react';
 
-const DAYS_MEDECIN = 30;
-const DAYS_ADMIN   = 10;
+const DAYS_CORBEILLE = 30;
 
 function getDaysInfo(deletedAt) {
   const elapsed = Math.floor((Date.now() - new Date(deletedAt).getTime()) / 86400000);
-  if (elapsed < DAYS_MEDECIN)
-    return { status: 'corbeille', daysLeft: DAYS_MEDECIN - elapsed };
-  if (elapsed < DAYS_MEDECIN + DAYS_ADMIN)
-    return { status: 'admin', daysLeft: DAYS_MEDECIN + DAYS_ADMIN - elapsed };
+  if (elapsed < DAYS_CORBEILLE)
+    return { status: 'corbeille', daysLeft: DAYS_CORBEILLE - elapsed };
   return { status: 'permanent', daysLeft: 0 };
 }
 
@@ -24,11 +21,6 @@ const STATUS_CFG = {
     bg:    'bg-amber-50 dark:bg-amber-500/10',
     border:'border-amber-200 dark:border-amber-500/20',
     badge: 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300',
-  },
-  admin: {
-    bg:    'bg-red-50 dark:bg-red-500/10',
-    border:'border-red-200 dark:border-red-500/20',
-    badge: 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300',
   },
   permanent: {
     bg:    'bg-(--sf2)',
@@ -42,12 +34,10 @@ const getToken = () =>
   localStorage.getItem('token') || localStorage.getItem('access_token') || localStorage.getItem('pneumoia_token');
 
 export default function Corbeille() {
-  const [items,        setItems]        = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [error,        setError]        = useState(null);
-  const [restoreModal, setRestoreModal] = useState(null);
-  const [requestModal, setRequestModal] = useState(null);
-  const [requestSent,  setRequestSent]  = useState({});
+  const [items,         setItems]         = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState(null);
+  const [restoreModal,  setRestoreModal]  = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
 
   const fetchCorbeille = async () => {
@@ -79,26 +69,6 @@ export default function Corbeille() {
       if (!res.ok) throw new Error('Échec restauration');
       setItems(prev => prev.filter(p => p.id !== item.id));
       setRestoreModal(null);
-    } catch (e) {
-      alert(e.message);
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleSendRequest = async (item) => {
-    setActionLoading(item.id);
-    try {
-      const res = await fetch(`${BASE}/patients/${item.id}/demande-recuperation`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Échec envoi demande');
-      }
-      setRequestSent(prev => ({ ...prev, [item.id]: true }));
-      setRequestModal(null);
     } catch (e) {
       alert(e.message);
     } finally {
@@ -150,8 +120,7 @@ export default function Corbeille() {
         <Info size={15} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
         <ul className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
           <li><strong>J0 – J30 :</strong> Dossier en corbeille — restauration possible à tout moment.</li>
-          <li><strong>J30 – J40 :</strong> Dossier transféré à l'administrateur — demande de récupération possible.</li>
-          <li><strong>Après J40 :</strong> Suppression définitive et irrécupérable.</li>
+          <li><strong>Après J30 :</strong> Suppression définitive et irrécupérable (confidentialité patient).</li>
         </ul>
       </div>
 
@@ -175,9 +144,8 @@ export default function Corbeille() {
                 </p>
                 <div className="flex flex-wrap items-center gap-2 mt-1.5">
                   <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.badge}`}>
-                    {info.status === 'corbeille' && <><Clock size={9} />{info.daysLeft}j restants</>}
-                    {info.status === 'admin'     && <><AlertTriangle size={9} />{info.daysLeft}j chez l'admin</>}
-                    {info.status === 'permanent' && 'Supprimé définitivement'}
+                    {info.status === 'corbeille'  && <><Clock size={9} />{info.daysLeft}j restants</>}
+                    {info.status === 'permanent'  && 'Supprimé définitivement'}
                   </span>
                   <span className="inline-flex items-center gap-1 text-[10px] text-(--t4)">
                     <Calendar size={9} />
@@ -186,24 +154,13 @@ export default function Corbeille() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="shrink-0">
                 {info.status === 'corbeille' && (
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                     onClick={() => setRestoreModal(item)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-(--sf) border border-(--ln) rounded-lg text-xs font-semibold text-(--t2) hover:bg-(--sf2) transition-colors shadow-sm">
                     <RotateCcw size={12} />Restaurer
                   </motion.button>
-                )}
-                {info.status === 'admin' && (
-                  requestSent[item.id]
-                    ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-lg">
-                        <CheckCircle2 size={12} />Demande envoyée
-                      </span>
-                    : <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                        onClick={() => setRequestModal(item)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors shadow-sm">
-                        <Send size={12} />Demander récupération
-                      </motion.button>
                 )}
               </div>
             </motion.div>
@@ -248,50 +205,6 @@ export default function Corbeille() {
                     ? <Loader2 size={14} className="animate-spin" />
                     : <CheckCircle2 size={14} />}
                   Restaurer
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Modal — Demande de récupération */}
-      <AnimatePresence>
-        {requestModal && (
-          <div className="fixed inset-0 bg-black/60 dark:bg-black/80 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-(--sf) rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-(--ln)">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
-                    <Send size={18} className="text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-(--t1)">Demander récupération</h3>
-                    <p className="text-xs text-(--t3)">Envoi à l'administrateur</p>
-                  </div>
-                </div>
-                <button onClick={() => setRequestModal(null)} className="text-(--t4) hover:text-(--t1) transition-colors">
-                  <X size={16} />
-                </button>
-              </div>
-              <p className="text-sm text-(--t2) mb-5">
-                Une demande sera envoyée à l'administrateur pour le dossier de{' '}
-                <strong className="text-(--t1)">{requestModal.civilite} {requestModal.prenom} {requestModal.nom}</strong>.
-                Passé J40, la demande ne sera plus recevable.
-              </p>
-              <div className="flex gap-2">
-                <button onClick={() => setRequestModal(null)}
-                  className="flex-1 py-2.5 border border-(--ln) rounded-xl text-sm font-medium text-(--t2) hover:bg-(--sf2) transition-colors">
-                  Annuler
-                </button>
-                <button onClick={() => handleSendRequest(requestModal)}
-                  disabled={actionLoading === requestModal.id}
-                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-60">
-                  {actionLoading === requestModal.id
-                    ? <Loader2 size={14} className="animate-spin" />
-                    : <Send size={14} />}
-                  Envoyer la demande
                 </button>
               </div>
             </motion.div>

@@ -1439,17 +1439,22 @@ function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPat
           onClick={async () => {
             const consId = patient.derniere_consultation_id;
             if (!consId || patient.status === 'attente') return;
-            const token = localStorage.getItem('token') || localStorage.getItem('access_token') || localStorage.getItem('pneumoia_token');
-            const BASE  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-            const res   = await fetch(`${BASE}/consultations/${consId}/pdf`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            if (res.ok) {
+            try {
+              const token = localStorage.getItem('pneumoia_token') || localStorage.getItem('access_token') || localStorage.getItem('token');
+              const BASE  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+              const res   = await fetch(`${BASE}/consultations/${consId}/pdf`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (!res.ok) throw new Error('PDF non disponible');
               const blob = await res.blob();
               const url  = URL.createObjectURL(blob);
               const a    = document.createElement('a');
-              a.href = url; a.download = `bilan_${patient.nom}_${patient.prenom}.pdf`; a.click();
+              a.href     = url;
+              a.download = `bilan_${patient.nom}_${patient.prenom}_ID-${patient.id}.pdf`;
+              a.click();
               setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (err) {
+              console.error('Erreur téléchargement PDF:', err);
             }
           }}
           className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors border ${
@@ -1740,9 +1745,8 @@ function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPat
                 <strong>{patient.civilite} {patient.prenom} {patient.nom}</strong>.
               </p>
               <div className="p-3.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl text-xs text-amber-800 dark:text-amber-300 space-y-1.5">
-                <p className="flex items-start gap-1.5"><AlertTriangle size={12} className="shrink-0 mt-0.5" /><span><strong>Phase 1 — 0J à 30 Jours :</strong> Le dossier est placé dans votre corbeille. Vous pouvez le restaurer à tout moment depuis la page Corbeille.</span></p>
-                <p className="flex items-start gap-1.5"><AlertTriangle size={12} className="shrink-0 mt-0.5" /><span><strong>Phase 2 — 30 Jours à 40 Jours :</strong> Le dossier est transféré à l'administrateur. Une demande de récupération reste possible.</span></p>
-                <p className="flex items-start gap-1.5"><AlertTriangle size={12} className="shrink-0 mt-0.5" /><span><strong>Après 40 Jours :</strong> Le dossier est supprimé définitivement et devient irrécupérable.</span></p>
+                <p className="flex items-start gap-1.5"><AlertTriangle size={12} className="shrink-0 mt-0.5" /><span><strong>J0 – J30 :</strong> Le dossier est placé dans votre corbeille. Vous pouvez le restaurer à tout moment depuis la page Corbeille.</span></p>
+                <p className="flex items-start gap-1.5"><AlertTriangle size={12} className="shrink-0 mt-0.5" /><span><strong>Après 30 Jours :</strong> Le dossier est supprimé définitivement et devient irrécupérable (confidentialité patient).</span></p>
               </div>
             </div>
 

@@ -9,16 +9,6 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
-// Enregistrer le Service Worker (production uniquement)
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then(reg => console.log(' Service Worker enregistré:', reg.scope))
-      .catch(err => console.error(' SW échec:', err));
-  });
-}
-
 // Précharger les modèles ONNX en arrière-plan après le rendu initial
 setTimeout(() => {
   import('./services/offlineDiagnostic').then(({ chargerModeles }) => {

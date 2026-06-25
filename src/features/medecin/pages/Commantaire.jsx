@@ -11,7 +11,7 @@ import {
   FileQuestion, LifeBuoy, Quote, ShieldAlert,
   FolderSearch, HelpCircle, Loader2, ThumbsDown,
   Stethoscope, Award, ChevronRight, Info,
-  RotateCcw, FileText, User, Users, Download
+  FileText, User, Users, Download
 } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
 import { soumettreRequete, mesRequetes } from '../services/api';
@@ -361,11 +361,7 @@ function OngletRequetes({ toast }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    type: 'recuperation',
-    patientNom: '', dateNaissance: '', dateSuppression: '',
-    motif: '', autreObjet: '', autreMessage: '',
-  });
+  const [form, setForm] = useState({ autreObjet: '', autreMessage: '' });
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
@@ -383,22 +379,13 @@ function OngletRequetes({ toast }) {
   }, []);
 
   const handleSubmit = async () => {
-    if (form.type === 'recuperation' && (!form.patientNom || !form.dateNaissance || !form.motif)) {
-      toast.warning('Remplissez tous les champs obligatoires'); return;
-    }
-    if (form.type === 'autre' && (!form.autreObjet || !form.autreMessage)) {
+    if (!form.autreObjet || !form.autreMessage) {
       toast.warning("Remplissez l'objet et le message"); return;
     }
     setSending(true);
     try {
-      let titre, description;
-      if (form.type === 'recuperation') {
-        titre = `Récupération dossier — ${form.patientNom}`;
-        description = `Patient : ${form.patientNom}\nDate de naissance : ${form.dateNaissance}${form.dateSuppression ? `\nDate de suppression : ${form.dateSuppression}` : ''}\nMotif : ${form.motif}`;
-      } else {
-        titre = form.autreObjet;
-        description = form.autreMessage;
-      }
+      const titre = form.autreObjet;
+      const description = form.autreMessage;
       const data = await soumettreRequete({ titre, categorie: 'autre', description });
       setRequests(prev => [{
         id: data.id,
@@ -411,7 +398,7 @@ function OngletRequetes({ toast }) {
         repondu_le: null,
         created_at: new Date().toISOString(),
       }, ...prev]);
-      setForm({ type: 'recuperation', patientNom: '', dateNaissance: '', dateSuppression: '', motif: '', autreObjet: '', autreMessage: '' });
+      setForm({ autreObjet: '', autreMessage: '' });
       setShowForm(false);
       toast.success("Requête envoyée à l'administrateur");
     } catch (e) {
@@ -432,13 +419,13 @@ function OngletRequetes({ toast }) {
     <div className="space-y-5">
 
       {/* Bandeau info */}
-      <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-        <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+        <ShieldAlert className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-semibold text-amber-800">Récupération après expiration</p>
-          <p className="text-xs text-amber-700 mt-0.5">
-            Entre J30 et J40 après la suppression d'un dossier, seul l'administrateur peut le restaurer.
-            Au-delà de J40 la suppression est définitive. Soumettez une requête ici pour déclencher la procédure.
+          <p className="text-sm font-semibold text-blue-800">Requêtes à l'administrateur</p>
+          <p className="text-xs text-blue-700 mt-0.5">
+            Signalez un problème technique, une anomalie ou toute autre demande à l'administrateur.
+            Les dossiers patients supprimés sont définitivement effacés après 30 jours — aucune récupération n'est possible au-delà.
           </p>
         </div>
       </div>
@@ -460,66 +447,17 @@ function OngletRequetes({ toast }) {
               <button onClick={() => setShowForm(false)} className="p-1 rounded-lg hover:bg-(--sf2)"><X className="w-4 h-4 text-(--t3)" /></button>
             </div>
 
-            {/* Type */}
             <div>
-              <label className="block text-xs font-semibold text-(--t2) mb-2">Type de requête</label>
-              <div className="flex gap-3">
-                {[
-                  { key: 'recuperation', label: 'Récupération de dossier', icon: RotateCcw },
-                  { key: 'autre', label: 'Autre demande', icon: FileText },
-                ].map(t => {
-                  const Icon = t.icon;
-                  return (
-                    <button key={t.key} onClick={() => setForm(f => ({ ...f, type: t.key }))}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${form.type === t.key ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-(--ln) text-(--t3) hover:bg-(--sf2)'}`}>
-                      <Icon className="w-4 h-4" />{t.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <label className="block text-xs font-semibold text-(--t2) mb-1">Objet <span className="text-red-500">*</span></label>
+              <input value={form.autreObjet} onChange={e => setForm(f => ({ ...f, autreObjet: e.target.value }))} placeholder="Objet de votre demande..."
+                className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-
-            {form.type === 'recuperation' ? (
-              <>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-(--t2) mb-1">Nom complet du patient <span className="text-red-500">*</span></label>
-                    <input value={form.patientNom} onChange={e => setForm(f => ({ ...f, patientNom: e.target.value }))} placeholder="TAGNE Bernard"
-                      className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-(--t2) mb-1">Date de naissance <span className="text-red-500">*</span></label>
-                    <input type="date" value={form.dateNaissance} onChange={e => setForm(f => ({ ...f, dateNaissance: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-(--t2) mb-1">Date approximative de suppression</label>
-                  <input type="date" value={form.dateSuppression} onChange={e => setForm(f => ({ ...f, dateSuppression: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-(--t2) mb-1">Motif de récupération <span className="text-red-500">*</span></label>
-                  <textarea value={form.motif} onChange={e => setForm(f => ({ ...f, motif: e.target.value }))} rows={3}
-                    placeholder="Expliquez pourquoi ce dossier doit être récupéré (suivi en cours, erreur de suppression...)..."
-                    className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-xs font-semibold text-(--t2) mb-1">Objet <span className="text-red-500">*</span></label>
-                  <input value={form.autreObjet} onChange={e => setForm(f => ({ ...f, autreObjet: e.target.value }))} placeholder="Objet de votre demande..."
-                    className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-(--t2) mb-1">Message <span className="text-red-500">*</span></label>
-                  <textarea value={form.autreMessage} onChange={e => setForm(f => ({ ...f, autreMessage: e.target.value }))} rows={4}
-                    placeholder="Décrivez votre demande..."
-                    className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-                </div>
-              </>
-            )}
+            <div>
+              <label className="block text-xs font-semibold text-(--t2) mb-1">Message <span className="text-red-500">*</span></label>
+              <textarea value={form.autreMessage} onChange={e => setForm(f => ({ ...f, autreMessage: e.target.value }))} rows={4}
+                placeholder="Décrivez votre demande..."
+                className="w-full px-3 py-2 text-sm border border-(--ln) rounded-xl bg-(--sf) text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+            </div>
 
             <div className="flex justify-end gap-2 pt-1">
               <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-(--t3) hover:bg-(--sf2) rounded-xl">Annuler</button>
@@ -549,15 +487,12 @@ function OngletRequetes({ toast }) {
         ) : requests.map((r, i) => {
           const cfg = reqStatutCfg[r.statut] || reqStatutCfg.en_attente;
           const StIcon = cfg.icon;
-          const isRecup = r.titre?.startsWith('Récupération dossier');
           return (
             <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               className="bg-(--sf) border border-(--ln) rounded-xl p-4">
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-2 min-w-0">
-                  {isRecup
-                    ? <RotateCcw className="w-4 h-4 text-blue-600 shrink-0" />
-                    : <FileText className="w-4 h-4 text-(--t3) shrink-0" />}
+                  <FileText className="w-4 h-4 text-(--t3) shrink-0" />
                   <p className="text-sm font-semibold text-(--t1) truncate">{r.titre}</p>
                 </div>
                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ${cfg.bg} ${cfg.color}`}>

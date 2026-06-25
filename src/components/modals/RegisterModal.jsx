@@ -10,13 +10,16 @@ import { useToast } from '../../contexts/ToastContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
+const DOC_ACCEPT = 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const DOC_ACCEPT_LABEL = 'PDF ou Word (.pdf, .doc, .docx)';
+
 const DOCUMENTS_REQUIS = [
-  { id: 'diplome_specialisation', label: 'Diplôme de spécialisation en pneumologie',      accept: '*' },
-  { id: 'diplome_medecine',       label: 'Diplôme de docteur en médecine',                 accept: '*' },
-  { id: 'inscription_ordre',      label: "Inscription à l'ordre / registre des médecins",  accept: '*' },
-  { id: 'autorisation_exercice',  label: "Autorisation d'exercice en pneumologie",         accept: '*' },
-  { id: 'carte_professionnelle',  label: 'Carte professionnelle de médecin',               accept: '*' },
-  { id: 'cni',                    label: "Carte nationale d'identité (CNI)",               accept: '*' },
+  { id: 'diplome_specialisation', label: 'Diplôme de spécialisation en pneumologie',      accept: DOC_ACCEPT },
+  { id: 'diplome_medecine',       label: 'Diplôme de docteur en médecine',                 accept: DOC_ACCEPT },
+  { id: 'inscription_ordre',      label: "Inscription à l'ordre / registre des médecins",  accept: DOC_ACCEPT },
+  { id: 'autorisation_exercice',  label: "Autorisation d'exercice en pneumologie",         accept: DOC_ACCEPT },
+  { id: 'carte_professionnelle',  label: 'Carte professionnelle de médecin',               accept: DOC_ACCEPT },
+  { id: 'cni',                    label: "Carte nationale d'identité (CNI)",               accept: DOC_ACCEPT },
 ];
 
 const MAX_MB = 5;
@@ -92,9 +95,19 @@ export default function RegisterModal({ isOpen, onClose }) {
     r.readAsDataURL(f);
   };
 
+  const ALLOWED_DOC_TYPES = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ];
   const handleDoc = (docId, e) => {
     const f = e.target.files[0];
     if (!f) return;
+    if (!ALLOWED_DOC_TYPES.includes(f.type)) {
+      setErrors(p => ({ ...p, [docId]: 'Format non accepté — PDF ou Word uniquement (.pdf, .doc, .docx)' }));
+      e.target.value = '';
+      return;
+    }
     if (f.size > MAX_MB * 1024 * 1024) { setErrors(p => ({ ...p, [docId]: `Fichier trop lourd (max ${MAX_MB} Mo)` })); e.target.value = ''; return; }
     setErrors(p => { const n = { ...p }; delete n[docId]; return n; });
     setDocuments(p => ({ ...p, [docId]: f }));
@@ -517,7 +530,7 @@ export default function RegisterModal({ isOpen, onClose }) {
                     {role === 'medecin' && step === 3 && (
                       <>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {uploadedCount}/{DOCUMENTS_REQUIS.length} documents · Tous formats acceptés · max {MAX_MB} Mo
+                          {uploadedCount}/{DOCUMENTS_REQUIS.length} documents · {DOC_ACCEPT_LABEL} · max {MAX_MB} Mo
                         </p>
                         <div className="space-y-2">
                           {DOCUMENTS_REQUIS.map(doc => {

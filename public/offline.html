@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PneumoIA — Hors ligne</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: #f8f7ff;
+      color: #1e1b4b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+    .icon {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: .5rem; }
+    p  { color: #6b7280; font-size: .95rem; line-height: 1.6; max-width: 340px; margin: 0 auto 1.5rem; }
+    button {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: white; border: none; border-radius: 12px;
+      padding: .75rem 1.75rem; font-size: .95rem; font-weight: 600;
+      cursor: pointer; transition: opacity .2s;
+    }
+    button:hover { opacity: .85; }
+    .status { margin-top: 1rem; font-size: .8rem; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="icon">
+    <svg width="44" height="42" viewBox="0 0 48 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill="white" d="M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377c.943 0 1.473 1.088.89 1.83L25.947 44.94z"/>
+    </svg>
+  </div>
+  <h1>Vous êtes hors ligne</h1>
+  <p>La connexion réseau est indisponible. Les pages déjà visitées restent accessibles. Vos actions seront synchronisées automatiquement au retour du réseau.</p>
+  <button onclick="window.location.reload()">Réessayer</button>
+  <p class="status" id="status">En attente de connexion…</p>
+  <script>
+    window.addEventListener('online', () => {
+      document.getElementById('status').textContent = 'Connexion rétablie — rechargement…';
+      setTimeout(() => history.back(), 800);
+    });
+  </script>
+</body>
+</html>

@@ -7,7 +7,7 @@
 import * as ort from 'onnxruntime-web';
 
 // Configuration ONNX — utilise les fichiers WASM inclus dans le package
-ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
+ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/';
 ort.env.wasm.numThreads = 1;
 
 let sessionBase   = null;
