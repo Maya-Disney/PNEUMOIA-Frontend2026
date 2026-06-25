@@ -25,14 +25,14 @@ const STATIC_FAQS = [
   }
 ];
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState(null);
   const [faqs, setFaqs] = useState(STATIC_FAQS);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/v1/faq-public`)
+    fetch(`${API_URL}/faq-public`)
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {

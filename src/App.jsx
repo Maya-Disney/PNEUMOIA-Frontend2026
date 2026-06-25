@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { synchroniserAvecServeur } from './services/offlineManager';
 import { ThemeProvider } from './features/medecin/contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
+import InstallBanner from './components/pwa/InstallBanner';
 import './App.css';
 import HomePage from './features/home/HomePage';
 import AboutPage from './features/about/AboutPage';
@@ -72,6 +73,20 @@ function RequireAdminAuth() {
   return token ? <Outlet /> : <Navigate to="/pneumo-admin-secure" replace />;
 }
 
+function RequireMedecinAuth() {
+  const token = localStorage.getItem("token");
+  const role  = localStorage.getItem("role");
+  if (!token || role !== "medecin") return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
+function RequireAideAuth() {
+  const token = localStorage.getItem("token");
+  const role  = localStorage.getItem("role");
+  if (!token || role !== "aide_soignant") return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
 function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -91,6 +106,7 @@ function App() {
       {/* 🟢 ENVELOPPE GLOBALE : Tout le monde a maintenant accès au Theme et au Toast */}
       <ToastProvider>
         <ThemeProvider>
+          <InstallBanner />
           <Routes>
             
             {/* SITES VITRINE / COMMUN */}
@@ -102,40 +118,44 @@ function App() {
             </Route>
 
             {/* ROUTE CONCERNANT LA SECTION MEDECIN */}
-            <Route path="/medecin" element={<MedecinLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="consultation" element={<Consultation />} />
-              <Route path="patients" element={<Patients />} />
-              <Route path="partage" element={<Partage/>} />
-              <Route path="cas-cliniques" element={<CasCliniques/>} />
-              <Route path="mon-equipe" element={<MonEquipe/>} />
-              <Route path="notifications" element={<Notification/>} />
-              <Route path="recherche" element={<Recherche />} />
-              <Route path="profil" element={ <Profil/>} />
-              <Route path="parametres" element={<ParametresMedecin/>} />
-              <Route path="historique" element={<Historique/>} />
-              <Route path="monitoring" element={<Monitoring/>} />
-              <Route path="commentaires" element={<Commantaire/>} />
-              <Route path="corbeille"            element={<CorbeilleMedecin />} />
-              <Route path="mes-publications"     element={<MesPublications />} />
-              <Route path="patients/nouveau"     element={<NouveauPatient />} />
-              <Route path="patients/:patientId"  element={<PatientDossier />} />
-              <Route path="requetes"             element={<RequetesMedecin />} />
+            <Route element={<RequireMedecinAuth />}>
+              <Route path="/medecin" element={<MedecinLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="consultation" element={<Consultation />} />
+                <Route path="patients" element={<Patients />} />
+                <Route path="partage" element={<Partage/>} />
+                <Route path="cas-cliniques" element={<CasCliniques/>} />
+                <Route path="mon-equipe" element={<MonEquipe/>} />
+                <Route path="notifications" element={<Notification/>} />
+                <Route path="recherche" element={<Recherche />} />
+                <Route path="profil" element={<Profil/>} />
+                <Route path="parametres" element={<ParametresMedecin/>} />
+                <Route path="historique" element={<Historique/>} />
+                <Route path="monitoring" element={<Monitoring/>} />
+                <Route path="commentaires" element={<Commantaire/>} />
+                <Route path="corbeille"            element={<CorbeilleMedecin />} />
+                <Route path="mes-publications"     element={<MesPublications />} />
+                <Route path="patients/nouveau"     element={<NouveauPatient />} />
+                <Route path="patients/:patientId"  element={<PatientDossier />} />
+                <Route path="requetes"             element={<RequetesMedecin />} />
+              </Route>
             </Route>
 
             {/* SECTION AIDE SOIGNANT */}
-            <Route path="/aide" element={<AideLayout />}>
-              <Route index element={<AideDashboard />} />
-              <Route path="dashboard"        element={<AideDashboard />} />
-              <Route path="patients"         element={<AidePatients />} />
-              <Route path="patients/nouveau" element={<AideNouveauPatient />} />
-              <Route path="patients/:id"     element={<AidePatientDossier />} />
-              <Route path="consultation"     element={<Consultation />} />
-              <Route path="commentaires"     element={<AideCommentaires />} />
-              <Route path="notifications"    element={<AideNotifications />} />
-              <Route path="profil"           element={<AideProfil />} />
-              <Route path="parametres"       element={<AideParametres />} />
+            <Route element={<RequireAideAuth />}>
+              <Route path="/aide" element={<AideLayout />}>
+                <Route index element={<AideDashboard />} />
+                <Route path="dashboard"        element={<AideDashboard />} />
+                <Route path="patients"         element={<AidePatients />} />
+                <Route path="patients/nouveau" element={<AideNouveauPatient />} />
+                <Route path="patients/:id"     element={<AidePatientDossier />} />
+                <Route path="consultation"     element={<Consultation />} />
+                <Route path="commentaires"     element={<AideCommentaires />} />
+                <Route path="notifications"    element={<AideNotifications />} />
+                <Route path="profil"           element={<AideProfil />} />
+                <Route path="parametres"       element={<AideParametres />} />
+              </Route>
             </Route>
 
         {/* ROUTES CONCERNANT LA SECTION ADMINISTRATEUR */}
