@@ -1,21 +1,36 @@
 
-import { useState } from 'react';
-import { motion } from 'framer-motion'; // Animations fluides
-import { ArrowRight, Play, X } from 'lucide-react'; // Icônes
-import heroDoctor from '../../../assets/images/AccueilImg.png'; // Image du docteur
-import demoVideo from '../../../assets/video/demo.mp4'; // Vidéo de démonstration
-import RegisterModal from '../../../components/modals/RegisterModal'; // Modal d'inscription
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Play, X } from 'lucide-react';
+import img1 from '../../../assets/images/medecin2.jpg';
+import img2 from '../../../assets/images/medecin15.jpg';
+import img3 from '../../../assets/images/medecin14.jpg';
+import img4 from '../../../assets/images/pneu6.jpg';
+import img5 from '../../../assets/images/medecin21.jpg';
+import img6 from '../../../assets/images/medecin25.jpg';
+import img7 from '../../../assets/images/medecin26.jpg';
+import img8 from '../../../assets/images/medecin27.jpg';
+import demoVideo from '../../../assets/video/demo.mp4';
+import RegisterModal from '../../../components/modals/RegisterModal';
+
+const slides = [img1, img2, img3, img4, img5, img6, img7, img8];
 
 export default function Hero() {
-  // État pour contrôler l'affichage de la modal vidéo
   const [showVideo, setShowVideo] = useState(false);
-  // État pour contrôler l'affichage de la modal d'inscription
   const [showRegister, setShowRegister] = useState(false);
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent(prev => (prev + 1) % slides.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <>
       {/* Section héros principale - pleine hauteur */}
-      <section className="min-h-screen pt-20 sm:pt-24 pb-12 sm:pb-16 px-4 sm:px-6 relative overflow-hidden">
+      <section className="min-h-screen pt-28 sm:pt-32 pb-12 sm:pb-16 px-4 sm:px-6 relative overflow-hidden">
         {/* Fond thème */}
         <div className="absolute inset-0 bg-[var(--sf)]"></div>
 
@@ -31,7 +46,7 @@ export default function Hero() {
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
-            
+
             {/* Côté gauche - Contenu texte avec animations */}
             <motion.div
               initial={{ opacity: 0, x: -50 }}
@@ -40,7 +55,7 @@ export default function Hero() {
               className="text-center lg:text-left order-2 lg:order-1 space-y-4 sm:space-y-6"
             >
               {/* Titre principal avec animation d'apparition */}
-              <motion.h1 
+              <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.6 }}
@@ -49,9 +64,9 @@ export default function Hero() {
                 Respirez l'avenir du{' '}
                 <span className="text-blue-600 block sm:inline">diagnostic médical</span>
               </motion.h1>
-              
+
               {/* Paragraphe descriptif */}
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
@@ -61,8 +76,8 @@ export default function Hero() {
                 nous accompagnons les professionnels de santé dans une prise de décision rapide,
                 fiable et optimisée. Ensemble, améliorons la qualité des soins.
               </motion.p>
-              
-              <motion.div 
+
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
@@ -78,7 +93,7 @@ export default function Hero() {
                   Inscrire maintenant
                   <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.button>
-                
+
                 {/* Bouton secondaire "Voir la démo" - avec texte blanc au hover */}
                 <motion.button
                           whileHover={{ scale: 1.05 }}
@@ -91,7 +106,7 @@ export default function Hero() {
                 </motion.button>
               </motion.div>
             </motion.div>
-            
+
             {/* Côté droit - Image du médecin avec animations */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
@@ -100,19 +115,40 @@ export default function Hero() {
               className="relative order-1 lg:order-2 w-full max-w-md sm:max-w-lg lg:max-w-none mx-auto lg:max-h-[75vh]"
             >
               {/* Image principale avec animation d'apparition */}
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
-                className="relative z-10"
+                className="relative z-10 flex justify-center items-center"
               >
-                <img
-                  src={heroDoctor}
-                  alt="Médecin utilisant un outil de diagnostic pneumologique"
-                  className="w-full h-auto object-cover lg:max-h-[70vh] object-top"
-                />
+                {/* Background rond */}
+                <div
+                  className="relative flex items-center justify-center bg-blue-600"
+                  style={{ width: '460px', height: '460px', borderRadius: '50%' }}
+                >
+                  {/* Image ronde — touche haut/bas, bleu visible sur les côtés */}
+                  <div
+                    className="overflow-hidden"
+                    style={{ width: '360px', height: '460px', borderRadius: '50%', perspective: '1000px' }}
+                  >
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={current}
+                        src={slides[current]}
+                        alt="Médecin"
+                        className="w-full h-full object-cover object-top absolute inset-0"
+                        initial={{ rotateY: -90, opacity: 0 }}
+                        animate={{ rotateY: 0, opacity: 1 }}
+                        exit={{ rotateY: 90, opacity: 0 }}
+                        transition={{ duration: 0.7, ease: 'easeInOut' }}
+                        style={{ backfaceVisibility: 'hidden', position: 'relative' }}
+                      />
+                    </AnimatePresence>
+                  </div>
+
+                </div>
               </motion.div>
-              
+
               {/* Éléments décoratifs animés - responsive */}
               {/* Cercle animé 1 - bleu, haut droit, pulse continu */}
               <motion.div
@@ -127,7 +163,7 @@ export default function Hero() {
                 }}
                 className="absolute -top-2 sm:-top-4 -right-2 sm:-right-4 w-20 sm:w-32 h-20 sm:h-32 bg-blue-300 rounded-full blur-3xl"
               />
-              
+
               {/* Cercle animé 2 - indigo, bas gauche, pulse en décalage */}
               <motion.div
                 animate={{
@@ -155,7 +191,7 @@ export default function Hero() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
           {/* Backdrop noir semi-transparent avec blur */}
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowVideo(false)} />
-          
+
           {/* Conteneur de la vidéo avec animation */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}

@@ -7,3 +7,10 @@
 .modal-scroll:hover::-webkit-scrollbar-thumb { background: #30363d55; }
 .modal-scroll                           { scrollbar-width: thin; scrollbar-color: transparent transparent; }
 .modal-scroll:hover                     { scrollbar-color: #30363d55 transparent; }
+
+/* Scrollbar sidebar — ultra fine */
+.sidebar-nav::-webkit-scrollbar         { width: 1px; }
+.sidebar-nav::-webkit-scrollbar-track   { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb   { background: #d1d5db; border-radius: 99px; }
+.sidebar-nav:hover::-webkit-scrollbar-thumb { background: #9ca3af; }
+.sidebar-nav                            { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }

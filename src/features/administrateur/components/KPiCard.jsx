@@ -11,8 +11,8 @@ export default function KpiCard({ icon: Icon, label, val, gradient, tintLight, t
       className="overflow-hidden rounded-2xl border transition-all hover:shadow-lg group cursor-default"
       style={{ background: cardBg, borderColor: borderCol }}
     >
-      {/* Zone haute — fond teinté, chiffre + titre */}
-      <div className="px-5 pt-5 pb-5" style={{ backgroundColor: tint }}>
+      {/* Zone haute — fond blanc */}
+      <div className="px-5 pt-5 pb-5" style={{ backgroundColor: cardBg }}>
         <p className="text-4xl font-black tracking-tight leading-none tabular-nums" style={{ color: numColor }}>
           {val}
         </p>

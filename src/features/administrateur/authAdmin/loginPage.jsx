@@ -340,7 +340,7 @@ export default function AdminLogin() {
                 <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 10 }} noValidate>
                   <Field label="Adresse email" id="email" type="email" value={email}
                     onChange={e => { setEmail(e.target.value); setError(""); }}
-                    placeholder="adminpneumoia@gmail.com" dark={dark} icon={iconMail} />
+                    placeholder="marietagney@gmail.com" dark={dark} icon={iconMail} />
                   <Field label="Numéro de téléphone" id="phone" type="tel" value={phone}
                     onChange={e => { setPhone(e.target.value); setError(""); }}
                     placeholder="+237 6XX XXX XXX" dark={dark} icon={<IcoPhone />} />
@@ -379,7 +379,7 @@ export default function AdminLogin() {
                 <form onSubmit={handleReset} style={{ display: "flex", flexDirection: "column", gap: 12 }} noValidate>
                   <Field label="Adresse email" id="reset-email" type="email" value={rEmail}
                     onChange={e => { setREmail(e.target.value); setRError(""); }}
-                    placeholder="adminpneumoia@gmail.com" dark={dark} icon={iconMail} />
+                    placeholder="marietagney@gmail.com" dark={dark} icon={iconMail} />
                   <Field label="Numéro de téléphone" id="reset-phone" type="tel" value={rPhone}
                     onChange={e => { setRPhone(e.target.value); setRError(""); }}
                     placeholder="+237 6XX XXX XXX" dark={dark} icon={<IcoPhone />} />

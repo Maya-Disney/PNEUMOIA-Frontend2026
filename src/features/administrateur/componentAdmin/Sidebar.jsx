@@ -135,7 +135,7 @@ export default function Sidebar({ dark }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2.5">
+      <nav className="flex-1 overflow-y-auto py-3 px-2.5 sidebar-nav">
         {getNav(counts).map(({ section, items }, gi) => (
           <div key={gi} className={gi > 0 ? "mt-1" : ""}>
             {section && (

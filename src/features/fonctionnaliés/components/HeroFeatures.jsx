@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles, Cpu, Brain } from 'lucide-react';
-import heroFeaturesImg from '../../../assets/images/doctor1.jpeg';
+import heroFeaturesImg from '../../../assets/images/pneu13.jpg';
 
 export default function HeroFeatures() {
   const scrollToFeatures = () => {
@@ -86,12 +86,16 @@ export default function HeroFeatures() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="relative flex items-center justify-center"
           >
-            <div className="w-4/5 max-w-md">
-              <div className="rounded-2xl overflow-hidden shadow-xl">
-                <img 
+            <div className="w-full">
+              <div
+                className="rounded-2xl overflow-hidden shadow-xl"
+                style={{ background: 'linear-gradient(135deg, var(--sf) 0%, var(--bg) 50%, var(--sf2) 100%)' }}
+              >
+                <img
                   src={heroFeaturesImg}
                   alt="Fonctionnalités PneumoIA"
-                  className="w-full h-auto object-cover opacity-90 hover:opacity-100 transition-opacity duration-300"
+                  className="w-full h-auto object-cover hover:opacity-100 transition-opacity duration-300"
+                  style={{ mixBlendMode: 'multiply' }}
                 />
               </div>
             </div>
