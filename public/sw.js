@@ -1,7 +1,8 @@
-// public/sw.js — PneumoIA Service Worker v3
-const CACHE_STATIC = 'pneumoia-static-v3';
-const CACHE_PAGES  = 'pneumoia-pages-v3';
+// public/sw.js — PneumoIA Service Worker v4
+const CACHE_STATIC = 'pneumoia-static-v4';
+const CACHE_PAGES  = 'pneumoia-pages-v4';
 const CACHE_ONNX   = 'pneumoia-models-v1';
+const CACHE_API    = 'pneumoia-api-v1'; // Cache des réponses GET API
 
 // Fichiers critiques légers — précache atomique au SW install
 const STATIC_PRECACHE = [
@@ -38,7 +39,7 @@ self.addEventListener('install', (event) => {
 
 // ── Activate : purger les vieux caches ────────────────────────────
 self.addEventListener('activate', (event) => {
-  const KEEP = [CACHE_STATIC, CACHE_PAGES, CACHE_ONNX];
+  const KEEP = [CACHE_STATIC, CACHE_PAGES, CACHE_ONNX, CACHE_API];
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => !KEEP.includes(k)).map(k => caches.delete(k))))
@@ -56,8 +57,14 @@ self.addEventListener('fetch', (event) => {
   if (request.url.startsWith('chrome-extension://')) return;
   if (request.method !== 'GET') return;
 
-  // API → network only, jamais de cache
-  if (url.pathname.startsWith('/api/')) return;
+  // API POST/PUT/PATCH/DELETE → network only (mutations, jamais de cache)
+  if (url.pathname.startsWith('/api/') && request.method !== 'GET') return;
+
+  // API GET → network-first avec fallback cache (patients, consultations, etc.)
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(networkFirstWithApiCache(request));
+    return;
+  }
 
   // Modèles ONNX → cache first
   if (url.pathname.startsWith('/models/')) {
@@ -121,6 +128,34 @@ async function networkFirstWithOfflineFallback(request) {
     const index = await caches.match('/') || await caches.match('/index.html');
     if (index) return index;
     return caches.match('/offline.html');
+  }
+}
+
+// Network-first pour les appels API GET — fallback sur le cache si offline
+async function networkFirstWithApiCache(request) {
+  const cache = await caches.open(CACHE_API);
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      // Cloner la réponse en supprimant Vary pour éviter les cache-miss
+      const headers = new Headers(response.headers);
+      headers.delete('vary');
+      const clean = new Response(await response.clone().blob(), {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
+      cache.put(request, clean);
+    }
+    return response;
+  } catch {
+    // Offline : retourner la dernière réponse connue
+    const cached = await cache.match(request, { ignoreVary: true });
+    if (cached) return cached;
+    return new Response(JSON.stringify({ offline: true, message: 'Données non disponibles hors ligne' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
 

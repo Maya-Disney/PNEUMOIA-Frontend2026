@@ -19,8 +19,8 @@ export function TableCard({ dark, children, className = "" }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export function TableContainer({ dark, children, className = "" }) {
   return (
-    <div className={`w-full ${className}`}>
-      <table className="w-full border-collapse">
+    <div className={`w-full overflow-x-auto ${className}`}>
+      <table className="w-full border-collapse min-w-160">
         {children}
       </table>
     </div>

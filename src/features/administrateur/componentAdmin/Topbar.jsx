@@ -138,7 +138,7 @@ function NotifSeeAll({ label, onClick, txt }) {
 }
 
 // ── Main Topbar ───────────────────────────────────────────────────────────────
-export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
+export default function Topbar({ dark, setDark, corbeilleCount = 0, onMenuClick }) {
   const { searchQuery, setSearchQuery } = useAdminTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -309,7 +309,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0 }) {
       <button
         className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg shrink-0"
         style={{ color: txt.muted }}
-        onClick={() => document.getElementById("sidebar-toggle")?.click()}
+        onClick={() => onMenuClick?.()}
       >
         <Menu size={18} />
       </button>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { TablePagination } from '../../../components/ui/TablePagination';
 import { useNavigate } from "react-router-dom";
 import { useProfil } from '../hooks/useAuth';
+import { isNetworkError, sauvegarderAction } from '../../../services/offlineManager';
 import {
   LayoutGrid, UserRound, Stethoscope, Share2, MessageSquare,
   Bell, Search, Settings, ShieldCheck, History, Activity,
@@ -13,7 +14,7 @@ import {
   MoreHorizontal, ChevronDown, Lock, UserCheck,
   ClipboardList, Microscope, ArrowUpRight, Zap,
   LogOut, Moon, Sun, Filter, SlidersHorizontal,
-  Home, Brain, Hospital, Info, RefreshCw
+  Home, Brain, Hospital, Info, RefreshCw, WifiOff
 } from "lucide-react";
 import { motion } from 'framer-motion';
 
@@ -736,7 +737,68 @@ function HistoryTab({ p, onAvisSaved }) {
 
     } catch (err) {
       console.error('Erreur saveAvis:', err);
-      alert(`Erreur : ${err.message}`);
+
+      if (isNetworkError(err) || !navigator.onLine) {
+        // Mode offline : mettre en file d'attente
+        try {
+          const diagRetenu = avisData.diagnosticFinal === 'autre'
+            ? avisData.diagnosticAutre
+            : avisData.diagnosticFinal;
+
+          if (avisModal.consultation_id) {
+            await sauvegarderAction('SAVE_OPINION', {
+              consultation_local_id: null,
+              consultation_id: avisModal.consultation_id,
+              data: {
+                medicaments:           avisData.medicaments           || null,
+                conseils_maison:       avisData.conseilsMaison        || null,
+                recommandations:       avisData.recommandations       || null,
+                arret_travail:         avisData.arretTravail          || false,
+                duree_arret:           avisData.arretTravail ? parseInt(avisData.dureeArret) : null,
+                hospitalisation:       avisData.hospitalisation       || false,
+                motif_hospitalisation: avisData.motifHospitalisation  || null,
+                suivi:                 avisData.suivi                 || '7 jours',
+                observations:          avisData.observations          || null,
+                partage: { actif: false, anonymiser: true, type: null, destinataire_id: null, envoyer_mail_patient: false },
+              },
+            });
+          }
+
+          if (avisModal.diagnostic_id && avisData.concordanceIA !== null) {
+            await sauvegarderAction('SAVE_FEEDBACK', {
+              local_diagnostic_id: null,
+              diagnostic_id:       avisModal.diagnostic_id,
+              data: {
+                concordance:      avisData.concordanceIA,
+                diagnostic_final: diagRetenu,
+                commentaire:      avisData.observations,
+              },
+            });
+          }
+
+          // Mettre à jour l'état local immédiatement
+          onAvisSaved?.(avisModal.consultation_id, {
+            concordanceIA: avisData.concordanceIA,
+            diagRetenu,
+            observations:  avisData.observations,
+            prescriptions: {
+              medicaments:     avisData.medicaments,
+              conseils_maison: avisData.conseilsMaison,
+              suivi:           avisData.suivi,
+              arret_travail:   avisData.arretTravail,
+              duree_arret:     avisData.dureeArret,
+              hospitalisation: avisData.hospitalisation,
+            },
+          });
+          setAvisSuccess(true);
+          setTimeout(() => setAvisSuccess(false), 4000);
+          setAvisModal(null);
+        } catch (offlineErr) {
+          alert('Impossible de sauvegarder l\'avis hors ligne.');
+        }
+      } else {
+        alert(`Erreur : ${err.message}`);
+      }
     } finally {
       setSavingAvis(false);
     }
@@ -834,6 +896,32 @@ function HistoryTab({ p, onAvisSaved }) {
                       <div className="p-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-lg text-xs text-amber-800 dark:text-amber-200 italic">"{t.note}"</div>
                     </div>
                   )}
+                  {/* Télécharger le PDF de cette consultation */}
+                  {t.consultation_id && t.statut === 'terminee' && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const token = localStorage.getItem('pneumoia_token') || localStorage.getItem('access_token') || localStorage.getItem('token');
+                          const BASE  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+                          const res   = await fetch(`${BASE}/consultations/${t.consultation_id}/pdf`, {
+                            headers: { Authorization: `Bearer ${token}` },
+                          });
+                          if (!res.ok) throw new Error('PDF non disponible');
+                          const blob = await res.blob();
+                          const url  = URL.createObjectURL(blob);
+                          const a    = document.createElement('a');
+                          a.href     = url;
+                          a.download = `consultation_${t.date.replace(/\//g, '-')}_${t.title}.pdf`;
+                          a.click();
+                          setTimeout(() => URL.revokeObjectURL(url), 1000);
+                        } catch (err) {
+                          console.error('Erreur PDF:', err);
+                        }
+                      }}
+                      className="w-full py-2 px-3 bg-(--sf2) border border-(--ln) rounded-lg text-xs font-semibold text-(--t2) hover:bg-(--sf) transition-colors flex items-center justify-center gap-1.5">
+                      <Download size={11} />Télécharger ce bilan PDF
+                    </button>
+                  )}
                   {t.concordance !== null && t.concordance !== undefined ? (
                     <div className={`p-2.5 rounded-lg border ${t.concordance ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20" : "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20"}`}>
                       <p className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-(--t4) mb-1"><Stethoscope size={10} />Avis médecin</p>
@@ -899,7 +987,7 @@ function HistoryTab({ p, onAvisSaved }) {
                     <label key={i} className={`flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-colors border-b border-(--ln) dark:border-slate-700 last:border-0 ${avisData.diagnosticFinal === diag ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-(--sf2)'}`}>
                       <input type="radio" name="diagFinal" value={diag}
                         checked={avisData.diagnosticFinal === diag}
-                        onChange={() => setAvisData(prev => ({ ...prev, diagnosticFinal: diag }))}
+                        onChange={() => setAvisData(prev => ({ ...prev, diagnosticFinal: diag, concordanceIA: diag === avisModal.title }))}
                         className="w-3.5 h-3.5 accent-blue-600" />
                       <span className="text-sm text-(--t1) flex-1">{diag}</span>
                       {i === 0 && <span className="text-[10px] px-2 py-0.5 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 rounded-full font-semibold">IA</span>}
@@ -911,7 +999,7 @@ function HistoryTab({ p, onAvisSaved }) {
                       <label key={`oth-${i}`} className={`flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-colors border-b border-(--ln) dark:border-slate-700 last:border-0 ${avisData.diagnosticFinal === diag ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-(--sf2)'}`}>
                         <input type="radio" name="diagFinal" value={diag}
                           checked={avisData.diagnosticFinal === diag}
-                          onChange={() => setAvisData(prev => ({ ...prev, diagnosticFinal: diag }))}
+                          onChange={() => setAvisData(prev => ({ ...prev, diagnosticFinal: diag, concordanceIA: false }))}
                           className="w-3.5 h-3.5 accent-blue-600" />
                         <span className="text-sm text-(--t1)">{diag}</span>
                       </label>
@@ -919,7 +1007,7 @@ function HistoryTab({ p, onAvisSaved }) {
                   <label className={`flex items-center gap-2.5 px-3 py-2.5 cursor-pointer transition-colors ${avisData.diagnosticFinal === 'autre' ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-(--sf2)'}`}>
                     <input type="radio" name="diagFinal" value="autre"
                       checked={avisData.diagnosticFinal === 'autre'}
-                      onChange={() => setAvisData(prev => ({ ...prev, diagnosticFinal: 'autre' }))}
+                      onChange={() => setAvisData(prev => ({ ...prev, diagnosticFinal: 'autre', concordanceIA: false }))}
                       className="w-3.5 h-3.5 accent-blue-600" />
                     <span className="text-sm text-(--t1)">Autre diagnostic...</span>
                   </label>
@@ -932,21 +1020,27 @@ function HistoryTab({ p, onAvisSaved }) {
                 )}
               </div>
 
-              {/* Concordance IA - OBLIGATOIRE */}
+              {/* Concordance IA — déterminée automatiquement par le choix du diagnostic */}
               <div>
-                <p className="text-xs font-bold text-(--t2) mb-2">Concordance avec le diagnostic IA *</p>
+                <p className="text-xs font-bold text-(--t2) mb-2">Concordance avec le diagnostic IA</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setAvisData(prev => ({ ...prev, concordanceIA: true }))}
-                    className={`py-3 rounded-xl text-sm font-bold border-2 transition-all flex items-center justify-center gap-1.5 ${avisData.concordanceIA === true ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-(--sf) text-(--t2) border-(--ln) dark:border-slate-600 hover:border-emerald-400'}`}>
+                  <div className={`py-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-1.5 select-none
+                    ${avisData.concordanceIA === true
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : 'bg-(--sf) text-(--t3) border-(--ln) opacity-40'}`}>
                     <CheckCircle2 size={14} />Je confirme l'IA
-                  </button>
-                  <button onClick={() => setAvisData(prev => ({ ...prev, concordanceIA: false }))}
-                    className={`py-3 rounded-xl text-sm font-bold border-2 transition-all flex items-center justify-center gap-1.5 ${avisData.concordanceIA === false ? 'bg-amber-500 text-white border-amber-500' : 'bg-(--sf) text-(--t2) border-(--ln) dark:border-slate-600 hover:border-amber-400'}`}>
+                  </div>
+                  <div className={`py-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-1.5 select-none
+                    ${avisData.concordanceIA === false
+                      ? 'bg-amber-500 text-white border-amber-500'
+                      : 'bg-(--sf) text-(--t3) border-(--ln) opacity-40'}`}>
                     <XCircle size={14} />Je diverge
-                  </button>
+                  </div>
                 </div>
                 {avisData.concordanceIA === null && (
-                  <p className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 mt-1.5"><AlertTriangle size={11} />Sélectionnez votre position sur le diagnostic IA pour valider l'avis.</p>
+                  <p className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                    <AlertTriangle size={11} />Sélectionnez un diagnostic ci-dessus pour déterminer la concordance.
+                  </p>
                 )}
               </div>
 
@@ -1365,11 +1459,11 @@ function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPat
 
   return (
     <motion.div
-      initial={{ x: 450, opacity: 0 }}
+      initial={{ x: "100%", opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 450, opacity: 0 }}
+      exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="w-[480px] shrink-0 bg-(--sf) border-l border-(--ln) flex flex-col h-full overflow-hidden shadow-2xl"
+      className="absolute sm:relative inset-0 sm:inset-auto sm:w-[480px] sm:shrink-0 z-40 sm:z-auto bg-(--sf) sm:border-l border-(--ln) flex flex-col overflow-hidden shadow-2xl"
     >
       {/* Header */}
       <motion.div
@@ -1427,22 +1521,14 @@ function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPat
           <Edit3 size={13} />Modifier
         </motion.button>
         <motion.button
-          whileHover={{ scale: (patient.derniere_consultation_id && patient.status !== 'attente') ? 1.05 : 1 }}
-          disabled={!patient.derniere_consultation_id || patient.status === 'attente'}
-          title={
-            patient.status === 'attente'
-              ? 'Consultation en attente — bilan non disponible'
-              : patient.derniere_consultation_id
-                ? 'Télécharger le bilan PDF'
-                : 'Aucune consultation disponible'
-          }
+          whileHover={{ scale: 1.05 }}
+          title="Télécharger le dossier complet PDF (toutes les consultations)"
           onClick={async () => {
-            const consId = patient.derniere_consultation_id;
-            if (!consId || patient.status === 'attente') return;
+            if (!patient.id) return;
             try {
               const token = localStorage.getItem('pneumoia_token') || localStorage.getItem('access_token') || localStorage.getItem('token');
               const BASE  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-              const res   = await fetch(`${BASE}/consultations/${consId}/pdf`, {
+              const res   = await fetch(`${BASE}/patients/${patient.id}/dossier-pdf`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
               if (!res.ok) throw new Error('PDF non disponible');
@@ -1450,19 +1536,15 @@ function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPat
               const url  = URL.createObjectURL(blob);
               const a    = document.createElement('a');
               a.href     = url;
-              a.download = `bilan_${patient.nom}_${patient.prenom}_ID-${patient.id}.pdf`;
+              a.download = `dossier_${patient.nom}_${patient.prenom}.pdf`;
               a.click();
               setTimeout(() => URL.revokeObjectURL(url), 1000);
             } catch (err) {
-              console.error('Erreur téléchargement PDF:', err);
+              console.error('Erreur téléchargement dossier PDF:', err);
             }
           }}
-          className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors border ${
-            (patient.derniere_consultation_id && patient.status !== 'attente')
-              ? 'bg-(--sf) border-(--ln) text-(--t2) hover:bg-(--sf2)'
-              : 'bg-(--sf2) border-(--ln) text-(--t4) cursor-not-allowed opacity-50'
-          }`}>
-          <Download size={13} />Télécharger
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors border bg-(--sf) border-(--ln) text-(--t2) hover:bg-(--sf2)">
+          <Download size={13} />Dossier PDF
         </motion.button>
         <motion.button whileHover={{ scale: 1.1 }} onClick={() => setShowDeleteModal(true)}
           className="ml-auto w-8 h-8 rounded-lg flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 border border-(--ln) hover:border-red-200 transition-colors dark:hover:bg-red-500/10 dark:hover:text-red-300"
@@ -1827,9 +1909,10 @@ export default function PatientsPage() {
   const [filter,     setFilter]     = useState("all");
   const [search,     setSearch]     = useState("");
   const [toasts,     setToasts]     = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error,      setError]      = useState(null);
+  const [loading,      setLoading]      = useState(true);
+  const [refreshing,   setRefreshing]   = useState(false);
+  const [error,        setError]        = useState(null);
+  const [offlineCache, setOfflineCache] = useState(false);
   let toastId       = useRef(0);
   const loadRef     = useRef(null);
 
@@ -1838,6 +1921,51 @@ export default function PatientsPage() {
     setToasts(prev => [...prev, { id, type, title, msg }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3800);
   };
+
+  // ── Transformer les données API en objet patients ────────────────
+  const _buildPatientsObj = useCallback((data) => {
+    const obj = {};
+    data.forEach(p => {
+      obj[p.id] = {
+        name:        `${p.nom} ${p.prenom}`,
+        init:        `${p.prenom?.[0] || ''}${p.nom?.[0] || ''}`,
+        age:         _calculerAge(p.date_naissance),
+        sex:         p.sexe === 'M' ? 'Masculin' : p.sexe === 'F' ? 'Féminin' : 'Non renseigné',
+        id:          p.id,
+        dob:         p.date_naissance ? new Date(p.date_naissance).toLocaleDateString('fr-FR') : 'N/A',
+        city:        p.adresse || 'Non renseignée',
+        tel:         p.telephone || 'Non renseigné',
+        created:     new Date(p.created_at || Date.now()).toLocaleDateString('fr-FR'),
+        shared:      false,
+        status:      'actif',
+        religion:    p.religion || null,
+        groupe_sanguin: p.groupe_sanguin || null,
+        nom:         p.nom || '',
+        prenom:      p.prenom || '',
+        civilite:    p.civilite || '',
+        email:       p.email || '',
+        profession:  p.profession || '',
+        date_naissance: p.date_naissance || null,
+        personne_a_contacter: p.personne_a_contacter || null,
+        telephone_urgence:    p.telephone_urgence    || null,
+        allergies:   Array.isArray(p.allergies) ? p.allergies : ['Aucune allergie connue'],
+        antecedents: _formaterAntecedents(p.antecedents || {}),
+        medecin_referent: profil ? `Dr. ${profil.prenom} ${profil.nom}` : null,
+        diag:        'Chargement...',
+        diagSince:   '',
+        iaPct:       0,
+        vitals:      {},
+        treatments:  [],
+        docs:        [],
+        notes:       '',
+        iaDiags:     [],
+        iaDiffs:     [],
+        iaCriteria:  [],
+        tl:          [],
+      };
+    });
+    return obj;
+  }, [profil]);
 
   // ── Charger les patients depuis la BDD ──────────────────────────
   useEffect(() => {
@@ -1853,73 +1981,61 @@ export default function PatientsPage() {
         if (!res.ok) throw new Error('Impossible de charger les patients');
         const data = await res.json();
 
-        const obj = {};
-        data.forEach(p => {
-          obj[p.id] = {
-            name:        `${p.nom} ${p.prenom}`,
-            init:        `${p.prenom?.[0] || ''}${p.nom?.[0] || ''}`,
-            age:         _calculerAge(p.date_naissance),
-            sex:         p.sexe === 'M' ? 'Masculin' : p.sexe === 'F' ? 'Féminin' : 'Non renseigné',
-            id:          p.id,
-            dob:         p.date_naissance ? new Date(p.date_naissance).toLocaleDateString('fr-FR') : 'N/A',
-            city:        p.adresse || 'Non renseignée',
-            tel:         p.telephone || 'Non renseigné',
-            created:     new Date(p.created_at || Date.now()).toLocaleDateString('fr-FR'),
-            shared:      false,
-            status:      'actif',
-            religion:    p.religion || null,
-            groupe_sanguin: p.groupe_sanguin || null,
-            nom:         p.nom || '',
-            prenom:      p.prenom || '',
-            civilite:    p.civilite || '',
-            email:       p.email || '',
-            profession:  p.profession || '',
-            date_naissance: p.date_naissance || null,
-            personne_a_contacter: p.personne_a_contacter || null,
-            telephone_urgence:    p.telephone_urgence    || null,
-            allergies:   Array.isArray(p.allergies) ? p.allergies : ['Aucune allergie connue'],
-            antecedents: _formaterAntecedents(p.antecedents || {}),
-            medecin_referent: profil ? `Dr. ${profil.prenom} ${profil.nom}` : null,
-            diag:        'Chargement...',
-            diagSince:   '',
-            iaPct:       0,
-            vitals:      {},
-            treatments:  [],
-            docs:        [],
-            notes:       '',
-            iaDiags:     [],
-            iaDiffs:     [],
-            iaCriteria:  [],
-            tl:          [],
-          };
-        });
-        setPatients(obj);
+        // Sauvegarder en cache pour le mode offline
+        try { localStorage.setItem('_cache_patients', JSON.stringify({ ts: Date.now(), data })); } catch {}
+
+        setOfflineCache(false);
+        setPatients(_buildPatientsObj(data));
       } catch (err) {
+        // Mode offline : essayer le cache localStorage
+        if (isNetworkError(err) || !navigator.onLine) {
+          try {
+            const raw = localStorage.getItem('_cache_patients');
+            if (raw) {
+              const { data } = JSON.parse(raw);
+              setOfflineCache(true);
+              setPatients(_buildPatientsObj(data));
+              setLoading(false);
+              return;
+            }
+          } catch {}
+        }
         setError(err.message);
-        addToast('error', 'Erreur', err.message);
       } finally {
         setLoading(false);
       }
     };
     loadRef.current = load;
     load();
-  }, []);
+  }, [_buildPatientsObj]);
 
   // ── Charger les consultations quand un patient est sélectionné ──
+  // Pas de garde "déjà chargé" : reload à chaque sélection pour avoir toutes les consultations
   useEffect(() => {
     if (!selected) return;
     const patient = patients[selected];
-    if (!patient || patient.diag !== 'Chargement...') return;
+    if (!patient) return;
 
     const loadConsultations = async () => {
+      let consultations = null;
       try {
         const token    = localStorage.getItem('token') || localStorage.getItem('access_token');
         const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
         const res      = await fetch(`${BASE_URL}/patients/${selected}/consultations`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) return;
-        const consultations = await res.json();
+        if (!res.ok) throw new Error('fetch_failed');
+        consultations = await res.json();
+        // Sauvegarder en cache
+        try { localStorage.setItem(`_cache_consultations_${selected}`, JSON.stringify({ ts: Date.now(), data: consultations })); } catch {}
+      } catch (err) {
+        // Essayer le cache offline
+        try {
+          const raw = localStorage.getItem(`_cache_consultations_${selected}`);
+          if (raw) consultations = JSON.parse(raw).data;
+        } catch {}
+        if (!consultations) return;
+      }
 
         if (!consultations.length) {
           setPatients(prev => ({
@@ -2052,9 +2168,6 @@ export default function PatientsPage() {
                   || [],
           },
         }));
-      } catch (err) {
-        console.error('Erreur chargement consultations:', err);
-      }
     };
     loadConsultations();
   }, [selected]);
@@ -2133,7 +2246,17 @@ export default function PatientsPage() {
       <Toast toasts={toasts} remove={id => setToasts(prev => prev.filter(t => t.id !== id))} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="flex flex-1 overflow-hidden">
+        {/* Bannière mode offline */}
+        {offlineCache && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-xs font-medium">
+            <WifiOff className="w-3.5 h-3.5 shrink-0" />
+            <span>Mode hors ligne — données du dernier chargement</span>
+            <button onClick={() => loadRef.current?.()} className="ml-auto text-amber-700 underline hover:text-amber-900">
+              Réessayer
+            </button>
+          </div>
+        )}
+        <div className="relative flex flex-1 overflow-hidden">
           {/* List pane */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -2203,7 +2326,8 @@ export default function PatientsPage() {
               transition={{ delay: 0.1 }}
               className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden shadow-sm"
             >
-              <table className="w-full">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px]">
                 <thead>
                   <tr className="bg-(--sf2) border-b border-(--ln)">
                     <th className="text-left px-5 py-3 text-xs font-black uppercase tracking-widest text-(--t4)">Patient</th>
@@ -2224,6 +2348,7 @@ export default function PatientsPage() {
                   )}
                 </tbody>
               </table>
+              </div>
               <TablePagination
                 total={filteredPatients.length}
                 page={patPage}

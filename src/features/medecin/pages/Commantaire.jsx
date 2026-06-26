@@ -1386,18 +1386,18 @@ export default function Commantaire() {
 
       {/* Onglets */}
       <div className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden">
-        <div className="grid grid-cols-3 sm:grid-cols-6 border-b border-(--ln)">
+        <div className="flex overflow-x-auto border-b border-(--ln) scrollbar-none">
           {TABS.map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
             return (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center gap-1.5 px-4 py-4 text-xs font-semibold border-b-2 transition-all ${
+                className={`flex-none flex flex-col items-center gap-1.5 px-5 py-4 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
                   active
-                    ? 'border-blue-600 text-blue-700 bg-blue-50'
+                    ? 'border-blue-600 text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300'
                     : 'border-transparent text-(--t3) hover:text-(--t1) hover:bg-(--sf2)'
                 }`}>
-                <Icon className={`w-5 h-5 ${active ? 'text-blue-600' : ''}`} />
+                <Icon className={`w-5 h-5 ${active ? 'text-blue-600 dark:text-blue-400' : ''}`} />
                 <span className="leading-tight text-center">{tab.label}</span>
               </button>
             );
