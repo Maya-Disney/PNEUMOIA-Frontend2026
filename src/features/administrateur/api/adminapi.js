@@ -461,6 +461,22 @@ export async function marquerAvisVus() {
   return request("PATCH", "/api/admin/avis/marquer-vus", null, true);
 }
 
+/**
+ * Archive un avis (reste sur la landing page, disparaît de la vue active admin).
+ * PATCH /api/admin/avis/{id}/archiver
+ */
+export async function archiverAvis(avisId) {
+  return request("PATCH", `/api/admin/avis/${avisId}/archiver`, null, true);
+}
+
+/**
+ * Récupère les avis archivés (cron job les vide après 7 jours).
+ * GET /api/admin/avis/archives
+ */
+export async function getAvisArchives() {
+  return request("GET", "/api/admin/avis/archives", null, true);
+}
+
 
 
 // ─────────────────────────────────────────────────────────────────────────────
