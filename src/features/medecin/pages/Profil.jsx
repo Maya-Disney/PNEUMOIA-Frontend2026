@@ -690,7 +690,14 @@ export default function Profile() {
                         </p>
                       </div>
                     </div>
-                    <a href={doc.url} target="_blank" rel="noreferrer"
+                    <a
+                      href={(() => {
+                        const base = API_URL.replace('/api/v1', '');
+                        const u = doc.url || '';
+                        if (u.startsWith('http')) return u.replace(/^https?:\/\/[^/]+/, base);
+                        return `${base}/${u.replace(/^\/+/, '')}`;
+                      })()}
+                      target="_blank" rel="noreferrer"
                       className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0">
                       <Download className="w-3 h-3" /> Voir
                     </a>

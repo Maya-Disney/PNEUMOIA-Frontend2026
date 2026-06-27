@@ -120,7 +120,7 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
   return (
     <>
       <header className="sticky top-0 z-20 bg-[var(--sf)] border-b border-[var(--ln)] shadow-sm w-full transition-colors duration-300">
-        <div className="flex items-center justify-between px-8 h-16">
+        <div className="flex items-center justify-between px-4 sm:px-6 md:px-8 h-16">
 
           {/* ── Gauche : menu mobile + titre ── */}
           <div className="flex items-center gap-4">
@@ -276,7 +276,7 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
         </div>
 
         {/* Barre de recherche mobile */}
-        <div className="md:hidden px-8 pb-4">
+        <div className="md:hidden px-4 sm:px-6 pb-4">
           <form onSubmit={handleSearch} className="flex items-center gap-3 px-4 py-2 bg-[var(--sf2)] rounded-xl border border-[var(--ln)]">
             <button type="submit" className="shrink-0">
               <Search className="w-4 h-4 text-[var(--t4)]" />

@@ -7,9 +7,22 @@ const DB_NAME    = 'pneumoia-offline';
 const DB_VERSION = 2;
 
 // ── Verrou global anti-doublon ────────────────────────────────────
-// Empêche deux appels simultanés à synchroniserAvecServeur()
-// (causés par StrictMode React ou double événement 'online')
 let _syncEnCours = false;
+
+// ── Persistance des IDs réels (évite de re-créer si sync partielle) ──
+const SYNC_IDS_KEY = '_pneumoia_sync_ids';
+
+function getPersistentIds() {
+  try { return JSON.parse(localStorage.getItem(SYNC_IDS_KEY) || '{}'); }
+  catch { return {}; }
+}
+function savePersistentIds(map) {
+  try { localStorage.setItem(SYNC_IDS_KEY, JSON.stringify(map)); }
+  catch {}
+}
+function clearPersistentIds() {
+  localStorage.removeItem(SYNC_IDS_KEY);
+}
 
 function ouvrirDB() {
   return new Promise((resolve, reject) => {
@@ -119,7 +132,8 @@ export async function synchroniserAvecServeur() {
 
     console.log(`🔄 Synchronisation de ${actions.length} action(s) offline...`);
 
-    const idMap = {};
+    // Récupérer les IDs déjà résolus lors d'une sync précédente (anti-doublon)
+    const idMap = { ...getPersistentIds() };
     const blockedLocalIds = new Set();
 
   for (const action of actions.sort((a, b) => a.timestamp - b.timestamp)) {
@@ -134,14 +148,20 @@ export async function synchroniserAvecServeur() {
 
       // ── CREATE_PATIENT ───────────────────────────────────────────
       if (action.type === 'CREATE_PATIENT') {
-        const r = await fetch(`${BASE}/patients`, {
-          method: 'POST', headers,
-          body: JSON.stringify(action.payload.data),
-        });
-        if (!r.ok) throw new Error(`Patient: ${r.status}`);
-        const p = await r.json();
-        idMap[action.payload.local_id] = p.id;
-        console.log(`✅ Patient créé: ${action.payload.local_id} → ${p.id}`);
+        // Anti-doublon : si déjà créé lors d'une sync précédente, skip l'API
+        if (idMap[action.payload.local_id]) {
+          console.log(`⏭️ Patient déjà créé: ${action.payload.local_id} → ${idMap[action.payload.local_id]}`);
+        } else {
+          const r = await fetch(`${BASE}/patients`, {
+            method: 'POST', headers,
+            body: JSON.stringify(action.payload.data),
+          });
+          if (!r.ok) throw new Error(`Patient: ${r.status}`);
+          const p = await r.json();
+          idMap[action.payload.local_id] = p.id;
+          savePersistentIds(idMap);
+          console.log(`✅ Patient créé: ${action.payload.local_id} → ${p.id}`);
+        }
       }
 
       // ── UPDATE_PATIENT (retour étape 1 pour modifier) ────────────
@@ -167,21 +187,27 @@ export async function synchroniserAvecServeur() {
 
       // ── CREATE_CONSULTATION ──────────────────────────────────────
       else if (action.type === 'CREATE_CONSULTATION') {
-        const patientId = idMap[action.payload.patient_local_id]
-                       ?? action.payload.patient_id;
+        // Anti-doublon : si déjà créée lors d'une sync précédente, skip l'API
+        if (idMap[action.payload.local_id]) {
+          console.log(`⏭️ Consultation déjà créée: ${action.payload.local_id} → ${idMap[action.payload.local_id]}`);
+        } else {
+          const patientId = idMap[action.payload.patient_local_id]
+                         ?? action.payload.patient_id;
 
-        if (!patientId || String(patientId).startsWith('local-')) {
-          throw new Error(`patient_id non résolu: ${patientId}`);
+          if (!patientId || String(patientId).startsWith('local-')) {
+            throw new Error(`patient_id non résolu: ${patientId}`);
+          }
+
+          const r = await fetch(`${BASE}/consultations`, {
+            method: 'POST', headers,
+            body: JSON.stringify({ patient_id: patientId }),
+          });
+          if (!r.ok) throw new Error(`Consultation: ${r.status}`);
+          const c = await r.json();
+          idMap[action.payload.local_id] = c.id;
+          savePersistentIds(idMap);
+          console.log(`✅ Consultation créée: ${action.payload.local_id} → ${c.id}`);
         }
-
-        const r = await fetch(`${BASE}/consultations`, {
-          method: 'POST', headers,
-          body: JSON.stringify({ patient_id: patientId }),
-        });
-        if (!r.ok) throw new Error(`Consultation: ${r.status}`);
-        const c = await r.json();
-        idMap[action.payload.local_id] = c.id;
-        console.log(`✅ Consultation créée: ${action.payload.local_id} → ${c.id}`);
       }
 
       // ── SAVE_DIAGNOSTIC (résultat IA offline) ────────────────────
@@ -315,6 +341,10 @@ export async function synchroniserAvecServeur() {
       }
     }
   }
+
+    // Nettoyer la map persistante si toutes les actions ont été traitées
+    const restantes = await dbGetAll('actions_pending');
+    if (restantes.length === 0) clearPersistentIds();
 
     console.log('✅ Synchronisation terminée', { idMap, blocked: [...blockedLocalIds] });
     return idMap;

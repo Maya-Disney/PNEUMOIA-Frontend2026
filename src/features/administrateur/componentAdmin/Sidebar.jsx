@@ -6,7 +6,7 @@ import {
   LayoutDashboard, UserPlus, UserCheck, UserX,
   Stethoscope, UserMinus, LineChart, BarChart2,
   Brain, MapPin, FileSearch, Settings, LogOut,
-  Menu, X, HelpCircle, MessageCircle, Trash2, AlertCircle
+  X, HelpCircle, MessageCircle, Trash2, AlertCircle
 } from "lucide-react";
 
 const BRAND    = "#009e82";   // Vert médical
@@ -88,9 +88,8 @@ function getBadgeStyle(color, dark) {
   return (dark ? styles.dark : styles.light)[color] || {};
 }
 
-export default function Sidebar({ dark }) {
+export default function Sidebar({ dark, onClose }) {
   const navigate = useNavigate();
-  const [open,       setOpen]       = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const [counts, setCounts] = useState({ actifs: 0, requetes: 0 });
 
@@ -127,7 +126,7 @@ export default function Sidebar({ dark }) {
         style={{ borderBottom:`1px solid ${border}` }}>
         <img src={logo} alt="PneumoIA"
           style={{ height:74, width:"auto", objectFit:"contain", maxWidth:200, filter:"none" }}/>
-        <button onClick={()=>setOpen(false)}
+        <button onClick={() => onClose?.()}
           className="absolute right-3 top-1/2 -translate-y-1/2 lg:hidden"
           style={{ color: dark ? ITEM_TX_D : SEC_L }}>
           <X size={15}/>
@@ -145,7 +144,7 @@ export default function Sidebar({ dark }) {
               </p>
             )}
             {items.map(({ to, icon: Icon, label, badge, badgeColor }) => (
-              <NavLink key={to} to={to} onClick={()=>setOpen(false)}
+              <NavLink key={to} to={to} onClick={() => onClose?.()}
                 className="flex items-center gap-2.5 px-3 py-[9px] rounded-[10px] text-[14px] font-medium transition-all mb-[2px]"
                 style={({ isActive }) => ({
                   background:  isActive ? (dark ? ACTIVE_BG_D : ACTIVE_BG_L) : "transparent",
@@ -270,20 +269,7 @@ export default function Sidebar({ dark }) {
         </div>
       )}
 
-      <div className="hidden lg:flex">{inner}</div>
-
-      {open && (
-        <div className="lg:hidden fixed inset-0 z-40 flex">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={()=>setOpen(false)}/>
-          <div className="relative z-50" style={{ width:260 }}>{inner}</div>
-        </div>
-      )}
-
-      <button id="sidebar-toggle" onClick={()=>setOpen(true)}
-        className="lg:hidden fixed top-3 left-3 z-30 w-9 h-9 flex items-center justify-center rounded-xl shadow-sm"
-        style={{ background:bg, border:`1px solid ${border}`, color:dark?ITEM_TX_D:ITEM_TX_L }}>
-        <Menu size={16}/>
-      </button>
+      {inner}
     </>
   );
 }

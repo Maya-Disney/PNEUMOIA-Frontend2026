@@ -301,7 +301,7 @@ export default function Refusees() {
                       <Td dark={dark}><StatusText color="danger">{r.dateRefus}</StatusText></Td>
 
                       <Td dark={dark}>
-                        <span className="text-[14px] line-clamp-2" style={{ color: txt.secondary, maxWidth: 180, display: "inline-block" }}>{r.motif}</span>
+                        <span className="text-[13px] line-clamp-2 block" style={{ color: txt.secondary, maxWidth: 220 }} title={r.motif}>{r.motif}</span>
                       </Td>
 
                       <Td dark={dark}><MutedText dark={dark}>{r.refusePar}</MutedText></Td>
