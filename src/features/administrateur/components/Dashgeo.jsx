@@ -24,7 +24,6 @@ export default function DashGeo({ dark }) {
 
   const TOTAL_MD  = regions.reduce((s, r) => s + r.md, 0);
   const TOTAL_C   = villes.reduce((s, v) => s + v.c, 0);
-  const TOTAL_P   = 1163;
   const COUVERTES = regions.filter(r => r.md > 0).length;
   const MAX_C     = villes.length ? Math.max(...villes.map(v => v.c)) : 1;
 
@@ -46,11 +45,10 @@ export default function DashGeo({ dark }) {
       />
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
+      <div className="grid grid-cols-3 gap-2 mb-4">
         {[
           { l: "Médecins",          v: TOTAL_MD },
           { l: "Consultations",     v: TOTAL_C.toLocaleString("fr-FR") },
-          { l: "Patients",          v: TOTAL_P.toLocaleString("fr-FR") },
           { l: "Régions couvertes", v: `${COUVERTES}/10`, red: true },
         ].map(({ l, v, red }) => (
           <div key={l} className="rounded-xl px-3 py-2.5 text-center" style={{ background: surface.bg }}>

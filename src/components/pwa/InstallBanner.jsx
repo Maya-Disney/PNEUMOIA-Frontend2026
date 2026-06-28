@@ -1,5 +1,6 @@
 // src/components/pwa/InstallBanner.jsx
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, RefreshCw } from 'lucide-react';
 import { usePWA } from '../../hooks/usePWA';
@@ -7,9 +8,12 @@ import { usePWA } from '../../hooks/usePWA';
 export default function InstallBanner() {
   const { isInstallable, swUpdateReady, promptInstall, applyUpdate } = usePWA();
   const [dismissed, setDismissed] = useState(false);
+  const { pathname } = useLocation();
 
-  const showInstall = isInstallable && !dismissed;
-  const showUpdate  = swUpdateReady;
+  const isAdminRoute = pathname.startsWith('/administrateur') || pathname.startsWith('/pneumo-admin');
+
+  const showInstall = isInstallable && !dismissed && !isAdminRoute;
+  const showUpdate  = swUpdateReady && !isAdminRoute;
 
   if (!showInstall && !showUpdate) return null;
 

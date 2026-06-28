@@ -4,7 +4,7 @@ import { useAdminTheme } from "../context/useAdminTheme";
 import * as XLSX from "xlsx";
 import { Download, Trash2, X, Send, Mail, MoreVertical, RefreshCw } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
-import { getMedecinsRefuses, supprimerDossierRefuse, relancerMedecin as relancerMedecinApi } from "../api/adminApi";
+import { getMedecinsRefuses, supprimerMedecin, relancerMedecin as relancerMedecinApi } from "../api/adminApi";
 import {
   TableCard, TableContainer, Th, Tr, Td, EmptyCell, PersonCell,
   MutedText, SubtleText, StatusText, PaginationBar, PaginationSelect, PaginationButton,
@@ -116,9 +116,14 @@ export default function Refusees() {
   const [villeFiltre,   setVilleFiltre]  = useState("Toutes");
   const [motifFiltre,   setMotifFiltre]  = useState("Tous");
 
-  const [openMenuId,  setOpenMenuId]  = useState(null);
-  const [loading,     setLoading]     = useState(false);
-  const [refreshKey,  setRefreshKey]  = useState(0);
+  const [openMenuId,       setOpenMenuId]       = useState(null);
+  const [loading,          setLoading]          = useState(false);
+  const [refreshKey,       setRefreshKey]       = useState(0);
+  const [bulkDeleteModal,  setBulkDeleteModal]  = useState(false);
+  const [bulkRelanceModal, setBulkRelanceModal] = useState(false);
+  const [bulkLoading,      setBulkLoading]      = useState(false);
+  const [bulkMsg,          setBulkMsg]          = useState("");
+  const [modaleMotif,      setModaleMotif]      = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -137,7 +142,7 @@ export default function Refusees() {
           dateDemande: m.date_demande || (m.created_at ? fmt(new Date(m.created_at)) : "—"),
           dateRefus:   m.date_refus   || (m.updated_at ? fmt(new Date(m.updated_at)) : "—"),
           motif:       m.motif_rejet   || "—",
-          refusePar:   m.refuse_par    || "Administrateur",
+          refusePar:   "Administrateur",
           photo_url:   m.photo_url     || null,
           relanceSent: m.relance_sent  || false,
         })) : []);
@@ -183,8 +188,31 @@ export default function Refusees() {
     };
   }, [openMenuId]);
 
+  const eligibleRelance = filtered.filter(r => !r.relanceSent);
+
+  async function handleBulkSupprimer() {
+    setBulkLoading(true);
+    const ids = filtered.map(r => r.id);
+    await Promise.all(ids.map(id => supprimerMedecin(id).catch(() => {})));
+    setRows(p => p.filter(r => !ids.includes(r.id)));
+    setToast({ msg: `${ids.length} dossier${ids.length > 1 ? "s" : ""} supprimé${ids.length > 1 ? "s" : ""}`, type: "error" });
+    setBulkDeleteModal(false);
+    setBulkLoading(false);
+    setPage(1);
+  }
+
+  async function handleBulkRelancer() {
+    setBulkLoading(true);
+    await Promise.all(eligibleRelance.map(r => relancerMedecinApi(r.id, bulkMsg).catch(() => {})));
+    const ids = eligibleRelance.map(r => r.id);
+    setRows(p => p.map(r => ids.includes(r.id) ? { ...r, relanceSent: true } : r));
+    setToast({ msg: `Relance envoyée à ${eligibleRelance.length} médecin${eligibleRelance.length > 1 ? "s" : ""}`, type: "success" });
+    setBulkRelanceModal(false);
+    setBulkLoading(false);
+  }
+
   async function supprimer(r) {
-    try { await supprimerDossierRefuse(r.id); } catch {}
+    try { await supprimerMedecin(r.id); } catch {}
     setRows(p=>p.filter(x=>x.id!==r.id));
     setToast({msg:`Dossier de ${r.nom} supprimé`,type:"error"});
     setTarget(null);
@@ -226,7 +254,7 @@ export default function Refusees() {
             {filtered.length} dossier{filtered.length>1?"s":""} refusé{filtered.length>1?"s":""}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setRefreshKey(k => k + 1)}
             disabled={loading}
@@ -234,6 +262,30 @@ export default function Refusees() {
             className={`p-2 rounded-xl border transition-colors ${dark?"border-[#30363d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
+
+          <button
+            disabled={eligibleRelance.length === 0}
+            onClick={() => {
+              setBulkMsg(`Bonjour,\n\nVotre demande d'inscription sur PneumoIA a été refusée.\n\nNous vous invitons à corriger les éléments manquants et à soumettre une nouvelle demande depuis votre espace médecin.\n\nCordialement,\nL'équipe PneumoIA`);
+              setBulkRelanceModal(true);
+            }}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed
+              ${dark?"border-[#30363d] text-[#8b949e] hover:enabled:bg-[#1D9E75] hover:enabled:text-white hover:enabled:border-[#1D9E75]":"border-gray-200 text-gray-600 hover:enabled:bg-[#1D9E75] hover:enabled:text-white hover:enabled:border-[#1D9E75]"}`}>
+            <Send size={13}/> Relancer tout
+            {eligibleRelance.length > 0 && (
+              <span className={`ml-0.5 text-[12px] px-1.5 py-0.5 rounded-full font-bold ${dark?"bg-[#21262d]":"bg-gray-100"}`}>
+                {eligibleRelance.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            disabled={filtered.length === 0}
+            onClick={() => setBulkDeleteModal(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed border-red-200 text-red-600 hover:enabled:bg-red-600 hover:enabled:text-white hover:enabled:border-red-600">
+            <Trash2 size={13}/> Supprimer tout
+          </button>
+
           <button onClick={exportExcel}
             className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all border-gray-200 dark:border-[#21262d] text-gray-600 dark:text-[#8b949e]"
             onMouseEnter={e=>{e.currentTarget.style.background=brand.DEFAULT;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=brand.DEFAULT;}}
@@ -254,8 +306,13 @@ export default function Refusees() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[14px] font-medium" style={{ color: txt.subtle }}>Motif :</span>
-            <select value={motifFiltre} onChange={e=>{setMotifFiltre(e.target.value);setPage(1);}} className={sel}>
-              {motifs.map(m=><option key={m} value={m}>{m==="Tous"?"Tous les motifs":m}</option>)}
+            <select value={motifFiltre} onChange={e=>{setMotifFiltre(e.target.value);setPage(1);}} className={sel}
+              style={{maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis"}}>
+              {motifs.map(m => {
+                const label = m === "Tous" ? "Tous les motifs" : m;
+                const short = label.length > 30 ? label.slice(0, 30) + "…" : label;
+                return <option key={m} value={m} title={label}>{short}</option>;
+              })}
             </select>
           </div>
           {(villeFiltre!=="Toutes"||motifFiltre!=="Tous") && (
@@ -267,18 +324,18 @@ export default function Refusees() {
           )}
         </div>
 
-        <TableContainer dark={dark}>
+        <TableContainer dark={dark} fixed>
           <thead>
             <tr>
-              <Th dark={dark}>Médecin</Th>
-              <Th dark={dark}>CNOM</Th>
-              <Th dark={dark}>Établissement</Th>
-              <Th dark={dark}>Ville</Th>
-              <Th dark={dark}>Demande</Th>
-              <Th dark={dark}>Refus</Th>
-              <Th dark={dark}>Motif</Th>
-              <Th dark={dark}>Refusé par</Th>
-              <Th dark={dark} center style={{width: 80}}>Actions</Th>
+              <Th dark={dark} style={{width:"19%"}}>Médecin</Th>
+              <Th dark={dark} style={{width:"11%"}}>CNOM</Th>
+              <Th dark={dark} style={{width:"11%"}}>Établissement</Th>
+              <Th dark={dark} style={{width:"7%"}}>Ville</Th>
+              <Th dark={dark} style={{width:"9%"}}>Demande</Th>
+              <Th dark={dark} style={{width:"9%"}}>Refus</Th>
+              <Th dark={dark} style={{width:"13%"}}>Motif</Th>
+              <Th dark={dark} style={{width:"13%"}}>Refusé par</Th>
+              <Th dark={dark} center style={{width:"8%"}}>Actions</Th>
             </tr>
           </thead>
           <tbody>
@@ -301,10 +358,20 @@ export default function Refusees() {
                       <Td dark={dark}><StatusText color="danger">{r.dateRefus}</StatusText></Td>
 
                       <Td dark={dark}>
-                        <span className="text-[13px] line-clamp-2 block" style={{ color: txt.secondary, maxWidth: 220 }} title={r.motif}>{r.motif}</span>
+                        <button
+                          onClick={() => r.motif && r.motif !== "—" && setModaleMotif(r)}
+                          className={`text-[13px] truncate block w-full text-left transition-colors ${r.motif && r.motif !== "—" ? "cursor-pointer hover:underline underline-offset-2" : "cursor-default"}`}
+                          style={{ color: txt.secondary }}
+                        >
+                          {r.motif}
+                        </button>
                       </Td>
 
-                      <Td dark={dark}><MutedText dark={dark}>{r.refusePar}</MutedText></Td>
+                      <Td dark={dark}>
+                        <span className="text-[14px] truncate block w-full" style={{ color: txt.secondary }} title={r.refusePar}>
+                          {r.refusePar}
+                        </span>
+                      </Td>
 
                       <Td dark={dark} center>
                         <div className="relative flex justify-center">
@@ -396,6 +463,77 @@ export default function Refusees() {
         </div>
       </PaginationBar>
 
+      {bulkRelanceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={e=>e.target===e.currentTarget&&!bulkLoading&&setBulkRelanceModal(false)}>
+          <div className={`w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
+            <div className={`flex items-center justify-between px-5 py-4 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
+              <div>
+                <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>Relancer tout</p>
+                <p className={`text-[14px] mt-0.5 ${dark?"text-[#8b949e]":"text-gray-400"}`}>{eligibleRelance.length} médecin{eligibleRelance.length>1?"s":""} concerné{eligibleRelance.length>1?"s":""}</p>
+              </div>
+              <button disabled={bulkLoading} onClick={()=>setBulkRelanceModal(false)} className={`w-7 h-7 flex items-center justify-center rounded-lg ${dark?"text-[#484f58] hover:bg-[#21262d]":"text-gray-400 hover:bg-gray-100"}`}><X size={13}/></button>
+            </div>
+            <div className="px-5 py-4 flex flex-col gap-3">
+              <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[14px] ${dark?"bg-[#1D9E75]/10 border-[#1D9E75]/30 text-[#1D9E75]":"bg-emerald-50 border-emerald-200 text-emerald-700"}`}>
+                <Send size={13} className="shrink-0 mt-0.5"/>
+                <span>Un e-mail de relance sera envoyé à <strong>{eligibleRelance.length} médecin{eligibleRelance.length>1?"s":""}</strong> dont le dossier a été refusé.</span>
+              </div>
+              <div>
+                <label className={`block text-[14px] font-bold mb-1.5 ${dark?"text-[#8b949e]":"text-gray-600"}`}>
+                  Message <span className={`font-normal ${dark?"text-[#484f58]":"text-gray-400"}`}>(modifiable)</span>
+                </label>
+                <textarea
+                  value={bulkMsg}
+                  onChange={e=>setBulkMsg(e.target.value)}
+                  rows={8}
+                  disabled={bulkLoading}
+                  className={`w-full text-[14px] px-3 py-2 rounded-xl border outline-none resize-none ${dark?"bg-[#0d1117] border-[#21262d] text-white":"bg-gray-50 border-gray-200 text-gray-800"}`}
+                />
+              </div>
+            </div>
+            <div className={`flex gap-2 px-5 py-4 border-t ${dark?"border-[#21262d]":"border-gray-100"}`}>
+              <button disabled={bulkLoading} onClick={()=>setBulkRelanceModal(false)} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Annuler</button>
+              <button disabled={bulkLoading} onClick={handleBulkRelancer}
+                className="flex-1 py-2 rounded-xl text-[14px] font-bold text-white flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{background:brand.DEFAULT}}>
+                {bulkLoading ? <RefreshCw size={13} className="animate-spin"/> : <Send size={12}/>}
+                {bulkLoading ? "Envoi en cours…" : "Envoyer à tous"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bulkDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={e=>e.target===e.currentTarget&&!bulkLoading&&setBulkDeleteModal(false)}>
+          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
+            <div className={`flex items-center justify-between px-5 py-4 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
+              <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>Supprimer tout</p>
+              <button disabled={bulkLoading} onClick={()=>setBulkDeleteModal(false)} className={`w-7 h-7 flex items-center justify-center rounded-lg ${dark?"text-[#484f58] hover:bg-[#21262d]":"text-gray-400 hover:bg-gray-100"}`}><X size={13}/></button>
+            </div>
+            <div className="px-5 py-4 flex flex-col gap-3">
+              <div className="flex items-start gap-2 px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-[14px]">
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="shrink-0 mt-0.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>Supprimer définitivement <strong>{filtered.length} dossier{filtered.length>1?"s":""}</strong> ? Action irréversible.</span>
+              </div>
+              <p className={`text-[14px] px-1 ${dark?"text-[#8b949e]":"text-gray-500"}`}>
+                Tous les dossiers refusés actuellement affichés (selon les filtres actifs) seront supprimés.
+              </p>
+            </div>
+            <div className={`flex gap-2 px-5 py-4 border-t ${dark?"border-[#21262d]":"border-gray-100"}`}>
+              <button disabled={bulkLoading} onClick={()=>setBulkDeleteModal(false)} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Annuler</button>
+              <button disabled={bulkLoading} onClick={handleBulkSupprimer}
+                className="flex-1 py-2 rounded-xl text-[14px] font-bold bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-1.5 disabled:opacity-60">
+                {bulkLoading ? <RefreshCw size={13} className="animate-spin"/> : <Trash2 size={12}/>}
+                {bulkLoading ? "Suppression…" : `Supprimer les ${filtered.length}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {target && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           onClick={e=>e.target===e.currentTarget&&setTarget(null)}>
@@ -422,6 +560,32 @@ export default function Refusees() {
               <button onClick={()=>setTarget(null)} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Annuler</button>
               <button onClick={()=>supprimer(target)} className="flex-1 py-2 rounded-xl text-[14px] font-bold bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-1.5">
                 <Trash2 size={12}/> Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modaleMotif && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={e=>e.target===e.currentTarget&&setModaleMotif(null)}>
+          <div className={`w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
+            <div className={`flex items-center justify-between px-5 py-4 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
+              <p className={`text-[15px] font-bold ${dark?"text-white":"text-gray-800"}`}>Motif de refus</p>
+              <button onClick={()=>setModaleMotif(null)} className={`w-7 h-7 flex items-center justify-center rounded-lg ${dark?"text-[#484f58] hover:bg-[#21262d]":"text-gray-400 hover:bg-gray-100"}`}><X size={13}/></button>
+            </div>
+            <div className="px-5 py-4 flex flex-col gap-3">
+              <div className={`text-[13px] px-1 ${dark?"text-[#8b949e]":"text-gray-400"}`}>
+                {modaleMotif.nom} · {modaleMotif.dateRefus}
+              </div>
+              <div className={`px-4 py-3 rounded-xl border text-[14px] leading-relaxed break-words whitespace-pre-wrap max-h-60 overflow-y-auto ${dark?"bg-[#0d1117] border-[#21262d] text-[#c9d1d9]":"bg-gray-50 border-gray-100 text-gray-700"}`}>
+                {modaleMotif.motif}
+              </div>
+            </div>
+            <div className={`flex px-5 py-4 border-t ${dark?"border-[#21262d]":"border-gray-100"}`}>
+              <button onClick={()=>setModaleMotif(null)}
+                className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>
+                Fermer
               </button>
             </div>
           </div>

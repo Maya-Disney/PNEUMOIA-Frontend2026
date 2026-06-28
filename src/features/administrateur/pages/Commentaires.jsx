@@ -66,9 +66,12 @@ export default function Commentaires() {
   const [villeFiltre,  setVilleFiltre] = useState("Toutes");
   const [noteFiltre,   setNoteFiltre]  = useState("Toutes");
   const [statutFiltre, setStatutFiltre]= useState("Tous");
-  const [modaleDelete, setModaleDelete]= useState(null);
-  const [modaleArchive,setModaleArchive]=useState(null);
-  const [raisonDelete, setRaisonDelete]= useState("");
+  const [modaleDelete,      setModaleDelete]      = useState(null);
+  const [modaleArchive,     setModaleArchive]     = useState(null);
+  const [raisonDelete,      setRaisonDelete]      = useState("");
+  const [bulkArchiveModal,  setBulkArchiveModal]  = useState(false);
+  const [bulkDeleteModal,   setBulkDeleteModal]   = useState(false);
+  const [bulkLoading,       setBulkLoading]       = useState(false);
   const [modalePhoto,  setModalePhoto] = useState(null);
   const [toast,        setToast]       = useState(null);
   const [page,         setPage]        = useState(1);
@@ -129,6 +132,28 @@ export default function Commentaires() {
     setRaisonDelete("");
   }
 
+  async function handleBulkArchiver() {
+    setBulkLoading(true);
+    const ids = filtered.map(r => r.id);
+    await Promise.all(ids.map(id => archiverAvis(id).catch(() => {})));
+    setRows(p => p.filter(r => !ids.includes(r.id)));
+    showToast(`${ids.length} commentaire${ids.length > 1 ? "s" : ""} archivé${ids.length > 1 ? "s" : ""} — landing page inchangée`, "success");
+    setBulkArchiveModal(false);
+    setBulkLoading(false);
+    setPage(1);
+  }
+
+  async function handleBulkSupprimer() {
+    setBulkLoading(true);
+    const ids = filtered.map(r => r.id);
+    await Promise.all(ids.map(id => supprimerAvis(id, null).catch(() => {})));
+    setRows(p => p.filter(r => !ids.includes(r.id)));
+    showToast(`${ids.length} commentaire${ids.length > 1 ? "s" : ""} supprimé${ids.length > 1 ? "s" : ""} de la landing page`, "error");
+    setBulkDeleteModal(false);
+    setBulkLoading(false);
+    setPage(1);
+  }
+
   const filtered = rows.filter(r => {
     const okSearch = !search || r.nom.toLowerCase().includes(search.toLowerCase()) || r.commentaire.toLowerCase().includes(search.toLowerCase());
     const okVille  = villeFiltre==="Toutes" || r.ville===villeFiltre;
@@ -159,14 +184,43 @@ export default function Commentaires() {
             <span className="font-bold" style={{ color: "#b45309" }}>★ {moyNote}/5</span>
           </p>
         </div>
-        <button
-          onClick={() => setRefreshKey(k => k + 1)}
-          disabled={loading}
-          title="Actualiser"
-          className="p-2 rounded-xl border transition-colors"
-          style={{ borderColor: surface.border, color: txt.subtle }}>
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            disabled={loading}
+            title="Actualiser"
+            className="p-2 rounded-xl border transition-colors"
+            style={{ borderColor: surface.border, color: txt.subtle }}>
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+
+          <button
+            disabled={filtered.length === 0 || tab !== "actifs"}
+            onClick={() => setBulkArchiveModal(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              borderColor: brand.lighter,
+              color: brand.DEFAULT,
+              background: "transparent",
+            }}
+            onMouseEnter={e => { if (filtered.length > 0) { e.currentTarget.style.background = brand.DEFAULT; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = brand.DEFAULT; }}}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = brand.DEFAULT; e.currentTarget.style.borderColor = brand.lighter; }}>
+            <Archive size={13}/> Archiver tout
+            {filtered.length > 0 && (
+              <span className="text-[12px] px-1.5 py-0.5 rounded-full font-bold"
+                style={{ background: dark ? "rgba(0,158,130,0.15)" : "rgba(0,158,130,0.10)" }}>
+                {filtered.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            disabled={filtered.length === 0 || tab !== "actifs"}
+            onClick={() => setBulkDeleteModal(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed border-red-200 text-red-600 hover:enabled:bg-red-600 hover:enabled:text-white hover:enabled:border-red-600">
+            <Trash2 size={13}/> Supprimer tout
+          </button>
+        </div>
       </div>
 
       {/* ── Onglets ── */}
@@ -395,7 +449,7 @@ export default function Commentaires() {
                 Archive admin — auto-vidée après 7 jours
               </p>
               <p className="text-[12px] mt-0.5" style={{ color: dark?"rgba(252,211,77,0.7)":"rgba(146,64,14,0.7)" }}>
-                Les commentaires archivés restent visibles sur la landing page. Ils disparaissent ici au bout de 7 jours automatiquement.
+                Les commentaires archivés restent visibles sur la landing page — seule cette vue admin est nettoyée après 7 jours.
               </p>
             </div>
           </div>
@@ -456,6 +510,74 @@ export default function Commentaires() {
         </>
       )}
 
+      {/* ── Modal archiver tout ── */}
+      {bulkArchiveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={e=>e.target===e.currentTarget&&!bulkLoading&&setBulkArchiveModal(false)}>
+          <div className="w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden" style={cardStyle}>
+            <div className="flex items-center justify-between px-5 py-4 border-b" style={{borderColor: surface.border}}>
+              <div>
+                <p className="text-[15px] font-bold" style={{ color: txt.primary }}>Archiver tout</p>
+                <p className="text-[13px] mt-0.5" style={{ color: txt.subtle }}>{filtered.length} commentaire{filtered.length>1?"s":""} concerné{filtered.length>1?"s":""}</p>
+              </div>
+              <button disabled={bulkLoading} onClick={()=>setBulkArchiveModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ color: txt.subtle }}><X size={15}/></button>
+            </div>
+            <div className="px-5 py-4 flex flex-col gap-3">
+              <div className="flex items-start gap-2 px-4 py-3 rounded-xl border text-[13px]"
+                style={{ borderColor: brand.lighter, background: dark?"rgba(0,158,130,0.10)":"rgba(0,158,130,0.06)", color: dark?brand.lighter:brand.dark }}>
+                <Archive size={15} className="shrink-0 mt-0.5"/>
+                <span><strong>{filtered.length} commentaire{filtered.length>1?"s":""}</strong> seront archivés de la vue admin. <strong>Ils restent visibles sur la landing page.</strong></span>
+              </div>
+            </div>
+            <div className="flex gap-2 px-5 py-4 border-t" style={{borderColor: surface.border}}>
+              <button disabled={bulkLoading} onClick={()=>setBulkArchiveModal(false)}
+                className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold border"
+                style={{ borderColor: surface.border, color: txt.muted }}>Annuler</button>
+              <button disabled={bulkLoading} onClick={handleBulkArchiver}
+                className="flex-1 py-2.5 rounded-xl text-white text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ background: brand.DEFAULT }}>
+                {bulkLoading ? <RefreshCw size={13} className="animate-spin"/> : <Archive size={14}/>}
+                {bulkLoading ? "Archivage…" : "Archiver tout"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal supprimer tout ── */}
+      {bulkDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={e=>e.target===e.currentTarget&&!bulkLoading&&setBulkDeleteModal(false)}>
+          <div className="w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden" style={cardStyle}>
+            <div className="flex items-center justify-between px-5 py-4 border-b" style={{borderColor: surface.border}}>
+              <div>
+                <p className="text-[15px] font-bold" style={{ color: txt.primary }}>Supprimer tout</p>
+                <p className="text-[13px] mt-0.5" style={{ color: txt.subtle }}>{filtered.length} commentaire{filtered.length>1?"s":""} concerné{filtered.length>1?"s":""}</p>
+              </div>
+              <button disabled={bulkLoading} onClick={()=>setBulkDeleteModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ color: txt.subtle }}><X size={15}/></button>
+            </div>
+            <div className="px-5 py-4 flex flex-col gap-3">
+              <div className="flex items-start gap-2 px-4 py-3 rounded-xl border text-[13px]"
+                style={{ borderColor: status.danger.border, background: status.danger.bg, color: status.danger.text }}>
+                <AlertTriangle size={15} className="shrink-0 mt-0.5"/>
+                <span><strong>{filtered.length} commentaire{filtered.length>1?"s":""}</strong> seront supprimés <strong>définitivement de la landing page</strong>. Les médecins seront notifiés.</span>
+              </div>
+              <p className="text-[13px]" style={{ color: txt.subtle }}>Cette action est irréversible.</p>
+            </div>
+            <div className="flex gap-2 px-5 py-4 border-t" style={{borderColor: surface.border}}>
+              <button disabled={bulkLoading} onClick={()=>setBulkDeleteModal(false)}
+                className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold border"
+                style={{ borderColor: surface.border, color: txt.muted }}>Annuler</button>
+              <button disabled={bulkLoading} onClick={handleBulkSupprimer}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-[14px] font-bold flex items-center justify-center gap-2">
+                {bulkLoading ? <RefreshCw size={13} className="animate-spin"/> : <Trash2 size={14}/>}
+                {bulkLoading ? "Suppression…" : `Supprimer les ${filtered.length}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Modal archiver ── */}
       {modaleArchive && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
@@ -469,7 +591,7 @@ export default function Commentaires() {
               <div className="flex items-start gap-2 px-4 py-3 rounded-xl border text-[13px]"
                 style={{ borderColor: brand.lighter, background: dark?"rgba(0,158,130,0.10)":"rgba(0,158,130,0.06)", color: dark?brand.lighter:brand.dark }}>
                 <Archive size={15} className="shrink-0 mt-0.5"/>
-                <span>Ce commentaire sera archivé et <strong>restera visible sur la landing page</strong>. Il sera supprimé de l'archive admin dans <strong>7 jours</strong>.</span>
+                <span>Ce commentaire sera retiré de la liste admin uniquement. <strong>Il reste visible sur la landing page.</strong> L'entrée archive sera nettoyée après <strong>7 jours</strong>.</span>
               </div>
               <div className="px-4 py-3 rounded-xl border text-[14px] italic leading-relaxed"
                 style={{ background: surface.bg, borderColor: surface.border, color: txt.secondary }}>

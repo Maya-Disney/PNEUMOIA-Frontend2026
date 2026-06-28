@@ -17,10 +17,10 @@ export function TableCard({ dark, children, className = "" }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // CONTAINER — enveloppe de <table> uniquement (sans card)
 // ─────────────────────────────────────────────────────────────────────────────
-export function TableContainer({ dark, children, className = "" }) {
+export function TableContainer({ dark, children, className = "", fixed = false }) {
   return (
-    <div className={`w-full overflow-x-auto ${className}`}>
-      <table className="w-full border-collapse min-w-160">
+    <div className={`w-full ${fixed ? "overflow-visible" : "overflow-x-auto"} ${className}`}>
+      <table className={`w-full border-collapse ${fixed ? "table-fixed" : "min-w-160"}`}>
         {children}
       </table>
     </div>

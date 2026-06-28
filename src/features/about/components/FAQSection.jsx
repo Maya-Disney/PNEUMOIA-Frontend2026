@@ -36,7 +36,7 @@ export default function FAQSection() {
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          setFaqs(data.map(f => ({ question: f.question, answer: f.reponse })));
+          setFaqs([...STATIC_FAQS, ...data.map(f => ({ question: f.question, answer: f.reponse }))]);
         }
       })
       .catch(() => {});

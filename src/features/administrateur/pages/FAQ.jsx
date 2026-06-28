@@ -190,10 +190,9 @@ export default function FAQ() {
     setReponse("");
   }
 
-  async function handleViderHistorique() {
-    try { await viderHistoriqueQuestions(); } catch(e) {}
+  function handleViderHistorique() {
     setQuestions(p => p.filter(q => q.statut !== "repondu"));
-    showToast("Historique supprimé définitivement");
+    showToast("Historique vidé côté admin");
     setModaleViderH(false);
   }
 
@@ -204,19 +203,17 @@ export default function FAQ() {
     setModaleSupprimer(null);
   }
 
-  async function handleViderFAQ() {
-    const publiees = faqList.filter(f => f.publie);
-    await Promise.allSettled(publiees.map(f => supprimerFAQ(f.id)));
+  function handleViderFAQ() {
+    const count = faqList.filter(f => f.publie).length;
     setFaqList(p => p.filter(f => !f.publie));
-    showToast(`${publiees.length} FAQ publiée${publiees.length > 1 ? "s" : ""} supprimée${publiees.length > 1 ? "s" : ""}`);
+    showToast(`${count} FAQ masquée${count > 1 ? "s" : ""} de la vue admin — landing page inchangée`);
     setModaleViderFAQ(false);
   }
 
-  async function handleViderBrouillons() {
-    const brouillons = faqList.filter(f => !f.publie);
-    await Promise.allSettled(brouillons.map(f => supprimerFAQ(f.id)));
+  function handleViderBrouillons() {
+    const count = faqList.filter(f => !f.publie).length;
     setFaqList(p => p.filter(f => f.publie));
-    showToast(`${brouillons.length} brouillon${brouillons.length > 1 ? "s" : ""} supprimé${brouillons.length > 1 ? "s" : ""}`);
+    showToast(`${count} brouillon${count > 1 ? "s" : ""} masqué${count > 1 ? "s" : ""} de la vue admin`);
     setModaleViderBrouillons(false);
   }
 
@@ -230,15 +227,21 @@ export default function FAQ() {
   async function handleSaveFAQ(data) {
     try {
       if (data.id) {
-        const updated = await modifierFAQ(data.id, data.question, data.reponse, data.categorie, data.publie);
-        setFaqList(p=>p.map(f=>f.id===data.id ? {...updated, created_at:f.created_at, updated_at:new Date()} : f));
+        await modifierFAQ(data.id, data.question, data.reponse, data.categorie, data.publie);
+        setFaqList(p=>p.map(f=>f.id===data.id
+          ? { ...f, question:data.question, reponse:data.reponse, categorie:data.categorie, publie:data.publie, updated_at:new Date() }
+          : f
+        ));
       } else {
         const created = await creerFAQ(data.question, data.reponse, data.categorie, data.publie);
-        setFaqList(p=>[...p, {...created, created_at:new Date(), updated_at:null}]);
+        setFaqList(p=>[...p, {...data, id:created?.id ?? Date.now(), nb_vues:0, created_at:new Date(), updated_at:null}]);
       }
     } catch(e) {
       if (data.id) {
-        setFaqList(p=>p.map(f=>f.id===data.id ? {...data, updated_at:new Date()} : f));
+        setFaqList(p=>p.map(f=>f.id===data.id
+          ? { ...f, question:data.question, reponse:data.reponse, categorie:data.categorie, publie:data.publie, updated_at:new Date() }
+          : f
+        ));
       } else {
         setFaqList(p=>[...p, {...data, id:Date.now(), nb_vues:0, created_at:new Date(), updated_at:null}]);
       }
@@ -387,7 +390,7 @@ export default function FAQ() {
           <div className="flex items-center justify-between gap-3">
             <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[15px] flex-1 ${dark?"bg-[#0d1117] border-[#21262d] text-[#484f58]":"bg-blue-50 border-blue-100 text-blue-700"}`}>
               <Clock size={13} className="shrink-0"/>
-              <span>Archivage automatique après <strong>90 jours</strong> · Les données restent en base.</span>
+              <span>Archivage automatique après <strong>14 jours</strong> · Les données restent en base.</span>
             </div>
             {nbRepondus > 0 && (
               <button onClick={()=>setModaleViderH(true)}
@@ -641,15 +644,15 @@ export default function FAQ() {
             </button>
           </>}>
           <div className="flex flex-col gap-3">
-            <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-red-900/20 border-red-700/40 text-red-300":"bg-red-50 border-red-200 text-red-700"}`}>
-              <AlertCircle size={13} className="shrink-0 mt-0.5"/>
+            <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-blue-900/20 border-blue-700/40 text-blue-300":"bg-blue-50 border-blue-200 text-blue-700"}`}>
+              <Clock size={13} className="shrink-0 mt-0.5"/>
               <span>
-                Cette action supprime définitivement les questions répondues.
-                <strong> Cette opération est irréversible.</strong>
+                L'historique sera effacé de la vue admin uniquement.
+                <strong> Les FAQ publiées sur le site ne sont pas affectées.</strong>
               </span>
             </div>
             <p className={`text-[14px] ${tx2}`}>
-              {nbRepondus} question{nbRepondus>1?"s":""} répondue{nbRepondus>1?"s":""} sera{nbRepondus>1?"ont":""} supprimée{nbRepondus>1?"s":""} définitivement.
+              {nbRepondus} question{nbRepondus>1?"s":""} répondue{nbRepondus>1?"s":""} sera{nbRepondus>1?"ont":""} retirée{nbRepondus>1?"s":""} de l'historique admin.
             </p>
           </div>
         </Modal>
@@ -739,7 +742,7 @@ export default function FAQ() {
 
       {modaleViderBrouillons && (
         <Modal dark={dark} onClose={()=>setModaleViderBrouillons(false)}
-          title="Vider l'affichage des brouillons"
+          title="Vider les brouillons"
           footer={<>
             <button onClick={()=>setModaleViderBrouillons(false)}
               className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>
@@ -748,15 +751,15 @@ export default function FAQ() {
             <button onClick={handleViderBrouillons}
               className="flex-1 py-2 rounded-xl text-[14px] font-bold text-white"
               style={{background:brand.DEFAULT}}>
-              Vider l'affichage
+              Vider
             </button>
           </>}>
           <div className="flex flex-col gap-3">
             <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-blue-900/20 border-blue-700/40 text-blue-300":"bg-blue-50 border-blue-200 text-blue-700"}`}>
               <HelpCircle size={13} className="shrink-0 mt-0.5"/>
               <span>
-                Ceci masque les brouillons de l'affichage.
-                <strong> Les données restent en base</strong> — elles ne sont pas supprimées.
+                Les brouillons seront masqués de cette vue admin uniquement.
+                <strong> Aucune suppression côté serveur.</strong>
               </span>
             </div>
             <p className={`text-[14px] ${tx2}`}>
@@ -768,7 +771,7 @@ export default function FAQ() {
 
       {modaleViderFAQ && (
         <Modal dark={dark} onClose={()=>setModaleViderFAQ(false)}
-          title="Vider l'affichage de la FAQ"
+          title="Vider la vue admin"
           footer={<>
             <button onClick={()=>setModaleViderFAQ(false)}
               className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>
@@ -777,19 +780,19 @@ export default function FAQ() {
             <button onClick={handleViderFAQ}
               className="flex-1 py-2 rounded-xl text-[14px] font-bold text-white"
               style={{background:brand.DEFAULT}}>
-              Vider l'affichage
+              Vider
             </button>
           </>}>
           <div className="flex flex-col gap-3">
             <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-blue-900/20 border-blue-700/40 text-blue-300":"bg-blue-50 border-blue-200 text-blue-700"}`}>
               <HelpCircle size={13} className="shrink-0 mt-0.5"/>
               <span>
-                Ceci masque les entrées FAQ de l'affichage.
-                <strong> Les données restent en base</strong> — elles ne sont pas supprimées.
+                Les FAQ seront masquées de cette vue admin uniquement.
+                <strong> Elles restent publiées et visibles sur la landing page.</strong>
               </span>
             </div>
             <p className={`text-[14px] ${tx2}`}>
-              {faqList.length} entrée{faqList.length>1?"s":""} sera{faqList.length>1?"ont":""} masquée{faqList.length>1?"s":""}.
+              {faqList.filter(f=>f.publie).length} FAQ publiée{faqList.filter(f=>f.publie).length>1?"s":""} sera{faqList.filter(f=>f.publie).length>1?"ont":""} masquée{faqList.filter(f=>f.publie).length>1?"s":""} de la vue admin.
             </p>
           </div>
         </Modal>
@@ -844,7 +847,7 @@ export default function FAQ() {
                 Cette action est irréversible.
               </p>
             </div>
-            <div className={`flex gap-2 px-5 pb-5`}>
+            <div className="flex gap-2 px-5 pb-5">
               <button onClick={()=>setModaleSupprimer(null)}
                 className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>
                 Annuler
