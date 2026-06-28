@@ -426,8 +426,6 @@ export default function AdminLogin() {
 
                   <BtnPrimary label="Se connecter" loadingLabel="Vérification…" isLoading={loading} />
 
-                  <Divider />
-
                   {/* Sécurité */}
                   <div style={{ display:"flex", alignItems:"center", gap:8, borderRadius:10, padding:"10px 14px",
                     background: dark ? "rgba(0,158,130,.1)" : "rgba(0,158,130,.06)",
@@ -461,7 +459,6 @@ export default function AdminLogin() {
                     onChange={e => { setRPhone(e.target.value); setRError(""); }}
                     placeholder="Numéro de téléphone" icon={<IcoPhone />} dark={dark} />
                   <BtnPrimary label="Envoyer le code OTP" loadingLabel="Envoi en cours…" isLoading={rLoading} disabled={!rEmail || !rPhone} />
-                  <Divider />
                   <BtnOutlined label="Annuler" onClick={() => setView("login")} />
                 </form>
               </>
