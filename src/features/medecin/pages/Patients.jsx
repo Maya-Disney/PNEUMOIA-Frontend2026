@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useToast } from '../../../contexts/ToastContext';
 import { TablePagination } from '../../../components/ui/TablePagination';
 import { useNavigate } from "react-router-dom";
 import { useProfil } from '../hooks/useAuth';
@@ -1521,16 +1522,27 @@ function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPat
           <Edit3 size={13} />Modifier
         </motion.button>
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          title="Télécharger le dossier complet PDF (toutes les consultations)"
+          whileHover={{ scale: patient.has_pending_consultation ? 1 : 1.05 }}
+          title={patient.has_pending_consultation
+            ? 'Donnez votre avis sur la consultation en attente avant de télécharger'
+            : 'Télécharger le dossier complet PDF'}
           onClick={async () => {
             if (!patient.id) return;
+            if (patient.has_pending_consultation) {
+              toast.warning('Donnez votre avis sur la consultation en attente avant de télécharger le dossier.');
+              return;
+            }
             try {
               const token = localStorage.getItem('pneumoia_token') || localStorage.getItem('access_token') || localStorage.getItem('token');
               const BASE  = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
               const res   = await fetch(`${BASE}/patients/${patient.id}/dossier-pdf`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
+              if (res.status === 403) {
+                const d = await res.json().catch(() => ({}));
+                toast.warning(d.detail || 'Donnez votre avis sur la consultation en attente avant de télécharger.');
+                return;
+              }
               if (!res.ok) throw new Error('PDF non disponible');
               const blob = await res.blob();
               const url  = URL.createObjectURL(blob);
@@ -1543,7 +1555,11 @@ function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPat
               console.error('Erreur téléchargement dossier PDF:', err);
             }
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors border bg-(--sf) border-(--ln) text-(--t2) hover:bg-(--sf2)">
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors border ${
+            patient.has_pending_consultation
+              ? 'bg-(--sf2) border-(--ln) text-(--t4) opacity-50 cursor-not-allowed'
+              : 'bg-(--sf) border-(--ln) text-(--t2) hover:bg-(--sf2)'
+          }`}>
           <Download size={13} />Dossier PDF
         </motion.button>
         <motion.button whileHover={{ scale: 1.1 }} onClick={() => setShowDeleteModal(true)}
@@ -1903,6 +1919,7 @@ function Toast({ toasts, remove }) {
 // ─── MAIN APP ──────────────────────────────────────────────────────────
 
 export default function PatientsPage() {
+  const toast = useToast();
   const { profil } = useProfil();
   const [patients,   setPatients]   = useState({});
   const [selected,   setSelected]   = useState(null);
@@ -2085,6 +2102,7 @@ export default function PatientsPage() {
             prescriptions: presc,
             status:              derniere.statut === 'terminee' ? 'actif' : 'attente',
             statut_avis:         derniere.statut,
+            has_pending_consultation: consultations.some(c => c.statut === 'en_attente'),
             statut_clinique:     derniere.statut_clinique || derniere.diagnostic?.etat_patient || null,
             derniere_consultation_id: derniere.id,
             consultation_incomplete_id: consultationIncompleteId,

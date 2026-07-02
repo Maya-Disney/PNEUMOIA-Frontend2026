@@ -1,16 +1,18 @@
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Sun, Moon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoginModal from '../../components/modals/LoginModal';
 import RegisterModal from '../../components/modals/RegisterModal';
 import logo from '../../assets/images/logo.png';
+import { useTheme } from '../../features/medecin/contexts/ThemeContext';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   const navItems = [
     { id: 'accueil', label: 'Accueil', path: '' },
@@ -96,15 +98,34 @@ export default function Navbar() {
               >
                 Inscription
               </motion.button>
+              {/* Bouton dark/light — après Inscription */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleTheme}
+                aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                className="p-2 rounded-lg text-(--t2) hover:text-blue-600 hover:bg-(--sf2) transition-colors"
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </motion.button>
             </div>
 
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-[var(--sf3)]"
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+            {/* Mobile: bouton dark/light + menu burger */}
+            <div className="md:hidden flex items-center gap-1">
+              <button
+                onClick={toggleTheme}
+                aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                className="p-2 rounded-lg hover:bg-(--sf3) text-(--t2) transition-colors"
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 rounded-lg hover:bg-(--sf3)"
+              >
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -116,18 +137,28 @@ export default function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="fixed top-0 right-0 h-full w-80 bg-[var(--sf)] shadow-2xl md:hidden z-50 border-l border-[var(--ln)]"
+              className="fixed top-0 right-0 h-full w-80 bg-(--sf) shadow-2xl md:hidden z-50 border-l border-(--ln)"
             >
               <div className="flex flex-col h-full">
                 {/* Header du menu mobile */}
                 <div className="flex justify-between items-center p-4 border-b border-(--ln)">
                   <h2 className="text-lg font-semibold text-(--t1)">Menu</h2>
-                  <button
-                    onClick={() => setIsMenuOpen(false)}
-                    className="p-2 rounded-lg hover:bg-(--sf2)"
-                  >
-                    <X className="w-6 h-6 text-(--t2)" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Bouton dark/light mobile */}
+                    <button
+                      onClick={toggleTheme}
+                      aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                      className="p-2 rounded-lg hover:bg-(--sf2) text-(--t2) hover:text-blue-600 transition-colors"
+                    >
+                      {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    </button>
+                    <button
+                      onClick={() => setIsMenuOpen(false)}
+                      className="p-2 rounded-lg hover:bg-(--sf2)"
+                    >
+                      <X className="w-6 h-6 text-(--t2)" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Contenu du menu - Liens de navigation */}

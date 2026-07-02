@@ -1,5 +1,6 @@
 // src/features/medecin/pages/Historique.jsx
 import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '../../../contexts/ToastContext';
 import { TablePagination } from '../../../components/ui/TablePagination';
 import {
   Search, Calendar, Clock, User, Stethoscope,
@@ -273,7 +274,7 @@ function ConsultationModal({ consultation: c, onClose, onDownload }) {
                 </div>
               )}
               {differentiels.length > 0 && (
-                <div className="space-y-2">
+                <div className="space-y-2 mb-3">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-(--t4)">Diagnostics différentiels</p>
                   {differentiels.map((d, i) => (
                     <div key={i} className="flex items-center gap-2">
@@ -284,6 +285,45 @@ function ConsultationModal({ consultation: c, onClose, onDownload }) {
                       <span className="text-xs font-bold text-blue-600 dark:text-blue-400 w-10 text-right">{d.pct}%</span>
                     </div>
                   ))}
+                </div>
+              )}
+              {/* Critères retenus par l'IA */}
+              {(principale?.criteres_valides || []).length > 0 && (
+                <div className="mt-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-(--t4) mb-2">Critères retenus</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {principale.criteres_valides.map((cr, i) => (
+                      <span key={i} className="text-[11px] px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-600/30">
+                        ✓ {cr}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Recommandations IA */}
+              {(principale?.recommandations || diag?.recommandations || []).length > 0 && (
+                <div className="mt-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-(--t4) mb-2">Recommandations IA</p>
+                  <ul className="space-y-1">
+                    {(principale?.recommandations || diag?.recommandations || []).map((r, i) => (
+                      <li key={i} className="text-xs text-(--t2) flex items-start gap-1.5">
+                        <span className="text-blue-500 shrink-0 mt-0.5">→</span>{r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {/* Examens recommandés */}
+              {(diag?.examens_recommandes || []).length > 0 && (
+                <div className="mt-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-(--t4) mb-2">Examens recommandés</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {diag.examens_recommandes.map((ex, i) => (
+                      <span key={i} className="text-[11px] px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-600/30">
+                        {ex}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </Section>
@@ -354,6 +394,7 @@ function DossierPatientModal({ groupe, onClose, onDownloadDossier, onViewConsult
   if (!groupe) return null;
   const { patient, consultations } = groupe;
   const initials = `${patient.prenom?.[0] || ''}${patient.nom?.[0] || ''}`;
+  const nbEnAttente = consultations.filter(c => c.statut === 'en_attente').length;
 
   return (
     <>
@@ -372,9 +413,12 @@ function DossierPatientModal({ groupe, onClose, onDownloadDossier, onViewConsult
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => onDownloadDossier(patient)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-              <Download className="w-3.5 h-3.5" /> Dossier complet PDF
+              onClick={() => !nbEnAttente && onDownloadDossier(patient)}
+              disabled={nbEnAttente > 0}
+              title={nbEnAttente > 0 ? `${nbEnAttente} consultation${nbEnAttente > 1 ? 's sont' : ' est'} en attente de votre avis` : 'Télécharger le dossier complet PDF'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${nbEnAttente > 0 ? 'bg-(--sf3) text-(--t4) cursor-not-allowed opacity-50' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+              <Download className="w-3.5 h-3.5" />
+              {nbEnAttente > 0 ? `${nbEnAttente} en attente` : 'Dossier complet PDF'}
             </button>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-(--sf3) transition-colors">
               <X className="w-4 h-4 text-(--t3)" />
@@ -443,6 +487,7 @@ function DossierPatientModal({ groupe, onClose, onDownloadDossier, onViewConsult
 
 // ── Page principale ───────────────────────────────────────────────
 export default function ConsultationHistory() {
+  const toast = useToast();
   const [consultations,  setConsultations]  = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState(null);
@@ -509,7 +554,12 @@ export default function ConsultationHistory() {
       const res   = await fetch(`${BASE_URL}/patients/${patient.id}/dossier-pdf`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('PDF non disponible');
+      if (res.status === 403) {
+        const data = await res.json().catch(() => ({}));
+        toast.warning(data.detail || 'Téléchargement bloqué : une consultation est en attente de votre avis.');
+        return;
+      }
+      if (!res.ok) { toast.error('PDF non disponible'); return; }
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
@@ -518,7 +568,7 @@ export default function ConsultationHistory() {
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
-      console.error('Erreur téléchargement dossier PDF:', err);
+      toast.error('Erreur lors du téléchargement du dossier.');
     }
   };
 
@@ -529,7 +579,12 @@ export default function ConsultationHistory() {
       const res   = await fetch(`${BASE_URL}/consultations/${consultationId}/pdf`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('PDF non disponible');
+      if (res.status === 403) {
+        const data = await res.json().catch(() => ({}));
+        toast.warning(data.detail || 'Téléchargement bloqué : cette consultation est en attente de votre avis.');
+        return;
+      }
+      if (!res.ok) { toast.error('PDF non disponible'); return; }
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
@@ -538,7 +593,7 @@ export default function ConsultationHistory() {
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
-      console.error('Erreur téléchargement PDF:', err);
+      toast.error('Erreur lors du téléchargement du bilan.');
     }
   };
 
@@ -664,8 +719,16 @@ export default function ConsultationHistory() {
 
                 <div className="px-4 py-3 bg-(--sf2) border-t border-(--ln) flex justify-between items-center">
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleDownloadDossier(p); }}
-                    className="flex items-center gap-1 text-[10px] text-(--t4) hover:text-blue-600 transition-colors">
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (enAttente > 0) {
+                        toast.warning(`${enAttente} consultation${enAttente > 1 ? 's sont' : ' est'} en attente de votre avis — donnez votre avis avant de télécharger.`);
+                        return;
+                      }
+                      handleDownloadDossier(p);
+                    }}
+                    title={enAttente > 0 ? 'Donnez votre avis sur les consultations en attente avant de télécharger' : 'Télécharger le dossier complet PDF'}
+                    className={`flex items-center gap-1 text-[10px] transition-colors ${enAttente > 0 ? 'text-(--t4) opacity-40 cursor-not-allowed' : 'text-(--t4) hover:text-blue-600 cursor-pointer'}`}>
                     <Download className="w-3 h-3" /> Dossier PDF
                   </button>
                   <span className="text-blue-600 text-xs font-medium flex items-center gap-1 group-hover:gap-2 transition-all">

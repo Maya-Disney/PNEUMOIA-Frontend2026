@@ -54,25 +54,35 @@ export default function Dashboard() {
     if (period === 'weekly') {
       const labels = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
       const counts = [0, 0, 0, 0, 0, 0, 0];
+      // Début de la semaine calendaire en cours (lundi à 00:00:00)
+      const dow0 = now.getDay(); // 0=dim
+      const mondayOffset = dow0 === 0 ? -6 : 1 - dow0;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + mondayOffset);
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
       consultations.forEach(c => {
         if (!c.created_at) return;
         const d = new Date(c.created_at);
-        const diffDays = Math.floor((now - d) / 86400000);
-        if (diffDays < 0 || diffDays >= 7) return;
-        const dow = (d.getDay() + 6) % 7;
+        if (d < monday || d > sunday) return;
+        const dow = (d.getDay() + 6) % 7; // 0=Lun … 6=Dim
         counts[dow]++;
       });
       return labels.map((day, i) => ({ day, consultations: counts[i], patients: Math.round(counts[i] * 0.75) }));
     } else if (period === 'monthly') {
       const labels = ["Sem 1", "Sem 2", "Sem 3", "Sem 4"];
       const counts = [0, 0, 0, 0];
+      // Uniquement le mois calendaire en cours
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
       consultations.forEach(c => {
         if (!c.created_at) return;
         const d = new Date(c.created_at);
-        const diffDays = Math.floor((now - d) / 86400000);
-        if (diffDays < 0 || diffDays >= 28) return;
-        const week = Math.min(3, Math.floor(diffDays / 7));
-        counts[3 - week]++;
+        if (d < monthStart || d > monthEnd) return;
+        const week = Math.min(3, Math.floor((d.getDate() - 1) / 7)); // Sem1=0 … Sem4=3
+        counts[week]++;
       });
       return labels.map((day, i) => ({ day, consultations: counts[i], patients: Math.round(counts[i] * 0.75) }));
     } else {
@@ -134,6 +144,7 @@ export default function Dashboard() {
 
       const recentConsultations = conss.slice(0, 5).map(c => ({
         id:         c.id,
+        patientId:  c.patient?.id || c.patient_id || null,
         name:       c.patient ? `${c.patient.prenom} ${c.patient.nom}` : '—',
         pathology:  c.diagnostic?.maladies?.[0]?.nom || 'Pas de diagnostic',
         percentage: c.diagnostic?.maladies?.[0]?.pct || 0,
@@ -525,7 +536,10 @@ export default function Dashboard() {
                 return (
                   <div
                     key={consult.id || i}
-                    onClick={() => navigate(`/medecin/consultation/${consult.id}`)}
+                    onClick={() => consult.patientId
+                      ? navigate(`/medecin/patients/${consult.patientId}`)
+                      : navigate('/medecin/patients')
+                    }
                     className="p-4 hover:bg-(--sf2) transition-all cursor-pointer"
                   >
                     <div className="flex justify-between items-center">

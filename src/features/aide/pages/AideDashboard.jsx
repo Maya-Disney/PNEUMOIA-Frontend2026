@@ -144,17 +144,24 @@ export default function AideDashboard() {
     { label:'Notifications',      icon:Bell,          to:'/aide/notifications',    show: true,                     g1:'#d97706', g2:'#b45309', shadow:'rgba(217,119,6,0.35)'   },
   ].filter(q => q.show);
 
-  /* ─── Chart: activité hebdo (patients créés par jour sur les 7 derniers jours) ─── */
+  /* ─── Chart: activité hebdo (patients créés cette semaine calendaire lun-dim) ─── */
   const weekActivity = (() => {
     const counts = [0, 0, 0, 0, 0, 0, 0]; // Lun→Dim
     const now = new Date();
+    // Début du lundi de la semaine en cours à 00:00:00
+    const dow0 = now.getDay(); // 0=dim
+    const mondayOffset = dow0 === 0 ? -6 : 1 - dow0;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
     patients.forEach(p => {
       if (!p.created_at) return;
       const d = new Date(p.created_at);
-      const diffDays = Math.floor((now - d) / 86400000);
-      if (diffDays < 0 || diffDays >= 7) return;
-      // jour de la semaine 0=Lun … 6=Dim (JS: 0=Dim 1=Lun … 6=Sam)
-      const dow = (d.getDay() + 6) % 7;
+      if (d < monday || d > sunday) return;
+      const dow = (d.getDay() + 6) % 7; // 0=Lun … 6=Dim
       counts[dow]++;
     });
     return counts;
@@ -225,7 +232,7 @@ export default function AideDashboard() {
               {info.initials}
             </div>
             <div>
-              <p className="text-blue-100/80 text-xs font-bold uppercase tracking-widest">{greet} 👋</p>
+              <p className="text-blue-100/80 text-xs font-bold uppercase tracking-widest">{greet} </p>
               <h1 className="text-2xl font-black text-white leading-tight">{info.nom}</h1>
               <p className="text-blue-200/70 text-xs mt-1 capitalize">{today}</p>
             </div>
