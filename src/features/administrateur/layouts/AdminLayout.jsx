@@ -40,7 +40,7 @@ function AdminLayoutInner() {
       </div>
 
       {/* Contenu principal */}
-      <div className="lg:pl-65 flex flex-col min-h-screen">
+      <div className="lg:pl-65 flex flex-col h-screen overflow-hidden">
         <Topbar
           dark={dark}
           setDark={setDark}

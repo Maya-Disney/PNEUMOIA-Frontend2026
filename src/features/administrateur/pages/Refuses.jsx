@@ -47,8 +47,8 @@ function ModalePhoto({ r, onClose, dark }) {
       footer={<button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Fermer</button>}>
       <div className="flex flex-col items-center gap-4">
         {r.photo_url
-          ? <img src={r.photo_url} alt={r.nom} className="w-full max-h-[65vh] rounded-xl object-contain border border-gray-200 shadow"/>
-          : <div className={`w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
+          ? <img src={r.photo_url} alt={r.nom} className="w-full max-h-[42vh] rounded-xl object-contain border border-gray-200 shadow"/>
+          : <div className={`w-full h-44 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
               <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               <span className="text-[14px] text-center px-2">Aucune photo</span>
             </div>

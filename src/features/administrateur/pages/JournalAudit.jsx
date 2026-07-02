@@ -117,7 +117,7 @@ function CleanModal({ dark, onClean, onClose, lastClean }) {
 function normalizeLog(l) {
   return {
     id:     l.id,
-    date:   l.date instanceof Date ? l.date : new Date(l.date),
+    date:   l.date instanceof Date ? l.date : new Date(/Z$|[+-]\d{2}:?\d{2}$/.test(l.date) ? l.date : l.date + "Z"),
     acteur: l.acteur,
     role:   l.role,
     action: l.action,

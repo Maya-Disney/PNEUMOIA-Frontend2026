@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, NavLink } from "react-router-dom";
-import { adminLogout, getMedecinsActifs, countRequetesEnAttente } from "../api/adminApi";
+import { adminLogout, getMedecinsActifs, countRequetesEnAttente, countComptesBloques } from "../api/adminApi";
 import logo from "../../../assets/images/logo.png";
 import {
   LayoutDashboard, UserPlus, UserCheck, UserX,
@@ -47,8 +48,8 @@ function getNav(counts) {
     {
       section: "Médecins",
       items: [
-        { to: "/administrateur/medecins",  icon: Stethoscope,  label: "Médecins",           badge: counts.actifs,    badgeColor: "teal"   },
-        { to: "/administrateur/suspendus", icon: UserMinus,    label: "Suspendus" },
+        { to: "/administrateur/medecins",  icon: Stethoscope,  label: "Médecins",  badge: counts.actifs,   badgeColor: "teal"   },
+        { to: "/administrateur/suspendus", icon: UserMinus,    label: "Suspendus", badge: counts.bloques,  badgeColor: "red"    },
         { to: "/administrateur/faq",       icon: HelpCircle,   label: "FAQ Médecins" },
         { to: "/administrateur/requetes",  icon: AlertCircle,  label: "Requêtes Médecins", badge: counts.requetes,  badgeColor: "orange" },
       ]
@@ -91,7 +92,7 @@ function getBadgeStyle(color, dark) {
 export default function Sidebar({ dark, onClose }) {
   const navigate = useNavigate();
   const [showLogout, setShowLogout] = useState(false);
-  const [counts, setCounts] = useState({ actifs: 0, requetes: 0 });
+  const [counts, setCounts] = useState({ actifs: 0, requetes: 0, bloques: 0 });
 
   useEffect(() => {
     function fetchCounts() {
@@ -101,9 +102,11 @@ export default function Sidebar({ dark, onClose }) {
       countRequetesEnAttente()
         .then(data => setCounts(c => ({ ...c, requetes: data?.count ?? 0 })))
         .catch(() => {});
+      countComptesBloques()
+        .then(data => setCounts(c => ({ ...c, bloques: data?.count ?? 0 })))
+        .catch(() => {});
     }
     fetchCounts();
-    // Rafraîchir le badge toutes les 30 s
     const t = setInterval(fetchCounts, 30000);
     return () => clearInterval(t);
   }, []);
@@ -222,8 +225,8 @@ export default function Sidebar({ dark, onClose }) {
   return (
     <>
       {/* ── Modal déconnexion — header gradient teal façon WelcomeBanner ── */}
-      {showLogout && (
-        <div style={{ position:"fixed",inset:0,zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.45)",backdropFilter:"blur(2px)" }}
+      {showLogout && createPortal(
+        <div style={{ position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.45)",backdropFilter:"blur(2px)" }}
           onClick={()=>setShowLogout(false)}>
           <div style={{ background:"#fff",borderRadius:16,width:320,boxShadow:"0 20px 60px rgba(0,0,0,0.2)",textAlign:"center",overflow:"hidden" }}
             onClick={e=>e.stopPropagation()}>
@@ -267,7 +270,7 @@ export default function Sidebar({ dark, onClose }) {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {inner}
     </>

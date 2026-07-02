@@ -240,17 +240,17 @@ export default function PerformancesIA() {
       {photoZoom && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           onClick={e => e.target === e.currentTarget && setPhotoZoom(null)}>
-          <div className="w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden" style={cardStyle}>
+          <div className="w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden" style={cardStyle}>
             <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: surface.border }}>
               <div>
-                <p className="text-[15px] font-bold" style={{ color: txt.primary }}>{photoZoom.nom}</p>
-                <p className="text-[13px] mt-0.5" style={{ color: txt.subtle }}>Photo d'identité (CNI)</p>
+                <p className="text-[13px] font-bold" style={{ color: txt.primary }}>{photoZoom.nom}</p>
+                <p className="text-[12px] mt-0.5" style={{ color: txt.subtle }}>Photo d'identité (CNI)</p>
               </div>
               <button onClick={() => setPhotoZoom(null)} className="w-8 h-8 flex items-center justify-center rounded-lg"
                 style={{ color: txt.subtle }}><X size={15}/></button>
             </div>
-            <div className="px-5 py-6 flex justify-center">
-              <img src={photoZoom.photo_url} alt={photoZoom.nom} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow" />
+            <div className="px-5 py-4 flex justify-center">
+              <img src={photoZoom.photo_url} alt={photoZoom.nom} className="w-full max-h-[42vh] rounded-xl object-contain border-2 border-gray-200 shadow" />
             </div>
           </div>
         </div>

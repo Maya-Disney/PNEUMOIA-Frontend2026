@@ -84,8 +84,8 @@ function ModalePhoto({ r, onClose, dark }) {
         style={{ borderColor: surface.border, color: txt.muted }}>Fermer</button>}>
       <div className="flex flex-col items-center gap-4">
         {r.photo_url
-          ? <img src={r.photo_url} alt={r.nom} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow"/>
-          : <div className="w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed"
+          ? <img src={r.photo_url} alt={r.nom} className="w-full max-h-[42vh] rounded-xl object-contain border-2 border-gray-200 shadow"/>
+          : <div className="w-full h-44 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed"
               style={{ borderColor: surface.border, background: surface.bg, color: txt.subtle }}>
               <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
@@ -269,7 +269,7 @@ export default function Corbeille() {
           )}
         </div>
 
-        <TableContainer dark={dark}>
+        <TableContainer dark={dark} fixed>
           <thead>
             <tr>
               <Th dark={dark}>Médecin</Th>
@@ -353,7 +353,7 @@ export default function Corbeille() {
                                   ${dark?"text-blue-400 hover:bg-blue-900/20":"text-blue-800 hover:bg-blue-50"}`}
                               >
                                 <RotateCcw size={14} className="shrink-0" />
-                                Restaurer le compte
+                                Restaurer
                               </button>
 
                               <div className={`border-t ${dark?"border-[#21262d]":"border-gray-100"}`} />
@@ -367,7 +367,7 @@ export default function Corbeille() {
                                   ${dark?"text-red-400 hover:bg-red-900/20":"text-red-700 hover:bg-red-50"}`}
                               >
                                 <Trash2 size={14} className="shrink-0" />
-                                Supprimer définitivement
+                                Supprimer
                               </button>
                             </div>
                           )}

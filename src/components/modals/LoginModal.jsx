@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import {
   Stethoscope, AlertCircle, Mail, Lock, Eye, EyeOff,
   KeyRound, X, RotateCcw, ShieldCheck, CheckCircle2,
-  XCircle, AlertTriangle
+  XCircle, AlertTriangle, ShieldOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../../contexts/ToastContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
+const isBlockedError = (msg = '') => /bloqu[eé]|suspendu/i.test(msg);
 
 // ── Restrictions mot de passe (identiques à l'inscription) ───────────────────
 const PWD_RULES = [
@@ -145,7 +147,8 @@ export default function LoginModal({ isOpen, onClose }) {
   const [confirmPwd,     setConfirmPwd]     = useState('');
   const [showNewPwd,     setShowNewPwd]     = useState(false);
   const [showConfirmPwd, setShowConfirmPwd] = useState(false);
-  const [otpTriggerReset, setOtpTriggerReset] = useState(0);
+  const [otpTriggerReset,  setOtpTriggerReset]  = useState(0);
+  const [deblocageStatus,  setDeblocageStatus]  = useState('idle'); // 'idle' | 'loading' | 'sent' | 'error'
 
   useEffect(() => {
     if (!isOpen) return;
@@ -197,7 +200,9 @@ export default function LoginModal({ isOpen, onClose }) {
       // 403 = compte médecin trouvé mais non actif → afficher l'erreur directement
       if (resMedecin.status === 403) {
         const data = await resMedecin.json();
-        throw new Error(data.detail || 'Compte non activé');
+        const msg  = data.detail || 'Compte non activé';
+        if (isBlockedError(msg)) { setStep('blocked'); setLoading(false); return; }
+        throw new Error(msg);
       }
 
       // 401 = email non trouvé chez les médecins → essayer aide soignant
@@ -255,7 +260,10 @@ export default function LoginModal({ isOpen, onClose }) {
         toast.success('Connexion réussie !', { title: 'Bienvenue ' });
         reset(); onClose(); navigate('/medecin/dashboard');
       }
-    } catch (err) { setError(err.message); setOtp(''); }
+    } catch (err) {
+      if (isBlockedError(err.message)) { setStep('blocked'); setOtp(''); }
+      else { setError(err.message); setOtp(''); }
+    }
     finally { setLoading(false); }
   };
 
@@ -314,7 +322,10 @@ export default function LoginModal({ isOpen, onClose }) {
       }
       setResetToken(data.reset_token);
       setNewPwd(''); setConfirmPwd(''); setStep('forgot_pwd');
-    } catch (err) { setError(err.message); setResetOtp(''); }
+    } catch (err) {
+      if (isBlockedError(err.message)) { setStep('blocked'); setResetOtp(''); }
+      else { setError(err.message); setResetOtp(''); }
+    }
     finally { setLoading(false); }
   };
 
@@ -366,6 +377,7 @@ export default function LoginModal({ isOpen, onClose }) {
     forgot_email:'bg-gradient-to-br from-amber-500 to-orange-500',
     forgot_otp:  'bg-gradient-to-br from-amber-500 to-orange-500',
     forgot_pwd:  'bg-gradient-to-br from-blue-600 to-blue-700',
+    blocked:     'bg-gradient-to-br from-red-600 to-red-700',
   }[step] || 'bg-gradient-to-br from-blue-600 to-blue-700';
 
   /* ─────────────────────────────────────────────────────
@@ -400,7 +412,9 @@ export default function LoginModal({ isOpen, onClose }) {
 
                 <div className="flex justify-center mb-3">
                   <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center">
-                    {step === 'otp' || step === 'forgot_otp'
+                    {step === 'blocked'
+                      ? <ShieldOff className="w-7 h-7 text-white" />
+                      : step === 'otp' || step === 'forgot_otp'
                       ? <ShieldCheck className="w-7 h-7 text-white" />
                       : step === 'forgot_email' || step === 'forgot_pwd'
                       ? <KeyRound className="w-7 h-7 text-white" />
@@ -442,6 +456,12 @@ export default function LoginModal({ isOpen, onClose }) {
                   <>
                     <h2 className="text-xl font-bold text-white">Nouveau mot de passe</h2>
                     <p className="text-blue-100 text-sm mt-1">Créez un mot de passe sécurisé</p>
+                  </>
+                )}
+                {step === 'blocked' && (
+                  <>
+                    <h2 className="text-xl font-bold text-white">Compte bloqué</h2>
+                    <p className="text-red-100 text-sm mt-1">Accès suspendu pour raison de sécurité</p>
                   </>
                 )}
               </div>
@@ -600,6 +620,69 @@ export default function LoginModal({ isOpen, onClose }) {
                           <RotateCcw className="w-3.5 h-3.5" />Renvoyer le code
                         </button>
                       </div>
+                    </motion.div>
+                  )}
+
+                  {/* ════ Compte bloqué ════ */}
+                  {step === 'blocked' && (
+                    <motion.div key="blocked-screen"
+                      initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                      className="space-y-4">
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-4 text-center">
+                        <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">Votre compte a été suspendu</p>
+                        <p className="text-xs text-red-600 dark:text-red-400 leading-relaxed">
+                          Suite à plusieurs tentatives OTP incorrectes, votre accès a été bloqué automatiquement pour des raisons de sécurité.
+                        </p>
+                      </div>
+
+                      {deblocageStatus === 'sent' ? (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl px-4 py-4 text-center">
+                          <p className="text-sm font-semibold text-green-700 dark:text-green-400 mb-1">Demande envoyée ✓</p>
+                          <p className="text-xs text-green-600 dark:text-green-400 leading-relaxed">
+                            L'administrateur a été notifié. Il vous contactera pour rétablir votre accès.
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl px-4 py-3 text-center">
+                            <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                              Pour rétablir votre accès, envoyez une demande à l'administrateur. Il sera notifié et pourra débloquer votre compte.
+                            </p>
+                          </div>
+                          {deblocageStatus === 'error' && (
+                            <p className="text-xs text-red-500 text-center">L'envoi a échoué. Réessayez dans quelques instants.</p>
+                          )}
+                          <button
+                            type="button"
+                            disabled={deblocageStatus === 'loading'}
+                            onClick={async () => {
+                              setDeblocageStatus('loading');
+                              try {
+                                const res = await fetch(`${API_URL}/auth/demande-deblocage`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ medecin_id: medecinId || resetMedecinId }),
+                                });
+                                if (!res.ok) throw new Error();
+                                setDeblocageStatus('sent');
+                              } catch {
+                                setDeblocageStatus('error');
+                              }
+                            }}
+                            className="flex items-center justify-center gap-2 w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {deblocageStatus === 'loading'
+                              ? <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Envoi en cours...</>
+                              : <><Mail className="w-4 h-4" />Contacter l'administrateur</>
+                            }
+                          </button>
+                        </>
+                      )}
+
+                      <button type="button" onClick={() => { reset(); onClose(); }}
+                        className="w-full py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-sm">
+                        Fermer
+                      </button>
                     </motion.div>
                   )}
 

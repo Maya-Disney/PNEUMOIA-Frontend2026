@@ -88,8 +88,8 @@ function ModaleProfil({ doc: m, onClose, dark }) {
       <div className="flex flex-col items-center gap-4">
         {m.photo_url
           ? <img src={m.photo_url} alt={m.name}
-              className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow" />
-          : <div className="w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed"
+              className="w-full max-h-[42vh] rounded-xl object-contain border-2 border-gray-200 shadow" />
+          : <div className="w-full h-44 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed"
               style={{ borderColor: surface.border, background: surface.bg, color: txt.subtle }}>
               <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>

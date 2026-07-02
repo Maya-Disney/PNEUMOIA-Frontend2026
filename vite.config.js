@@ -11,4 +11,9 @@ export default defineConfig({
     exclude: ['onnxruntime-web', 'onnxruntime-web/wasm'],
     include: ['react-markdown'],
   },
+  server: {
+    hmr: {
+      overlay: false,
+    },
+  },
 })

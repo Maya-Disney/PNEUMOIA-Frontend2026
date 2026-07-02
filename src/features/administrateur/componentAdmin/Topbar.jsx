@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import {
   Search, Bell, Sun, Moon, Menu, Trash2, X,
   UserPlus, MessageSquare, HelpCircle, ChevronRight,
-  Phone, Mail,
+  Phone, Mail, ShieldAlert, Unlock,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { brand, getSurface, getText } from "../theme";
 import { useAdminTheme } from "../context/useAdminTheme";
-import { getDemandes, getQuestions, getAvis, getAdminNotifications } from "../api/adminApi";
+import { getDemandes, getQuestions, getAvis, getAdminNotifications, getRequetesMedecins } from "../api/adminApi";
 import { mapMedecin } from "../api/demandesData";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -149,6 +149,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0, onMenuClick 
   const [faqNotifs,       setFaqNotifs]       = useState([]);
   const [commentNotifs,   setCommentNotifs]   = useState([]);
   const [patientNotifs,   setPatientNotifs]   = useState([]);
+  const [deblocageNotifs, setDeblocageNotifs] = useState([]);
   const notifRef    = useRef(null);
   const bellRef     = useRef(null);
   const prevCount   = useRef(null); // null = premier chargement
@@ -224,7 +225,20 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0, onMenuClick 
         newPatientNotifs = [];
       }
 
-      const newTotal = newInscriptions.length + newFaq.length + newComments.length + newPatientNotifs.length;
+      let newDeblocageNotifs = [];
+      try {
+        const reqs = await getRequetesMedecins("");
+        if (Array.isArray(reqs)) {
+          newDeblocageNotifs = reqs.filter(r =>
+            r.action_admin === "deblocage" &&
+            (r.statut === "en_attente" || r.statut === "en_cours")
+          );
+        }
+      } catch {
+        newDeblocageNotifs = [];
+      }
+
+      const newTotal = newInscriptions.length + newFaq.length + newComments.length + newPatientNotifs.length + newDeblocageNotifs.length;
 
       // Premier chargement avec notifs → son immédiat
       // Polling suivant avec plus de notifs → son d'alerte
@@ -237,6 +251,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0, onMenuClick 
       setFaqNotifs(newFaq);
       setCommentNotifs(newComments);
       setPatientNotifs(newPatientNotifs);
+      setDeblocageNotifs(newDeblocageNotifs);
     }
 
     fetchAndAlert();
@@ -263,7 +278,7 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0, onMenuClick 
 
   const surface     = getSurface(dark);
   const txt         = getText(dark);
-  const totalNotifs = inscriptions.length + commentNotifs.length + faqNotifs.length + patientNotifs.length;
+  const totalNotifs = inscriptions.length + commentNotifs.length + faqNotifs.length + patientNotifs.length + deblocageNotifs.length;
 
   function toggleNotif() {
     if (bellRef.current) {
@@ -576,8 +591,8 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0, onMenuClick 
                 <>
                   <div style={{ borderTop: `1px solid ${surface.border}` }} />
                   <NotifSectionHeader
-                    label="Comptes bloqués" count={patientNotifs.length}
-                    Icon={Trash2} color="#dc2626" txt={txt}
+                    label="Comptes bloqués sécurité" count={patientNotifs.length}
+                    Icon={ShieldAlert} color="#dc2626" txt={txt}
                   />
                   {patientNotifs.slice(0, 3).map(n => (
                     <NotifItem
@@ -587,13 +602,44 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0, onMenuClick 
                       title={n.titre}
                       sub1={n.message.length > 52 ? n.message.slice(0, 52) + "…" : n.message}
                       sub2={n.created_at ? `Il y a ${notifElapsed(new Date(n.created_at.endsWith("Z") ? n.created_at : n.created_at + "Z"))}` : ""}
-                      onClick={() => goTo("/administrateur/corbeille")}
+                      onClick={() => goTo("/administrateur/suspendus")}
                       dark={dark} txt={txt}
                     />
                   ))}
                   <NotifSeeAll
-                    label="Voir la corbeille"
-                    onClick={() => goTo("/administrateur/corbeille")}
+                    label="Voir les comptes bloqués"
+                    onClick={() => goTo("/administrateur/suspendus")}
+                    txt={txt}
+                  />
+                </>
+              )}
+
+              {deblocageNotifs.length > 0 && (
+                <>
+                  <div style={{ borderTop: `1px solid ${surface.border}` }} />
+                  <NotifSectionHeader
+                    label="Demandes de déblocage" count={deblocageNotifs.length}
+                    Icon={Unlock} color="#ea580c" txt={txt}
+                  />
+                  {deblocageNotifs.slice(0, 3).map(r => {
+                    const parts = String(r.nom_medecin || "").replace(/^Dr\.?\s*/i, "").trim().split(/\s+/);
+                    const ini   = ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "??";
+                    return (
+                      <NotifItem
+                        key={r.id}
+                        initials={ini}
+                        bg="#dc2626"
+                        title={r.nom_medecin || "Médecin"}
+                        sub1={r.titre || "Demande de déblocage de compte"}
+                        sub2={r.created_at ? `Il y a ${notifElapsed(new Date(r.created_at.endsWith("Z") ? r.created_at : r.created_at + "Z"))}` : ""}
+                        onClick={() => goTo("/administrateur/suspendus")}
+                        dark={dark} txt={txt}
+                      />
+                    );
+                  })}
+                  <NotifSeeAll
+                    label="Voir les demandes de déblocage"
+                    onClick={() => goTo("/administrateur/suspendus")}
                     txt={txt}
                   />
                 </>

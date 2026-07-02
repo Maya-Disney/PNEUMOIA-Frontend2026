@@ -104,14 +104,17 @@ const StepIndicator = ({ currentStep, steps, patientInfo }) => (
   </div>
 );
 
-const FormCard = ({ title, icon, children, className = "" }) => (
+const FormCard = ({ title, icon, children, className = "", action }) => (
   <div className={`bg-(--sf) rounded-xl border border-(--ln) overflow-hidden shadow-sm hover:shadow-md transition-all ${className}`}>
     <div className="px-5 py-3 bg-(--sf2) border-b border-(--ln)">
-      <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-300">
-          {icon}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-300">
+            {icon}
+          </div>
+          <h3 className="font-semibold text-(--t1) text-sm">{title}</h3>
         </div>
-        <h3 className="font-semibold text-(--t1) text-sm">{title}</h3>
+        {action && <div>{action}</div>}
       </div>
     </div>
     <div className="p-5">{children}</div>

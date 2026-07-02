@@ -76,9 +76,9 @@ function ModalePhoto({ doc: m, onClose, dark }) {
       }>
       <div className="flex flex-col items-center gap-4">
         {m.photo_url
-          ? <img src={m.photo_url} alt={m.name} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow-md" />
+          ? <img src={m.photo_url} alt={m.name} className="w-full max-h-[42vh] rounded-xl object-contain border-2 border-gray-200 shadow-md" />
           : (
-            <div className={`w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark ? "border-[#21262d] bg-[#0d1117] text-[#484f58]" : "border-gray-200 bg-gray-50 text-gray-300"}`}>
+            <div className={`w-full h-44 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark ? "border-[#21262d] bg-[#0d1117] text-[#484f58]" : "border-gray-200 bg-gray-50 text-gray-300"}`}>
               <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>

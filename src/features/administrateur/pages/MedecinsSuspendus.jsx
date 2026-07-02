@@ -9,16 +9,30 @@
 import { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useAdminTheme } from "../context/useAdminTheme";
-import { Trash2, X, AlertTriangle, RotateCcw, MoreVertical, RefreshCw } from "lucide-react";
-import { reactiverMedecin, supprimerMedecin, getMedecinsSuspendus } from "../api/adminApi";
+import { Trash2, X, AlertTriangle, RotateCcw, MoreVertical, RefreshCw, ShieldAlert, Unlock, Bell } from "lucide-react";
+import { reactiverMedecin, supprimerMedecin, getMedecinsSuspendus, getRequetesMedecins, repondreRequete } from "../api/adminApi";
 import { brand, getSurface, getText } from "../theme";
 import {
   TableCard, TableContainer, Th, Tr, Td, EmptyCell, PersonCell,
-  MutedText, SubtleText, StatusText, PaginationBar, PaginationSelect, PaginationButton,
+  MutedText, SubtleText, PaginationBar, PaginationSelect, PaginationButton,
 } from "../components/ui/Table";
 
-const pad   = (n)  => String(n).padStart(2, "0");
+const pad = (n) => String(n).padStart(2, "0");
 function fmtDT(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+
+function fmtElapsed(iso) {
+  if (!iso) return "";
+  const dm = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (dm < 1)    return "À l'instant";
+  if (dm < 60)   return `il y a ${dm} min`;
+  if (dm < 1440) return `il y a ${Math.floor(dm / 60)}h`;
+  return `il y a ${Math.floor(dm / 1440)}j`;
+}
+
+function deblocageInitials(nom) {
+  const parts = String(nom || "").replace(/^Dr\.?\s*/i, "").trim().split(/\s+/);
+  return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "??";
+}
 
 function Modal({ onClose, title, sub: subtitle, children, footer, dark, wide }) {
   return (
@@ -47,8 +61,8 @@ function ModalePhoto({ m, onClose, dark }) {
       footer={<button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[14px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e]":"border-gray-200 text-gray-500"}`}>Fermer</button>}>
       <div className="flex flex-col items-center gap-4">
         {m.photo_url
-          ? <img src={m.photo_url} alt={m.nom} className="w-full max-h-[65vh] rounded-xl object-contain border-2 border-gray-200 shadow"/>
-          : <div className={`w-full h-72 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
+          ? <img src={m.photo_url} alt={m.nom} className="w-full max-h-[42vh] rounded-xl object-contain border-2 border-gray-200 shadow"/>
+          : <div className={`w-full h-44 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
               <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>
@@ -68,23 +82,34 @@ export default function MedecinsSuspendus() {
   const { dark } = useOutletContext() || {};
   const { searchQuery } = useAdminTheme();
 
-  const [suspendus,      setSuspendus]      = useState([]);
-  const [loadingData,    setLoadingData]    = useState(true);
-  const [modaleReactiver,setModaleReactiver]= useState(null);
-  const [modaleSuppr,    setModaleSuppr]    = useState(null);
-  const [modalePhoto,    setModalePhoto]    = useState(null);
-  const [msgReactiv,     setMsgReactiv]     = useState("");
-  const [loading,        setLoading]        = useState(false);
-  const [toast,          setToast]          = useState(null);
-  const [page,           setPage]           = useState(1);
-  const [perPage,        setPerPage]        = useState(10);
+  const [suspendus,        setSuspendus]        = useState([]);
+  const [loadingData,      setLoadingData]      = useState(true);
+  const [modaleReactiver,  setModaleReactiver]  = useState(null);
+  const [modaleSuppr,      setModaleSuppr]      = useState(null);
+  const [modalePhoto,      setModalePhoto]      = useState(null);
+  const [msgReactiv,       setMsgReactiv]       = useState("");
+  const [loading,          setLoading]          = useState(false);
+  const [toast,            setToast]            = useState(null);
+  const [page,             setPage]             = useState(1);
+  const [perPage,          setPerPage]          = useState(10);
+  const [filtre,           setFiltre]           = useState("tous");
+  const [openMenuId,       setOpenMenuId]       = useState(null);
+  const [refreshKey,       setRefreshKey]       = useState(0);
+  const [deblocageReqs,    setDeblocageReqs]    = useState({});
+  const [deblocageLoading, setDeblocageLoading] = useState(null);
+  const [mainTab,          setMainTab]          = useState("liste");
+  const [deblocageReqsList,setDeblocageReqsList]= useState([]);
 
-  const [openMenuId,  setOpenMenuId]  = useState(null);
-  const [refreshKey,  setRefreshKey]  = useState(0);
+  const q = searchQuery.toLowerCase().trim();
+  const nSecurite = suspendus.filter(m => m.bloqueSecurite).length;
+  const nManuels  = suspendus.filter(m => !m.bloqueSecurite).length;
 
-  const q       = searchQuery.toLowerCase().trim();
-  const liste   = suspendus.filter(m => !q || [m.nom, m.hopital, m.cnom, m.email, m.specialite]
-    .some(v => v && v.toLowerCase().includes(q)));
+  const liste = suspendus.filter(m => {
+    if (filtre === "securite" && !m.bloqueSecurite) return false;
+    if (filtre === "manuel"   &&  m.bloqueSecurite) return false;
+    return !q || [m.nom, m.hopital, m.cnom, m.email, m.specialite]
+      .some(v => v && v.toLowerCase().includes(q));
+  });
   const totalPages = Math.max(1, Math.ceil(liste.length/perPage));
   const paginated  = liste.slice((page-1)*perPage, page*perPage);
   const from = liste.length===0 ? 0 : (page-1)*perPage+1;
@@ -92,29 +117,44 @@ export default function MedecinsSuspendus() {
 
   useEffect(() => {
     setLoadingData(true);
-    getMedecinsSuspendus()
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setSuspendus(data.map(m => ({
-            id:          m.id,
-            initials:    `${(m.prenom?.[0]||"").toUpperCase()}${(m.nom?.[0]||"").toUpperCase()}`,
-            nom:         `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
-            specialite:  m.specialite    || "—",
-            hopital:     m.etablissement || "—",
-            cnom:        m.numero_rpps   || "—",
-            email:       m.email         || "—",
-            raison:      m.suspension_raison || m.motif_rejet || "—",
-            duree:       m.suspension_duree  || "—",
-            dureeType:   m.suspension_duree === "Indéfinie" ? "indefinie" : "limitee",
-            suspenduLe:  m.suspension_le ? new Date(m.suspension_le) : new Date(),
-            suspenduPar: m.suspension_par || "Administrateur",
-            ville:       m.ville || m.adresse || "—",
-            photo_url:   m.photo_url || null,
-          })));
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingData(false));
+    Promise.all([
+      getMedecinsSuspendus(),
+      getRequetesMedecins("").catch(() => []),
+    ]).then(([data, reqs]) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setSuspendus(data.map(m => ({
+          id:          m.id,
+          initials:    `${(m.prenom?.[0]||"").toUpperCase()}${(m.nom?.[0]||"").toUpperCase()}`,
+          nom:         `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
+          specialite:  m.specialite    || "—",
+          hopital:     m.etablissement || "—",
+          cnom:        m.numero_rpps   || "—",
+          email:       m.email         || "—",
+          raison:      m.suspension_raison || m.motif_rejet || "—",
+          duree:       m.suspension_duree  || "—",
+          dureeType:   m.suspension_duree === "Indéfinie" ? "indefinie" : "limitee",
+          suspenduLe:     m.suspension_le ? new Date(m.suspension_le) : new Date(),
+          suspenduPar:    m.suspension_par || "Administrateur",
+          bloqueSecurite: m.suspension_par === "system",
+          ville:          m.ville || m.adresse || "—",
+          photo_url:      m.photo_url || null,
+        })));
+      }
+      if (Array.isArray(reqs)) {
+        const map = {};
+        const list = [];
+        reqs.forEach(r => {
+          if (r.action_admin === "deblocage" && (r.statut === "en_attente" || r.statut === "en_cours")) {
+            map[r.medecin_id] = r.id;
+            list.push(r);
+          }
+        });
+        setDeblocageReqs(map);
+        setDeblocageReqsList(list);
+      }
+    })
+    .catch(() => {})
+    .finally(() => setLoadingData(false));
   }, [refreshKey]);
 
   useEffect(() => {
@@ -146,6 +186,29 @@ export default function MedecinsSuspendus() {
     window.addEventListener("keydown", esc);
     return ()=>window.removeEventListener("keydown", esc);
   }, []);
+
+  const handleDebloquerDirect = useCallback(async (m) => {
+    setDeblocageLoading(m.id);
+    try {
+      await reactiverMedecin(m.id);
+      const reqId = deblocageReqs[m.id];
+      if (reqId) {
+        await repondreRequete(reqId, {
+          action_admin:  "Compte débloqué",
+          reponse_admin: "Votre compte a été réactivé par l'administrateur. Vous pouvez vous reconnecter.",
+          statut:        "resolu",
+        });
+        setDeblocageReqs(p => { const n = {...p}; delete n[m.id]; return n; });
+        setDeblocageReqsList(p => p.filter(r => r.medecin_id !== m.id));
+      }
+      setSuspendus(p => p.filter(x => x.id !== m.id));
+      setToast({ msg: `✓ ${m.nom} débloqué — notification envoyée`, type: "success" });
+    } catch {
+      setToast({ msg: "Erreur lors du déblocage", type: "error" });
+    } finally {
+      setDeblocageLoading(null);
+    }
+  }, [deblocageReqs]);
 
   const handleReactiver = useCallback(async () => {
     if (!modaleReactiver) return;
@@ -185,6 +248,7 @@ export default function MedecinsSuspendus() {
   return (
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
 
+      {/* ─── En-tête ─── */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${dark?"text-white":"text-gray-900"}`}>
@@ -204,132 +268,321 @@ export default function MedecinsSuspendus() {
         </button>
       </div>
 
-      <TableCard dark={dark}>
-        <TableContainer dark={dark}>
-          <thead>
-            <tr>
-              <Th dark={dark}>Médecin</Th>
-              <Th dark={dark}>CNOM</Th>
-              <Th dark={dark}>Raison de la suspension</Th>
-              <Th dark={dark}>Durée</Th>
-              <Th dark={dark}>Suspendu le</Th>
-              <Th dark={dark} center style={{width: 80}}>Actions</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {loadingData
-              ? <EmptyCell dark={dark} colSpan={6}>Chargement…</EmptyCell>
-              : paginated.length===0
-              ? <EmptyCell dark={dark} colSpan={6}>Aucun compte suspendu</EmptyCell>
-              : paginated.map(m => {
-                  const isMenuOpen = openMenuId === m.id;
-                  return (
-                    <Tr key={m.id} dark={dark}>
+      {/* ─── Onglets principaux ─── */}
+      <div className={`flex border-b ${dark?"border-[#21262d]":"border-gray-200"}`}>
+        {[
+          { key: "liste",     label: "Comptes suspendus",     count: suspendus.length,         Icon: null,  danger: false },
+          { key: "deblocage", label: "Demandes de déblocage", count: deblocageReqsList.length, Icon: Bell,  danger: true  },
+        ].map(({ key, label, count, Icon, danger }) => {
+          const active = mainTab === key;
+          return (
+            <button
+              key={key}
+              onClick={() => { setMainTab(key); }}
+              className={`flex items-center gap-2 px-5 py-3 text-[14px] font-semibold border-b-2 transition-colors ${
+                active
+                  ? danger && count > 0
+                    ? "border-red-500 text-red-600 dark:text-red-400"
+                    : `border-[#009e82] ${dark?"text-white":"text-gray-800"}`
+                  : dark
+                    ? "border-transparent text-[#8b949e] hover:text-white"
+                    : "border-transparent text-gray-400 hover:text-gray-700"
+              }`}
+            >
+              {Icon && <Icon size={14} />}
+              {label}
+              {count > 0 && (
+                <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
+                  active && danger
+                    ? "bg-red-100 text-red-600"
+                    : active
+                      ? dark ? "bg-white/10 text-white" : "bg-[#009e82]/10 text-[#009e82]"
+                      : dark ? "bg-[#21262d] text-[#8b949e]" : "bg-gray-100 text-gray-500"
+                }`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-                      <Td dark={dark}>
-                        <PersonCell dark={dark} avatarColor={avatarGray} initials={m.initials}
-                          name={m.nom} subtitle={`${m.specialite} · ${m.hopital}`} onClick={()=>setModalePhoto(m)} photoUrl={m.photo_url} />
-                      </Td>
+      {/* ─── Vue : Comptes suspendus ─── */}
+      {mainTab === "liste" && (<>
 
-                      <Td dark={dark}><MutedText dark={dark} mono>{m.cnom}</MutedText></Td>
+        {/* Onglets de filtre */}
+        <div className={`flex gap-2 flex-wrap`}>
+          {[
+            { key: "tous",     label: "Tous",                   count: suspendus.length },
+            { key: "securite", label: "Bloqués sécurité",       count: nSecurite, danger: true },
+            { key: "manuel",   label: "Suspendus manuellement", count: nManuels },
+          ].map(({ key, label, count, danger }) => {
+            const active = filtre === key;
+            return (
+              <button
+                key={key}
+                onClick={() => { setFiltre(key); setPage(1); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold border transition-colors ${
+                  active
+                    ? danger
+                      ? "bg-red-600 text-white border-red-600"
+                      : (dark ? "bg-[#009e82] text-white border-[#009e82]" : "bg-[#009e82] text-white border-[#009e82]")
+                    : dark
+                      ? "bg-transparent text-[#8b949e] border-[#30363d] hover:bg-[#21262d]"
+                      : "bg-transparent text-gray-500 border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                {key === "securite" && <ShieldAlert size={13} />}
+                {label}
+                {count > 0 && (
+                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
+                    active
+                      ? "bg-white/20 text-white"
+                      : danger && count > 0
+                        ? "bg-red-100 text-red-600"
+                        : dark ? "bg-[#21262d] text-[#8b949e]" : "bg-gray-100 text-gray-500"
+                  }`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-                      <Td dark={dark}>
-                        <span className="text-[14px] font-medium text-orange-500 dark:text-orange-400 line-clamp-2" style={{ maxWidth: 240, display: "inline-block" }}>{m.raison}</span>
-                      </Td>
+        <TableCard dark={dark}>
+          <TableContainer dark={dark}>
+            <thead>
+              <tr>
+                <Th dark={dark}>Médecin</Th>
+                <Th dark={dark}>CNOM</Th>
+                <Th dark={dark}>Raison de la suspension</Th>
+                <Th dark={dark}>Durée</Th>
+                <Th dark={dark}>Suspendu le</Th>
+                <Th dark={dark} center style={{width: 80}}>Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {loadingData
+                ? <EmptyCell dark={dark} colSpan={6}>Chargement…</EmptyCell>
+                : paginated.length===0
+                ? <EmptyCell dark={dark} colSpan={6}>Aucun compte suspendu</EmptyCell>
+                : paginated.map(m => {
+                    const isMenuOpen = openMenuId === m.id;
+                    return (
+                      <Tr key={m.id} dark={dark}>
 
-                      <Td dark={dark}>
-                        <span className={`text-[13px] font-bold px-2.5 py-1 rounded-full ${m.dureeType==="indefinie"?"bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400":"bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400"}`}>
-                          {m.duree}
-                        </span>
-                      </Td>
+                        <Td dark={dark}>
+                          <PersonCell dark={dark} avatarColor={m.bloqueSecurite ? "#dc2626" : avatarGray} initials={m.initials}
+                            name={m.nom} subtitle={`${m.specialite} · ${m.hopital}`} onClick={()=>setModalePhoto(m)} photoUrl={m.photo_url} />
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {m.bloqueSecurite && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-600 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/30">
+                                <ShieldAlert size={10} /> Bloqué sécurité
+                              </span>
+                            )}
+                            {deblocageReqs[m.id] && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 text-orange-600 border border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/30">
+                                <Bell size={10} /> Demande de déblocage
+                              </span>
+                            )}
+                          </div>
+                        </Td>
 
-                      <Td dark={dark}><SubtleText dark={dark}>{fmtDT(m.suspenduLe)}</SubtleText></Td>
+                        <Td dark={dark}><MutedText dark={dark} mono>{m.cnom}</MutedText></Td>
 
-                      <Td dark={dark} center>
-                        <div className="relative flex justify-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenMenuId(isMenuOpen ? null : m.id);
-                            }}
-                            title="Actions"
-                            className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all
-                              ${isMenuOpen
-                                ? (dark?"bg-[#21262d] border-[#30363d] text-white shadow-lg":"bg-gray-100 border-gray-300 text-gray-800 shadow-lg")
-                                : (dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800")}`}
-                          >
-                            <MoreVertical size={16} />
-                          </button>
+                        <Td dark={dark}>
+                          <span className="text-[14px] font-medium text-orange-500 dark:text-orange-400 line-clamp-2" style={{ maxWidth: 240, display: "inline-block" }}>{m.raison}</span>
+                        </Td>
 
-                          {isMenuOpen && (
-                            <div
-                              onClick={(e) => e.stopPropagation()}
-                              className={`absolute right-0 top-full mt-1.5 z-30 min-w-[200px] rounded-xl border shadow-xl overflow-hidden
-                                ${dark?"bg-[#161b22] border-[#30363d]":"bg-white border-gray-200"}`}
-                              style={{ transformOrigin: "top right" }}
+                        <Td dark={dark}>
+                          <span className={`text-[13px] font-bold px-2.5 py-1 rounded-full ${m.dureeType==="indefinie"?"bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400":"bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400"}`}>
+                            {m.duree}
+                          </span>
+                        </Td>
+
+                        <Td dark={dark}><SubtleText dark={dark}>{fmtDT(m.suspenduLe)}</SubtleText></Td>
+
+                        <Td dark={dark} center>
+                          <div className="relative flex flex-col items-center gap-1.5">
+                            {deblocageReqs[m.id] && (
+                              <button
+                                onClick={() => handleDebloquerDirect(m)}
+                                disabled={deblocageLoading === m.id}
+                                title="Débloquer ce compte"
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-bold text-white disabled:opacity-60 transition-all"
+                                style={{ background: "#dc2626" }}>
+                                {deblocageLoading === m.id
+                                  ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                  : <Unlock size={11} />
+                                }
+                                Débloquer
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(isMenuOpen ? null : m.id);
+                              }}
+                              title="Actions"
+                              className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-all
+                                ${isMenuOpen
+                                  ? (dark?"bg-[#21262d] border-[#30363d] text-white shadow-lg":"bg-gray-100 border-gray-300 text-gray-800 shadow-lg")
+                                  : (dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800")}`}
                             >
-                              <button
-                                onClick={() => {
-                                  setModaleReactiver(m);
-                                  setMsgReactiv("");
-                                  setOpenMenuId(null);
-                                }}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium transition-colors
-                                  ${dark?"text-blue-400 hover:bg-blue-900/20":"text-blue-800 hover:bg-blue-50"}`}
+                              <MoreVertical size={16} />
+                            </button>
+
+                            {isMenuOpen && (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className={`absolute right-0 top-full mt-1.5 z-30 min-w-[200px] rounded-xl border shadow-xl overflow-hidden
+                                  ${dark?"bg-[#161b22] border-[#30363d]":"bg-white border-gray-200"}`}
+                                style={{ transformOrigin: "top right" }}
                               >
-                                <RotateCcw size={16} className="shrink-0 mt-0.5" />
-                                <span className="flex-1">Réactiver le compte</span>
-                              </button>
+                                <button
+                                  onClick={() => {
+                                    setModaleReactiver(m);
+                                    setMsgReactiv("");
+                                    setOpenMenuId(null);
+                                  }}
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium transition-colors
+                                    ${dark?"text-blue-400 hover:bg-blue-900/20":"text-blue-800 hover:bg-blue-50"}`}
+                                >
+                                  <RotateCcw size={16} className="shrink-0 mt-0.5" />
+                                  <span className="flex-1">Réactiver le compte</span>
+                                </button>
 
-                              <div className={`border-t ${dark?"border-[#21262d]":"border-gray-100"}`} />
+                                <div className={`border-t ${dark?"border-[#21262d]":"border-gray-100"}`} />
 
-                              <button
-                                onClick={() => {
-                                  setModaleSuppr(m);
-                                  setOpenMenuId(null);
-                                }}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium transition-colors
-                                  ${dark?"text-red-400 hover:bg-red-900/20":"text-red-700 hover:bg-red-50"}`}
-                              >
-                                <Trash2 size={16} className="shrink-0 mt-0.5" />
-                                <span className="flex-1">Supprimer</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </Td>
-                    </Tr>
-                  );
-                })
-            }
-          </tbody>
-        </TableContainer>
+                                <button
+                                  onClick={() => {
+                                    setModaleSuppr(m);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-[14px] font-medium transition-colors
+                                    ${dark?"text-red-400 hover:bg-red-900/20":"text-red-700 hover:bg-red-50"}`}
+                                >
+                                  <Trash2 size={16} className="shrink-0 mt-0.5" />
+                                  <span className="flex-1">Supprimer</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </Td>
+                      </Tr>
+                    );
+                  })
+              }
+            </tbody>
+          </TableContainer>
+        </TableCard>
 
-      </TableCard>
+        <PaginationBar dark={dark}>
+          <span>Affichage {from} à {to} sur {liste.length} compte{liste.length>1?"s":""}</span>
+          <div className="flex items-center gap-2">
+            <span>Lignes :</span>
+            <PaginationSelect dark={dark} value={perPage} onChange={e=>{setPerPage(Number(e.target.value));setPage(1);}} />
+          </div>
+          <div className="flex items-center gap-1">
+            <PaginationButton dark={dark} onClick={()=>setPage(1)} disabled={page===1}>«</PaginationButton>
+            <PaginationButton dark={dark} onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}>‹</PaginationButton>
+            {Array.from({length:totalPages},(_,i)=>i+1)
+              .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
+              .reduce((acc,p,idx,arr)=>{if(idx>0&&p-arr[idx-1]>1)acc.push("…"+idx);acc.push(p);return acc;},[])
+              .map(p=>typeof p==="string"
+                ? <span key={p} className="px-1 opacity-30">…</span>
+                : <PaginationButton key={p} dark={dark} onClick={()=>setPage(p)} active={p===page}>{p}</PaginationButton>
+              )}
+            <PaginationButton dark={dark} onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}>›</PaginationButton>
+            <PaginationButton dark={dark} onClick={()=>setPage(totalPages)} disabled={page===totalPages}>»</PaginationButton>
+          </div>
+        </PaginationBar>
 
-      <PaginationBar dark={dark}>
-        <span>Affichage {from} à {to} sur {liste.length} compte{liste.length>1?"s":""}</span>
-        <div className="flex items-center gap-2">
-          <span>Lignes :</span>
-          <PaginationSelect dark={dark} value={perPage} onChange={e=>{setPerPage(Number(e.target.value));setPage(1);}} />
+      </>)}
+
+      {/* ─── Vue : Demandes de déblocage ─── */}
+      {mainTab === "deblocage" && (
+        <div className="flex flex-col gap-4">
+
+          <p className={`text-[11px] font-bold uppercase tracking-widest ${dark?"text-[#8b949e]":"text-gray-400"}`}>
+            Demandes de déblocage ({deblocageReqsList.length})
+          </p>
+
+          {loadingData ? (
+            <div className={`text-[14px] text-center py-12 ${dark?"text-[#8b949e]":"text-gray-400"}`}>Chargement…</div>
+          ) : deblocageReqsList.length === 0 ? (
+            <div className={`flex flex-col items-center justify-center gap-3 py-16 rounded-2xl border-2 border-dashed ${dark?"border-[#21262d] text-[#484f58]":"border-gray-200 text-gray-300"}`}>
+              <Bell size={32} strokeWidth={1.2} />
+              <p className="text-[14px] font-medium">Aucune demande de déblocage en attente</p>
+            </div>
+          ) : (
+            deblocageReqsList.map(req => {
+              const initials = deblocageInitials(req.nom_medecin || "");
+              const mObj = suspendus.find(s => s.id === req.medecin_id) || { id: req.medecin_id, nom: req.nom_medecin || "Médecin" };
+              const isLoading = deblocageLoading === req.medecin_id;
+              return (
+                <div
+                  key={req.id}
+                  className={`flex items-start gap-4 p-5 rounded-2xl border transition-shadow hover:shadow-md ${
+                    dark
+                      ? "bg-[#0d1117] border-[#21262d] hover:border-[#30363d]"
+                      : "bg-white border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  {/* Avatar */}
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[13px] font-bold shrink-0 bg-red-600 mt-0.5">
+                    {initials}
+                  </div>
+
+                  {/* Contenu */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center flex-wrap gap-2 mb-1">
+                      <p className={`text-[14px] font-bold ${dark?"text-white":"text-gray-800"}`}>
+                        {req.nom_medecin || "Médecin"}
+                      </p>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-600 border border-red-200">
+                        <ShieldAlert size={10} /> Bloqué sécurité
+                      </span>
+                      {req.email_medecin && (
+                        <span className={`text-[12px] ${dark?"text-[#484f58]":"text-gray-400"}`}>
+                          {req.email_medecin}
+                        </span>
+                      )}
+                    </div>
+
+                    <p className={`text-[14px] leading-relaxed mb-3 ${dark?"text-[#8b949e]":"text-gray-600"}`}>
+                      {req.description || req.titre || "Demande de déblocage de compte"}
+                    </p>
+
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <span className={`text-[13px] ${dark?"text-[#484f58]":"text-gray-400"}`}>
+                        {fmtElapsed(req.created_at)}
+                      </span>
+                      <button
+                        onClick={() => handleDebloquerDirect(mObj)}
+                        disabled={isLoading}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-60 transition-colors"
+                      >
+                        {isLoading
+                          ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : <Unlock size={13} />
+                        }
+                        Débloquer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
-        <div className="flex items-center gap-1">
-          <PaginationButton dark={dark} onClick={()=>setPage(1)} disabled={page===1}>«</PaginationButton>
-          <PaginationButton dark={dark} onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}>‹</PaginationButton>
-          {Array.from({length:totalPages},(_,i)=>i+1)
-            .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
-            .reduce((acc,p,idx,arr)=>{if(idx>0&&p-arr[idx-1]>1)acc.push("…"+idx);acc.push(p);return acc;},[])
-            .map(p=>typeof p==="string"
-              ? <span key={p} className="px-1 opacity-30">…</span>
-              : <PaginationButton key={p} dark={dark} onClick={()=>setPage(p)} active={p===page}>{p}</PaginationButton>
-            )}
-          <PaginationButton dark={dark} onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}>›</PaginationButton>
-          <PaginationButton dark={dark} onClick={()=>setPage(totalPages)} disabled={page===totalPages}>»</PaginationButton>
-        </div>
-      </PaginationBar>
+      )}
 
+      {/* ─── Modale photo ─── */}
       {modalePhoto && <ModalePhoto m={modalePhoto} dark={dark} onClose={()=>setModalePhoto(null)}/>}
 
+      {/* ─── Modale réactiver ─── */}
       {modaleReactiver && (
         <Modal dark={dark} onClose={()=>setModaleReactiver(null)}
           title="Réactiver le compte" sub={modaleReactiver.nom}
@@ -345,13 +598,24 @@ export default function MedecinsSuspendus() {
             </button>
           </>}>
           <div className="flex flex-col gap-3">
-            <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-blue-900/20 border-blue-700/40 text-blue-300":"bg-blue-50 border-blue-200 text-blue-800"}`}>
-              <RotateCcw size={13} className="shrink-0 mt-0.5"/>
-              <span>
-                Le compte de <strong>{modaleReactiver.nom}</strong> sera réactivé.
-                Il recevra un e-mail de notification avec le motif de réactivation.
-              </span>
-            </div>
+            {modaleReactiver.bloqueSecurite ? (
+              <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-red-900/20 border-red-700/40 text-red-300":"bg-red-50 border-red-200 text-red-700"}`}>
+                <ShieldAlert size={13} className="shrink-0 mt-0.5"/>
+                <span>
+                  Ce compte a été <strong>bloqué automatiquement</strong> suite à des tentatives OTP suspectes.
+                  Réactivez-le uniquement si vous avez vérifié l'identité du médecin.
+                  Il recevra un e-mail + une notification in-app.
+                </span>
+              </div>
+            ) : (
+              <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-blue-900/20 border-blue-700/40 text-blue-300":"bg-blue-50 border-blue-200 text-blue-800"}`}>
+                <RotateCcw size={13} className="shrink-0 mt-0.5"/>
+                <span>
+                  Le compte de <strong>{modaleReactiver.nom}</strong> sera réactivé.
+                  Il recevra un e-mail de notification avec le motif de réactivation.
+                </span>
+              </div>
+            )}
 
             <div className={`rounded-xl border px-4 py-3 text-[15px] ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
               {[
@@ -388,6 +652,7 @@ export default function MedecinsSuspendus() {
         </Modal>
       )}
 
+      {/* ─── Modale supprimer ─── */}
       {modaleSuppr && (
         <Modal dark={dark} onClose={()=>setModaleSuppr(null)}
           title="Supprimer le compte" sub={modaleSuppr.nom}
@@ -429,6 +694,7 @@ export default function MedecinsSuspendus() {
         </Modal>
       )}
 
+      {/* ─── Toast ─── */}
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white transition-all ${toast.type==="success"?"bg-blue-700":"bg-red-600"}`}>
           {toast.type==="success"?<RotateCcw size={13}/>:<Trash2 size={13}/>}

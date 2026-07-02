@@ -553,6 +553,10 @@ export async function countRequetesEnAttente() {
   return request("GET", "/api/admin/requetes/count", null, true);
 }
 
+export async function countComptesBloques() {
+  return request("GET", "/api/admin/medecins/suspendus/bloques-count", null, true);
+}
+
 export async function repondreRequete(reqId, body) {
   return request("PUT", `/api/admin/requetes/${reqId}/repondre`, body, true);
 }
@@ -563,5 +567,9 @@ export async function modifierReponseRequete(reqId, body) {
 
 export async function changerStatutRequete(reqId, statut) {
   return request("PUT", `/api/admin/requetes/${reqId}/statut`, { statut }, true);
+}
+
+export async function purgerRequetes(jours = 30) {
+  return request("DELETE", `/api/admin/requetes/purger?jours=${jours}`, null, true);
 }
 

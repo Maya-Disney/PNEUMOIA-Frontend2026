@@ -144,11 +144,11 @@ export default function AdminLogin() {
   const [dark, setDark] = useState(() => localStorage.getItem("pneumo_login_theme") === "dark");
   const [view, setView] = useState("login");
 
-  const [email,   setEmail]   = useState("");
-  const [phone,   setPhone]   = useState("");
+  const [email,   setEmail]   = useState(() => localStorage.getItem("pneumo_admin_remember_email") || "");
+  const [phone,   setPhone]   = useState(() => localStorage.getItem("pneumo_admin_remember_phone") || "");
   const [pwd,     setPwd]     = useState("");
   const [showPwd, setShowPwd] = useState(false);
-  const [remember, setRemember] = useState(false);
+  const [remember, setRemember] = useState(() => localStorage.getItem("pneumo_admin_remember") === "true");
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
 
@@ -173,6 +173,15 @@ export default function AdminLogin() {
     setLoading(true);
     try {
       await adminLogin({ email, phone, password: pwd });
+      if (remember) {
+        localStorage.setItem("pneumo_admin_remember", "true");
+        localStorage.setItem("pneumo_admin_remember_email", email);
+        localStorage.setItem("pneumo_admin_remember_phone", phone);
+      } else {
+        localStorage.removeItem("pneumo_admin_remember");
+        localStorage.removeItem("pneumo_admin_remember_email");
+        localStorage.removeItem("pneumo_admin_remember_phone");
+      }
       navigate("/administrateur/dashboard");
     } catch (err) {
       setError(err.message || "Erreur de connexion.");
