@@ -146,13 +146,14 @@ export default function LoginModal({ isOpen, onClose }) {
   const [showNewPwd,     setShowNewPwd]     = useState(false);
   const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const [otpTriggerReset, setOtpTriggerReset] = useState(0);
+  const [resetBlocked,   setResetBlocked]   = useState(false); // compte suspendu après 3 échecs
 
   useEffect(() => {
     if (!isOpen) return;
     setStep('login'); setRole('medecin'); setEmail(''); setPassword(''); setShowPwd(false);
     setOtp(''); setMedecinId(''); setAideId(''); setLoading(false); setError('');
     setResetEmail(''); setResetOtp(''); setResetMedecinId('');
-    setResetToken(''); setResetAttempts(0);
+    setResetToken(''); setResetAttempts(0); setResetBlocked(false);
     setNewPwd(''); setConfirmPwd(''); setShowNewPwd(false); setShowConfirmPwd(false);
   }, [isOpen]);
 
@@ -307,9 +308,15 @@ export default function LoginModal({ isOpen, onClose }) {
         body: JSON.stringify({ medecin_id: resetMedecinId, code: resetOtp }),
       });
       const data = await res.json();
+      if (res.status === 423) {
+        // Compte suspendu → afficher écran de blocage définitif
+        setResetBlocked(true);
+        setResetAttempts(3);
+        setError('');
+        return;
+      }
       if (!res.ok) {
-        const newAttempts = resetAttempts + 1;
-        setResetAttempts(newAttempts);
+        setResetAttempts(prev => prev + 1);
         throw new Error(data.detail || 'Code incorrect');
       }
       setResetToken(data.reset_token);
@@ -319,6 +326,7 @@ export default function LoginModal({ isOpen, onClose }) {
   };
 
   const handleResendResetOtp = async () => {
+    if (resetBlocked) return; // compte suspendu : interdit de renvoyer
     setError(''); setResetOtp(''); setLoading(true);
     try {
       const res  = await fetch(`${API_URL}/auth/forgot-password`, {
@@ -326,6 +334,12 @@ export default function LoginModal({ isOpen, onClose }) {
         body: JSON.stringify({ email: resetEmail }),
       });
       const data = await res.json();
+      if (res.status === 403 || res.status === 423) {
+        // Compte suspendu détecté au moment du renvoi
+        setResetBlocked(true);
+        setResetAttempts(3);
+        return;
+      }
       if (!res.ok) throw new Error(data.detail);
       setResetMedecinId(data.medecin_id);
       setResetAttempts(0); setOtpTriggerReset(n => n + 1);
@@ -569,37 +583,72 @@ export default function LoginModal({ isOpen, onClose }) {
                     <motion.div key="forgot-otp-form"
                       initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }}
                       className="space-y-5">
-                      <div className="flex justify-center"><AlertTriangle className="w-6 h-6 text-amber-500" /></div>
-                      <p className="text-center text-sm text-gray-500 dark:text-gray-400">Entrez les <strong>6 chiffres</strong> reçus par email</p>
 
-                      {/* Compteur tentatives */}
-                      {resetAttempts > 0 && (
-                        <div className="flex items-center justify-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-                          <AlertCircle size={12} />
-                          <span>{resetAttempts}/3 tentative{resetAttempts > 1 ? 's' : ''} incorrecte{resetAttempts > 1 ? 's' : ''}</span>
-                          <div className="flex gap-1">
-                            {[0, 1, 2].map(i => (
-                              <div key={i} className={`w-2 h-2 rounded-full ${i < resetAttempts ? 'bg-red-500' : 'bg-gray-200 dark:bg-gray-600'}`} />
-                            ))}
+                      {resetBlocked ? (
+                        /* ── Écran de blocage définitif ── */
+                        <div className="space-y-4 text-center">
+                          <div className="flex justify-center">
+                            <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
+                              <XCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+                            </div>
                           </div>
+                          <div>
+                            <h3 className="text-base font-bold text-red-700 dark:text-red-400">Compte suspendu</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                              Votre compte a été suspendu après <strong>3 tentatives incorrectes</strong>.
+                              Un email de notification vous a été envoyé.
+                            </p>
+                          </div>
+                          <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-4 text-left">
+                            <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">Comment débloquer votre compte ?</p>
+                            <p className="text-xs text-amber-700 dark:text-amber-400">
+                              Contactez l'administrateur par email en précisant votre identifiant médecin et votre adresse email professionnelle.
+                              L'administrateur pourra restaurer votre accès depuis son interface.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => { setStep('login'); setResetBlocked(false); setResetAttempts(0); setError(''); }}
+                            className="w-full py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-sm">
+                            ← Retour à la connexion
+                          </button>
                         </div>
+                      ) : (
+                        /* ── Saisie OTP normale ── */
+                        <>
+                          <div className="flex justify-center"><AlertTriangle className="w-6 h-6 text-amber-500" /></div>
+                          <p className="text-center text-sm text-gray-500 dark:text-gray-400">Entrez les <strong>6 chiffres</strong> reçus par email</p>
+
+                          {/* Compteur tentatives */}
+                          {resetAttempts > 0 && (
+                            <div className="flex items-center justify-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                              <AlertCircle size={12} />
+                              <span>{resetAttempts}/3 tentative{resetAttempts > 1 ? 's' : ''} incorrecte{resetAttempts > 1 ? 's' : ''}</span>
+                              <div className="flex gap-1">
+                                {[0, 1, 2].map(i => (
+                                  <div key={i} className={`w-2 h-2 rounded-full ${i < resetAttempts ? 'bg-red-500' : 'bg-gray-200 dark:bg-gray-600'}`} />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <OTPBoxes value={resetOtp} onChange={setResetOtp} disabled={loading} color="amber" />
+
+                          <button onClick={handleResetVerifyOtp} disabled={resetOtp.length < 6 || loading}
+                            className="w-full py-2.5 bg-amber-500 text-white rounded-xl hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2">
+                            {loading ? <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Vérification...</> : 'Valider le code ✓'}
+                          </button>
+
+                          <div className="flex items-center justify-between text-sm pt-1">
+                            <button type="button" onClick={() => { setStep('forgot_email'); setResetOtp(''); setError(''); setResetAttempts(0); }}
+                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">← Modifier l'email</button>
+                            <button type="button" onClick={handleResendResetOtp} disabled={loading}
+                              className="flex items-center gap-1.5 text-amber-600 hover:text-amber-700 font-medium transition-colors disabled:opacity-50">
+                              <RotateCcw className="w-3.5 h-3.5" />Renvoyer le code
+                            </button>
+                          </div>
+                        </>
                       )}
-
-                      <OTPBoxes value={resetOtp} onChange={setResetOtp} disabled={loading} color="amber" />
-
-                      <button onClick={handleResetVerifyOtp} disabled={resetOtp.length < 6 || loading}
-                        className="w-full py-2.5 bg-amber-500 text-white rounded-xl hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2">
-                        {loading ? <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Vérification...</> : 'Valider le code ✓'}
-                      </button>
-
-                      <div className="flex items-center justify-between text-sm pt-1">
-                        <button type="button" onClick={() => { setStep('forgot_email'); setResetOtp(''); setError(''); setResetAttempts(0); }}
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">← Modifier l'email</button>
-                        <button type="button" onClick={handleResendResetOtp} disabled={loading}
-                          className="flex items-center gap-1.5 text-amber-600 hover:text-amber-700 font-medium transition-colors disabled:opacity-50">
-                          <RotateCcw className="w-3.5 h-3.5" />Renvoyer le code
-                        </button>
-                      </div>
                     </motion.div>
                   )}
 

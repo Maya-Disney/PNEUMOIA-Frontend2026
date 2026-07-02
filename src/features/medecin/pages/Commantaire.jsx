@@ -1052,7 +1052,8 @@ function OngletConfreres({ toast, profil }) {
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <span className="text-sm font-semibold text-(--t1) truncate">{p.casTitle}</span>
                     <span className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full shrink-0 ${tc.color}`}>
-                      <TIcon className="w-3 h-3" />{tc.label}
+                      <TIcon className="w-3 h-3" />
+                      {p.pathologie || tc.label}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mb-3">
