@@ -140,7 +140,7 @@ export default function RequetesMedecins() {
     if (!silent) setLoading(true);
     setFetchError(null);
     return getRequetesMedecins(filtre)
-      .then(data => { setRequetes(Array.isArray(data) ? data : []); setLastUpdate(new Date()); })
+      .then(data => { setRequetes(Array.isArray(data) ? data.filter(r => r.titre !== "Demande de déblocage de compte") : []); setLastUpdate(new Date()); })
       .catch(e => { setRequetes([]); setFetchError(e?.message || "Erreur lors du chargement"); })
       .finally(() => { if (!silent) setLoading(false); });
   }, []);

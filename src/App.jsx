@@ -42,7 +42,8 @@ import AideCommentaires    from './features/aide/pages/AideCommentaires';
 import AideNotifications   from './features/aide/pages/AideNotifications';
 import AideProfil          from './features/aide/pages/AideProfil';
 import AideParametres      from './features/aide/pages/AideParametres';
-import ActivationPage from './features/activation/ActivationPage';
+import ActivationPage      from './features/activation/ActivationPage';
+import DeblocageEmailPage  from './features/activation/DeblocageEmailPage';
 
 // SECTION ADMINISTRATEUR
 import AdminLogin          from './features/administrateur/authAdmin/loginPage';
@@ -183,8 +184,9 @@ function App() {
           <Route path="requetes"            element={<RequetesMedecins />} />
         </Route>
         </Route>
-            {/* PAGE D'ACTIVATION */}
-            <Route path="/activation" element={<ActivationPage />} />
+            {/* PAGES EMAIL */}
+            <Route path="/activation"     element={<ActivationPage />} />
+            <Route path="/deblocage-email" element={<DeblocageEmailPage />} />
 
             {/* ROUTES CONCERNANT LA SECTION ADMINISTRATEUR */}
             <Route path="/administrateur/login" element={<AdminLogin />} />

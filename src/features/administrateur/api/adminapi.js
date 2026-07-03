@@ -240,6 +240,10 @@ export async function supprimerMedecin(medecinId) {
   return request("DELETE", `/api/admin/medecins/${medecinId}`, null, true);
 }
 
+export async function envoyerEmailDeblocage(medecinId) {
+  return request("POST", `/api/admin/medecins/${medecinId}/envoyer-email-deblocage`, null, true);
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 8b. CORBEILLE

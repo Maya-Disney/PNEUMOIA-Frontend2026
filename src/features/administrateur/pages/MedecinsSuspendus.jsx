@@ -20,9 +20,11 @@ import {
 const pad = (n) => String(n).padStart(2, "0");
 function fmtDT(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 
+const toUTC = (iso) => iso ? new Date(iso.endsWith('Z') ? iso : iso + 'Z') : null;
+
 function fmtElapsed(iso) {
   if (!iso) return "";
-  const dm = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  const dm = Math.floor((Date.now() - toUTC(iso).getTime()) / 60000);
   if (dm < 1)    return "À l'instant";
   if (dm < 60)   return `il y a ${dm} min`;
   if (dm < 1440) return `il y a ${Math.floor(dm / 60)}h`;
@@ -133,9 +135,9 @@ export default function MedecinsSuspendus() {
           raison:      m.suspension_raison || m.motif_rejet || "—",
           duree:       m.suspension_duree  || "—",
           dureeType:   m.suspension_duree === "Indéfinie" ? "indefinie" : "limitee",
-          suspenduLe:     m.suspension_le ? new Date(m.suspension_le) : new Date(),
+          suspenduLe:     m.suspension_le ? toUTC(m.suspension_le) : new Date(),
           suspenduPar:    m.suspension_par || "Administrateur",
-          bloqueSecurite: m.suspension_par === "system",
+          bloqueSecurite: !m.suspension_par || m.suspension_par === "system",
           ville:          m.ville || m.adresse || "—",
           photo_url:      m.photo_url || null,
         })));
@@ -190,25 +192,42 @@ export default function MedecinsSuspendus() {
   const handleDebloquerDirect = useCallback(async (m) => {
     setDeblocageLoading(m.id);
     try {
-      await reactiverMedecin(m.id);
-      const reqId = deblocageReqs[m.id];
-      if (reqId) {
-        await repondreRequete(reqId, {
-          action_admin:  "Compte débloqué",
-          reponse_admin: "Votre compte a été réactivé par l'administrateur. Vous pouvez vous reconnecter.",
-          statut:        "resolu",
-        });
-        setDeblocageReqs(p => { const n = {...p}; delete n[m.id]; return n; });
-        setDeblocageReqsList(p => p.filter(r => r.medecin_id !== m.id));
+      let alreadyActive = false;
+      try {
+        await reactiverMedecin(m.id);
+      } catch (err) {
+        if (err?.message?.includes("n'est pas suspendu")) {
+          alreadyActive = true;
+        } else {
+          throw err;
+        }
       }
+
+      // Clore TOUTES les demandes en attente pour ce médecin
+      const pendingReqs = deblocageReqsList.filter(r => r.medecin_id === m.id);
+      await Promise.all(pendingReqs.map(r => repondreRequete(r.id, {
+        action_admin:  "Compte débloqué",
+        reponse_admin: alreadyActive
+          ? "Votre compte est déjà actif. Cette demande a été clôturée par l'administrateur."
+          : "Votre compte a été réactivé par l'administrateur. Vous pouvez vous reconnecter.",
+        statut: "resolu",
+      })));
+
+      setDeblocageReqs(p => { const n = {...p}; delete n[m.id]; return n; });
+      setDeblocageReqsList(p => p.filter(r => r.medecin_id !== m.id));
       setSuspendus(p => p.filter(x => x.id !== m.id));
-      setToast({ msg: `✓ ${m.nom} débloqué — notification envoyée`, type: "success" });
+      setToast({
+        msg: alreadyActive
+          ? `✓ Demande(s) clôturée(s) — ${m.nom} est déjà actif`
+          : `✓ ${m.nom} débloqué — notification envoyée`,
+        type: "success",
+      });
     } catch {
       setToast({ msg: "Erreur lors du déblocage", type: "error" });
     } finally {
       setDeblocageLoading(null);
     }
-  }, [deblocageReqs]);
+  }, [deblocageReqs, deblocageReqsList]);
 
   const handleReactiver = useCallback(async () => {
     if (!modaleReactiver) return;
@@ -216,6 +235,15 @@ export default function MedecinsSuspendus() {
     try {
       await reactiverMedecin(modaleReactiver.id);
     } catch(e) {}
+    // Clore aussi les demandes de déblocage en attente pour ce médecin
+    const pendingReqs = deblocageReqsList.filter(r => r.medecin_id === modaleReactiver.id);
+    await Promise.all(pendingReqs.map(r => repondreRequete(r.id, {
+      action_admin:  "Compte débloqué",
+      reponse_admin: "Votre compte a été réactivé par l'administrateur. Vous pouvez vous reconnecter.",
+      statut:        "resolu",
+    }).catch(() => {})));
+    setDeblocageReqs(p => { const n = {...p}; delete n[modaleReactiver.id]; return n; });
+    setDeblocageReqsList(p => p.filter(r => r.medecin_id !== modaleReactiver.id));
     setSuspendus(p => p.filter(m => m.id !== modaleReactiver.id));
     setToast({
       msg: `✓ ${modaleReactiver.nom} réactivé — notification envoyée`,
@@ -224,7 +252,7 @@ export default function MedecinsSuspendus() {
     setModaleReactiver(null);
     setMsgReactiv("");
     setLoading(false);
-  }, [modaleReactiver]);
+  }, [modaleReactiver, deblocageReqsList]);
 
   const handleSupprimer = useCallback(async () => {
     if (!modaleSuppr) return;
@@ -351,7 +379,7 @@ export default function MedecinsSuspendus() {
         </div>
 
         <TableCard dark={dark}>
-          <TableContainer dark={dark}>
+          <TableContainer dark={dark} fixed>
             <thead>
               <tr>
                 <Th dark={dark}>Médecin</Th>
@@ -405,20 +433,6 @@ export default function MedecinsSuspendus() {
 
                         <Td dark={dark} center>
                           <div className="relative flex flex-col items-center gap-1.5">
-                            {deblocageReqs[m.id] && (
-                              <button
-                                onClick={() => handleDebloquerDirect(m)}
-                                disabled={deblocageLoading === m.id}
-                                title="Débloquer ce compte"
-                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-bold text-white disabled:opacity-60 transition-all"
-                                style={{ background: "#dc2626" }}>
-                                {deblocageLoading === m.id
-                                  ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                  : <Unlock size={11} />
-                                }
-                                Débloquer
-                              </button>
-                            )}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -450,7 +464,7 @@ export default function MedecinsSuspendus() {
                                     ${dark?"text-blue-400 hover:bg-blue-900/20":"text-blue-800 hover:bg-blue-50"}`}
                                 >
                                   <RotateCcw size={16} className="shrink-0 mt-0.5" />
-                                  <span className="flex-1">Réactiver le compte</span>
+                                  <span className="flex-1">Réactiver</span>
                                 </button>
 
                                 <div className={`border-t ${dark?"border-[#21262d]":"border-gray-100"}`} />
