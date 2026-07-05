@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { Download, Search, ChevronLeft, ChevronRight, Trash2, X, AlertTriangle, Activity, CheckCircle2, XCircle, ShieldAlert, RefreshCw } from "lucide-react";
@@ -6,7 +6,7 @@ import { brand, getSurface, getText } from "../theme";
 import {
   Th, Tr, Td, EmptyCell, MutedText, SubtleText, PaginationBar,
 } from "../components/ui/Table";
-import { getAuditLogs, purgerAuditLogs } from "../api/adminapi";
+import { getAuditLogs, purgerAuditLogs } from "../api/adminApi";
 
 const pad = (n) => String(n).padStart(2, "0");
 function fmtDT(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }

@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "./Card";
 import CardHeader from "./CardHeader";
-import { getAuditLogs } from "../api/adminapi";
+import { getAuditLogs } from "../api/adminApi";
 
 const DOT = {
   success: "bg-emerald-400",

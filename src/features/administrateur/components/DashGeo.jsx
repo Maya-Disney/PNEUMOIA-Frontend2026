@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "./Card";
 import CardHeader from "./CardHeader";
 import { brand, getSurface, getText } from "../theme";
-import { getRepartitionGeo } from "../api/adminapi";
+import { getRepartitionGeo } from "../api/adminApi";
 
 export default function DashGeo({ dark }) {
   const navigate = useNavigate();

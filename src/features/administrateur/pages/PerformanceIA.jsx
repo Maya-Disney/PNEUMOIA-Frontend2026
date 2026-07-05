@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { X } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
-import { getTopMedecinsConcordance, getConcordanceEvolution, getConcordancePathologies } from "../api/adminapi";
+import { getTopMedecinsConcordance, getConcordanceEvolution, getConcordancePathologies } from "../api/adminApi";
 
 const MOIS_LABELS = [
   "Janvier","Février","Mars","Avril","Mai","Juin",

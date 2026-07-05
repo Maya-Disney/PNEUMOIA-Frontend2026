@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useAdminTheme } from "../context/useAdminTheme";
 import * as XLSX from "xlsx";
 import { Download, X, FileText, XCircle } from "lucide-react";
-import { getMedecinsValides } from "../api/adminapi";
+import { getMedecinsValides } from "../api/adminApi";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { brand, getSurface, getText } from "../theme";
 import {

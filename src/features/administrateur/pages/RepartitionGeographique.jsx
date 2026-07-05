@@ -1,11 +1,11 @@
-import { useMemo, useState, useEffect } from "react";
+﻿import { useMemo, useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS, BarElement, LinearScale, CategoryScale, Tooltip,
 } from "chart.js";
 import { brand, getSurface, getText } from "../theme";
-import { getRepartitionGeo } from "../api/adminapi";
+import { getRepartitionGeo } from "../api/adminApi";
 
 ChartJS.register(BarElement, LinearScale, CategoryScale, Tooltip);
 

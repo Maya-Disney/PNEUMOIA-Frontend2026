@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useParams, useNavigate, useOutletContext, useLocation } from "react-router-dom";
 import { getMedecinById, suspendreMedecin, supprimerMedecin } from "../api/adminApi";
 import { AlertTriangle, ArrowLeft, Trash2, X, FileDown, Cpu, Calendar, User, PauseCircle } from "lucide-react";

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MedecinsActifs.jsx — Liste des médecins validés sur la plateforme
  */
 

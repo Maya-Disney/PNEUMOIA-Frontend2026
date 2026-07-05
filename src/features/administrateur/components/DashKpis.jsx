@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Users, Clock, Activity, Brain } from "lucide-react";
 import KpiCard from "./KPiCard";
-import { getKpis } from "../api/adminapi";
+import { getKpis } from "../api/adminApi";
 
 const KPIS_CONFIG = [
   {

@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import Card from "./Card";
 import { X } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
-import { getTopMedecinsConcordance } from "../api/adminapi";
+import { getTopMedecinsConcordance } from "../api/adminApi";
 
 const REFRESH_INTERVAL = 60_000;
 

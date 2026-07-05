@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FAQ.jsx — Gestion FAQ médecins + FAQ publiées admin
  *
  * 3 onglets :

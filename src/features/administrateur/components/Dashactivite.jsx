@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { Line, Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS, LineElement, BarElement, PointElement,
@@ -10,7 +10,7 @@ import {
   getConsultationsSemaine,
   getConsultationsAnnee,
   getConsultationsTotal,
-} from "../api/adminapi";
+} from "../api/adminApi";
 
 ChartJS.register(LineElement, BarElement, PointElement, LinearScale, CategoryScale, Tooltip, Filler);
 

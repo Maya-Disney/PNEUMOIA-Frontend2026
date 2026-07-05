@@ -1,4 +1,4 @@
-/**
+﻿/**
  * adminApi.js — Client HTTP pour l'API PneumoIA Admin
  *
  * Organisation :

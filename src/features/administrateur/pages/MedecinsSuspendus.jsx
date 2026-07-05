@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MedecinsSuspendus.jsx — Liste des médecins suspendus
  *
  * Actions disponibles :
