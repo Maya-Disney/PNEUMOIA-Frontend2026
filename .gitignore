@@ -29,6 +29,7 @@ uploads/
 *.njsproj
 *.sln
 *.sw?
+Thumbs.db
 
 # Claude Code local config (not to be shared/pushed)
 .claude/
