@@ -1536,6 +1536,32 @@ const createAndContinue = async () => {
   const renderStepDiagnostic = () => (
     <div className="space-y-4">
 
+      {/* ─── Avertissement éthique IA ──────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-xl border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-500/10 p-4"
+      >
+        {/* bandeau décoratif */}
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-amber-100/60 to-transparent dark:from-amber-500/5" />
+        <div className="relative flex items-start gap-3">
+          <div className="shrink-0 mt-0.5 w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+            <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-amber-800 dark:text-amber-200 mb-1">
+              Outil d'aide au diagnostic — Décision médicale réservée au médecin
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+              Les résultats ci-dessous sont produits par un modèle d'intelligence artificielle à titre
+              d'<strong>aide au diagnostic uniquement</strong>. Ils ne remplacent en aucun cas l'examen
+              clinique ni le jugement du praticien.{' '}
+              <strong>La décision diagnostique et thérapeutique finale appartient exclusivement au médecin.</strong>
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Alertes religion / groupe sanguin / urgence */}
       {(aiResult.alertes || []).map((alerte, i) => (
         <div key={i} className={`rounded-xl p-4 flex items-start gap-3 border ${
