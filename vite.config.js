@@ -29,13 +29,41 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   optimizeDeps: {
     exclude: ['onnxruntime-web', 'onnxruntime-web/wasm'],
     include: ['react-markdown'],
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+      },
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+          'charts': ['recharts'],
+          'animations': ['framer-motion'],
+        },
+      },
+    },
+  },
   server: {
+    port: 5173,
     hmr: {
       overlay: false,
     },
+  },
+  preview: {
+    port: 4173,
   },
 })

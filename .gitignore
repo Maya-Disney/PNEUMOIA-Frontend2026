@@ -37,3 +37,10 @@ Thumbs.db
 
 # Claude Code local config (not to be shared/pushed)
 .claude/
+
+# Testing
+coverage
+.nyc_output
+
+# IDE
+.eslintcache
