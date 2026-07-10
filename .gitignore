@@ -19,6 +19,10 @@ dist-ssr
 *.local
 app/ml_models/onnx/
 uploads/
+
+# Vite cache
+.vite/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
