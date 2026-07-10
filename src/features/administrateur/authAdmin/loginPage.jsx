@@ -1,22 +1,24 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { adminLogin, adminResetRequest, adminResetConfirm } from "../api/adminApi";
 import { useNavigate } from "react-router-dom";
 import logo from "../../../assets/images/logo.png";
+import "../admin.css";
 
-const T1 = "#1f7a75";
-const T2 = "#339991";
-const T3 = "#5ab3ac";
-const OFF_WHITE = "#faf9f6";
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
+  useEffect(() => {
+    const fn = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return isDesktop;
+}
+
+const T1 = "#007a64";
+const T2 = "#009e82";
+const T3 = "#00c2a0";
 
 const MISSIONS = [
-  { icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>, title: "Validation des médecins", desc: "Diplômes, habilitations et documents" },
-  { icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, title: "Sécurité & contrôle des accès", desc: "Rôles, permissions et authentifications" },
-  { icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>, title: "Statistiques & rapports", desc: "Activité globale et performances IA" },
-  { icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>, title: "Journaux d'audit", desc: "Traçabilité complète de chaque action" },
-  { icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>, title: "Configuration système", desc: "Paramètres, SMS/email et maintenance" },
-];
-
-const TAGLINES = [
   "Supervisez la plateforme et garantissez la qualité des soins.",
   "Validez les dossiers médecins et assurez la conformité.",
   "Analysez les performances globales et pilotez le modèle IA.",
@@ -43,65 +45,62 @@ const IcoSpin   = () => <svg className="animate-spin" width="15" height="15" fil
 const IcoSun    = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>;
 const IcoMoon   = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
 const IcoBack   = () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>;
-const IcoArrow  = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>;
 const IcoShield = () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
 const IcoPhone  = () => <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg>;
+const IcoMail   = () => <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>;
+const IcoLock   = () => <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
 
 function AnimatedTagline() {
   const [idx, setIdx] = useState(0);
-  const [show, setShow] = useState(true);
+  const [visible, setVisible] = useState(true);
   useEffect(() => {
     const t = setInterval(() => {
-      setShow(false);
-      setTimeout(() => { setIdx(i => (i + 1) % TAGLINES.length); setShow(true); }, 400);
+      setVisible(false);
+      setTimeout(() => { setIdx(i => (i + 1) % MISSIONS.length); setVisible(true); }, 350);
     }, 4000);
     return () => clearInterval(t);
   }, []);
   return (
-    <p style={{ transition: "opacity .4s, transform .4s", opacity: show ? 1 : 0, transform: show ? "translateY(0)" : "translateY(6px)", color: "#fff", fontSize: 22, fontWeight: 600, lineHeight: 1.4, minHeight: 60, textAlign: "center", padding: "0 20px" }}>
-      {TAGLINES[idx]}
+    <p style={{
+      transition: "opacity .35s, transform .35s",
+      opacity: visible ? 1 : 0,
+      transform: visible ? "translateY(0)" : "translateY(8px)",
+      color: "rgba(255,255,255,0.88)",
+      fontSize: 17,
+      fontWeight: 600,
+      lineHeight: 1.7,
+      textAlign: "center",
+      margin: 0,
+      padding: "0 8px",
+      minHeight: 52,
+    }}>
+      {MISSIONS[idx]}
     </p>
   );
 }
 
-function FieldSm({ label, id, type, value, onChange, placeholder, icon, right, dark, hint, hintColor }) {
+function FormInput({ id, type, value, onChange, placeholder, icon, rightEl, dark, onFocusCb, onBlurCb }) {
   const [focus, setFocus] = useState(false);
+  const handleFocus = () => { setFocus(true); onFocusCb?.(); };
+  const handleBlur  = () => { setFocus(false); onBlurCb?.(); };
   return (
-    <div>
-      <label htmlFor={id} style={{ display: "block", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 4, color: dark ? "rgba(255,255,255,.6)" : "#374151" }}>{label}</label>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 9, padding: "0 12px", height: 38,
-          background: dark ? "rgba(255,255,255,.08)" : "#f9fafb",
-          border: focus ? `1.5px solid ${T2}` : dark ? "1px solid rgba(255,255,255,.15)" : "1px solid #e5e7eb",
-          boxShadow: focus ? `0 0 0 3px rgba(51,153,145,.1)` : "none", transition: "all .15s" }}
-        onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}>
-        <span style={{ color: dark ? "rgba(255,255,255,.4)" : "#9ca3af", flexShrink: 0 }}>{icon}</span>
-        <input id={id} type={type} value={value} onChange={onChange} placeholder={placeholder} autoComplete={id}
-          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 12, color: dark ? "#fff" : "#111827" }}
-          onFocus={() => setFocus(true)} onBlur={() => setFocus(false)} />
-        {right && <span style={{ flexShrink: 0 }}>{right}</span>}
-      </div>
-      {hint && <p style={{ fontSize: 10, marginTop: 3, color: hintColor || (dark ? "rgba(255,255,255,.5)" : "#6b7280") }}>{hint}</p>}
-    </div>
-  );
-}
-
-function Field({ label, id, type, value, onChange, placeholder, icon, right, dark, hint, hintColor }) {
-  const [focus, setFocus] = useState(false);
-  return (
-    <div>
-      <label htmlFor={id} style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6, color: dark ? "rgba(255,255,255,.6)" : "#374151" }}>{label}</label>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, borderRadius: 10, padding: "0 14px", height: 44,
-          background: dark ? "rgba(255,255,255,.08)" : "#f9fafb",
-          border: focus ? `1.5px solid ${T2}` : dark ? "1px solid rgba(255,255,255,.15)" : "1px solid #e5e7eb",
-          boxShadow: focus ? `0 0 0 3px rgba(51,153,145,.1)` : "none", transition: "all .15s" }}
-        onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}>
-        <span style={{ color: dark ? "rgba(255,255,255,.4)" : "#9ca3af", flexShrink: 0 }}>{icon}</span>
-        <input id={id} type={type} value={value} onChange={onChange} placeholder={placeholder} autoComplete={id}
-          style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: dark ? "#fff" : "#111827" }}
-          onFocus={() => setFocus(true)} onBlur={() => setFocus(false)} />
-        {right && <span style={{ flexShrink: 0 }}>{right}</span>}
-      </div>
-      {hint && <p style={{ fontSize: 11, marginTop: 5, color: hintColor || (dark ? "rgba(255,255,255,.5)" : "#6b7280") }}>{hint}</p>}
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      borderRadius: 10, padding: "0 14px", height: 48,
+      background: dark ? "rgba(255,255,255,.06)" : "#f8fafc",
+      border: focus ? `1.5px solid ${T2}` : dark ? "1px solid rgba(255,255,255,.18)" : "1px solid #e2e8f0",
+      boxShadow: focus ? `0 0 0 3px rgba(0,158,130,.12)` : "none",
+      transition: "all .18s",
+    }} onFocus={handleFocus} onBlur={handleBlur}>
+      <span style={{ color: focus ? T2 : (dark ? "rgba(255,255,255,.35)" : "#94a3b8"), flexShrink: 0 }}>{icon}</span>
+      <input
+        id={id} type={type} value={value} onChange={onChange}
+        placeholder={placeholder} autoComplete={id}
+        className="admin-login-input"
+        style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: dark ? "#f1f5f9" : "#1e293b" }}
+        onFocus={handleFocus} onBlur={handleBlur}
+      />
+      {rightEl && <span style={{ flexShrink: 0 }}>{rightEl}</span>}
     </div>
   );
 }
@@ -110,28 +109,28 @@ function StrengthMeter({ pwd, dark }) {
   if (!pwd) return null;
   const s = getStrength(pwd);
   const criteria = [
-    { ok: pwd.length >= 8,         label: "8 caractères minimum" },
-    { ok: /[A-Z]/.test(pwd),       label: "Une majuscule" },
-    { ok: /[0-9]/.test(pwd),       label: "Un chiffre" },
-    { ok: /[^A-Za-z0-9]/.test(pwd),label: "Un caractère spécial" },
+    { ok: pwd.length >= 8,          label: "8 caractères minimum" },
+    { ok: /[A-Z]/.test(pwd),        label: "Une majuscule" },
+    { ok: /[0-9]/.test(pwd),        label: "Un chiffre" },
+    { ok: /[^A-Za-z0-9]/.test(pwd), label: "Un caractère spécial" },
   ];
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-        <div style={{ flex: 1, height: 4, borderRadius: 99, background: dark ? "rgba(255,255,255,.15)" : "#e5e7eb", overflow: "hidden" }}>
+        <div style={{ flex: 1, height: 4, borderRadius: 99, background: dark ? "rgba(255,255,255,.15)" : "#e2e8f0", overflow: "hidden" }}>
           <div style={{ height: "100%", borderRadius: 99, width: s.width, background: s.color, transition: "width .35s" }} />
         </div>
         <span style={{ fontSize: 11, fontWeight: 600, color: s.color, minWidth: 40, textAlign: "right" }}>{s.label}</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 10px" }}>
         {criteria.map((c, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ color: c.ok ? T2 : (dark ? "rgba(255,255,255,.3)" : "#d1d5db"), flexShrink: 0 }}>
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ color: c.ok ? T2 : (dark ? "rgba(255,255,255,.25)" : "#cbd5e1"), flexShrink: 0 }}>
               {c.ok
-                ? <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                : <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>}
+                ? <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                : <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>}
             </span>
-            <span style={{ fontSize: 10.5, color: c.ok ? (dark ? T3 : T1) : (dark ? "rgba(255,255,255,.4)" : "#9ca3af") }}>{c.label}</span>
+            <span style={{ fontSize: 10.5, color: c.ok ? (dark ? T3 : T1) : (dark ? "rgba(255,255,255,.38)" : "#94a3b8") }}>{c.label}</span>
           </div>
         ))}
       </div>
@@ -140,20 +139,19 @@ function StrengthMeter({ pwd, dark }) {
 }
 
 export default function AdminLogin() {
-  const navigate = useNavigate();
-  // Thème local à la page login uniquement — séparé du thème global de l'app
+  const navigate  = useNavigate();
+  const isDesktop = useIsDesktop();
   const [dark, setDark] = useState(() => localStorage.getItem("pneumo_login_theme") === "dark");
   const [view, setView] = useState("login");
 
-  // Login
-  const [email,   setEmail]   = useState("");
-  const [phone,   setPhone]   = useState("");
+  const [email,   setEmail]   = useState(() => localStorage.getItem("pneumo_admin_remember_email") || "");
+  const [phone,   setPhone]   = useState(() => localStorage.getItem("pneumo_admin_remember_phone") || "");
   const [pwd,     setPwd]     = useState("");
   const [showPwd, setShowPwd] = useState(false);
+  const [remember, setRemember] = useState(() => localStorage.getItem("pneumo_admin_remember") === "true");
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
 
-  // Reset
   const [rEmail,    setREmail]    = useState("");
   const [rPhone,    setRPhone]    = useState("");
   const [rOtp,      setROtp]      = useState("");
@@ -164,21 +162,26 @@ export default function AdminLogin() {
   const [rLoading,  setRLoading]  = useState(false);
   const [rError,    setRError]    = useState("");
 
-  // Applique le thème UNIQUEMENT sur cette page — pas sur <html> global
-  useEffect(() => {
-    localStorage.setItem("pneumo_login_theme", dark ? "dark" : "light");
-    // Ne touche PAS document.documentElement pour ne pas affecter le reste de l'app
-  }, [dark]);
+  useEffect(() => { localStorage.setItem("pneumo_login_theme", dark ? "dark" : "light"); }, [dark]);
 
   const handleLogin = useCallback(async (e) => {
     e.preventDefault();
     setError("");
     if (!email.trim()) return setError("Entrez votre adresse email.");
     if (!phone.trim()) return setError("Entrez votre numéro de téléphone.");
-    if (!pwd) return setError("Entrez votre mot de passe.");
+    if (!pwd)          return setError("Entrez votre mot de passe.");
     setLoading(true);
     try {
       await adminLogin({ email, phone, password: pwd });
+      if (remember) {
+        localStorage.setItem("pneumo_admin_remember", "true");
+        localStorage.setItem("pneumo_admin_remember_email", email);
+        localStorage.setItem("pneumo_admin_remember_phone", phone);
+      } else {
+        localStorage.removeItem("pneumo_admin_remember");
+        localStorage.removeItem("pneumo_admin_remember_email");
+        localStorage.removeItem("pneumo_admin_remember_phone");
+      }
       navigate("/administrateur/dashboard");
     } catch (err) {
       setError(err.message || "Erreur de connexion.");
@@ -208,256 +211,326 @@ export default function AdminLogin() {
     if (getStrength(rPwd).score < 2) return setRError("Mot de passe trop faible.");
     setRLoading(true);
     try {
-      await adminResetConfirm({
-        email:            rEmail,
-        otp:              rOtp,
-        new_password:     rPwd,
-        confirm_password: rConfirm,
-      });
+      await adminResetConfirm({ email: rEmail, otp: rOtp, new_password: rPwd, confirm_password: rConfirm });
       setView("sent");
     } catch (err) {
       setRError(err.message || "Code invalide ou expiré. Recommencez.");
     } finally { setRLoading(false); }
   }, [rEmail, rOtp, rPwd, rConfirm]);
 
-  const tx1      = dark ? "#e6edf3" : "#111827";
-  const tx2      = dark ? "#8b949e" : "#6b7280";
-  const tx3      = dark ? "#484f58" : "#9ca3af";
-  const cardBg   = dark ? "#161b22" : "#ffffff";
-  const cardBord = dark ? "rgba(255,255,255,.15)" : "#e5e7eb";
-  const topbarBg   = dark ? "#0d1117" : OFF_WHITE;
-  const topbarBord = dark ? "rgba(255,255,255,.1)" : "#e2e8e4";
-  const asideBg  = `linear-gradient(160deg, ${T1} 0%, ${T2} 55%, ${T3} 100%)`;
-  const rightBg  = dark ? "#0d1117" : OFF_WHITE;
+  const tx1    = dark ? "#f1f5f9" : "#0f172a";
+  const tx2    = dark ? "#94a3b8" : "#64748b";
+  const tx3    = dark ? "#475569" : "#94a3b8";
+  const rightBg = dark ? "#0f172a" : "#ffffff";
 
-  const iconMail = <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>;
-  const iconLock = <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
-
-  const EyeBtn = ({ show, onToggle }) => (
-    <button type="button" onClick={onToggle} style={{ color: tx3, lineHeight: 1, background: "none", border: "none", cursor: "pointer", display: "flex" }}>
-      {show ? <IcoEyeOff /> : <IcoEye />}
-    </button>
-  );
-
-  const Divider = () => (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ flex: 1, height: 1, background: dark ? "rgba(255,255,255,.1)" : "#e5e7eb" }} />
-      <span style={{ fontSize: 11, color: tx3, fontWeight: 600 }}>OU</span>
-      <div style={{ flex: 1, height: 1, background: dark ? "rgba(255,255,255,.1)" : "#e5e7eb" }} />
+  const ThemeToggle = ({ prefix }) => (
+    <div style={{ display:"inline-flex", gap:3, borderRadius:99, padding:4,
+      background: dark ? "rgba(255,255,255,.08)" : "#f1f5f9",
+      border:`1px solid ${dark ? "rgba(255,255,255,.1)" : "#e2e8f0"}` }}>
+      {[["light","Clair",<IcoSun/>],["dark","Sombre",<IcoMoon/>]].map(([mode,lbl,ico]) => {
+        const active = (!dark && mode==="light") || (dark && mode==="dark");
+        return (
+          <button key={`${prefix}-${mode}`} onClick={() => setDark(mode==="dark")}
+            style={{ display:"flex", alignItems:"center", gap:6, borderRadius:99, padding:"6px 14px",
+              fontSize:12, fontWeight:700, border:"none", cursor:"pointer", transition:"all .15s",
+              background: active ? (dark ? T2 : "#fff") : "transparent",
+              color: active ? (dark ? "#fff" : T1) : (dark ? "rgba(255,255,255,.45)" : "#64748b"),
+              boxShadow: active ? "0 1px 4px rgba(0,0,0,.12)" : "none" }}>
+            {ico}{lbl}
+          </button>
+        );
+      })}
     </div>
   );
 
   const ErrorBox = ({ msg }) => msg ? (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, borderRadius: 10, padding: "10px 14px", marginBottom: 14, background: dark ? "rgba(239,68,68,.15)" : "#fef2f2", border: "1px solid rgba(239,68,68,.25)" }}>
+    <div style={{ display:"flex", alignItems:"center", gap:8, borderRadius:10, padding:"10px 14px", marginBottom:14,
+      background: dark ? "rgba(239,68,68,.12)" : "#fef2f2", border:"1px solid rgba(239,68,68,.22)" }}>
       <svg width="14" height="14" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <p style={{ fontSize: 12, color: dark ? "#fca5a5" : "#dc2626" }}>{msg}</p>
+      <p style={{ fontSize:12.5, color: dark ? "#fca5a5" : "#dc2626" }}>{msg}</p>
     </div>
   ) : null;
 
-  const BtnPrimary = ({ label, loadingLabel, isLoading, disabled, type = "submit" }) => (
-    <button type={type} disabled={isLoading || disabled}
-      style={{ width: "100%", height: 46, borderRadius: 10, border: "none", background: disabled || isLoading ? T1 : T2, opacity: disabled ? .55 : 1, color: "#fff", fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: disabled || isLoading ? "not-allowed" : "pointer", transition: "background .15s" }}
-      onMouseEnter={e => { if (!isLoading && !disabled) e.currentTarget.style.background = T1; }}
-      onMouseLeave={e => { if (!isLoading && !disabled) e.currentTarget.style.background = T2; }}>
-      {isLoading ? <><IcoSpin /><span>{loadingLabel}</span></> : <><span>{label}</span>{!disabled && <IcoArrow />}</>}
+  const BtnPrimary = ({ label, loadingLabel, isLoading, disabled, type="submit", onClick }) => (
+    <button type={type} disabled={isLoading || disabled} onClick={onClick}
+      style={{ width:"100%", height:48, borderRadius:12, border:"none",
+        background: disabled || isLoading ? "#94a3b8" : `linear-gradient(135deg, ${T1} 0%, ${T2} 100%)`,
+        color:"#fff", fontSize:15, fontWeight:700, cursor: disabled||isLoading?"not-allowed":"pointer",
+        display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+        boxShadow: disabled||isLoading ? "none" : "0 4px 15px rgba(0,158,130,.35)",
+        transition:"all .2s", letterSpacing:".3px" }}
+      onMouseEnter={e => { if (!isLoading && !disabled) e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,158,130,.5)"; }}
+      onMouseLeave={e => { if (!isLoading && !disabled) e.currentTarget.style.boxShadow = "0 4px 15px rgba(0,158,130,.35)"; }}>
+      {isLoading ? <><IcoSpin /><span>{loadingLabel}</span></> : label}
     </button>
   );
 
+  const BtnOutlined = ({ label, onClick }) => (
+    <button type="button" onClick={onClick}
+      style={{ width:"100%", height:48, borderRadius:12, background:"transparent",
+        border: `1.5px solid ${dark ? "rgba(0,158,130,.45)" : "#cbd5e1"}`,
+        color: dark ? T3 : T1, fontSize:14, fontWeight:600, cursor:"pointer",
+        transition:"all .18s" }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = T2; e.currentTarget.style.color = T2; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = dark ? "rgba(0,158,130,.45)" : "#cbd5e1"; e.currentTarget.style.color = dark ? T3 : T1; }}>
+      {label}
+    </button>
+  );
+
+  const ShowHideBtn = ({ show, onToggle }) => (
+    <button type="button" onClick={onToggle}
+      style={{ fontSize:12, fontWeight:700, color:T2, background:"none", border:"none", cursor:"pointer", letterSpacing:".5px" }}>
+      {show ? "CACHER" : "AFFICHER"}
+    </button>
+  );
+
+  const Divider = () => (
+    <div style={{ display:"flex", alignItems:"center", gap:12, margin:"4px 0" }}>
+      <div style={{ flex:1, height:1, background: dark ? "rgba(255,255,255,.1)" : "#e2e8f0" }} />
+      <span style={{ fontSize:12, color:tx3, fontWeight:500 }}>Ou</span>
+      <div style={{ flex:1, height:1, background: dark ? "rgba(255,255,255,.1)" : "#e2e8f0" }} />
+    </div>
+  );
+
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className={dark ? "dark" : ""} style={{ height:"100vh", display:"flex", overflow:"hidden", fontFamily:"'Inter',sans-serif" }}>
 
-      {/* ── TOPBAR ── */}
-      <header style={{ height: 64, display: "flex", alignItems: "center", padding: "0 16px", background: topbarBg, borderBottom: `1px solid ${topbarBord}`, flexShrink: 0, transition: "background .25s" }} className="md:px-12" >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 1400, margin: "0 auto" }}>
-          <img src={logo} alt="PneumoIA" style={{ height: 52, width: "auto", objectFit: "contain", maxWidth: 200, filter: dark ? "brightness(1.15)" : "none", transition: "filter .25s" }} />
-          <div style={{ display: "flex", gap: 3, borderRadius: 99, padding: 5, background: dark ? "rgba(255,255,255,.1)" : "#edf0ee", border: `1px solid ${topbarBord}` }}>
-            {[["light","Clair",<IcoSun/>],["dark","Sombre",<IcoMoon/>]].map(([mode,label,ico]) => {
-              const isActive = (!dark && mode==="light") || (dark && mode==="dark");
-              return (
-                <button key={mode} onClick={() => setDark(mode==="dark")}
-                  style={{ display: "flex", alignItems: "center", gap: 7, borderRadius: 99, padding: "7px 16px", fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", transition: "all .15s", background: isActive ? (dark ? T2 : "#ffffff") : "transparent", color: isActive ? (dark ? "#ffffff" : T1) : (dark ? "rgba(255,255,255,.5)" : "#6b7280"), boxShadow: isActive ? "0 2px 4px rgba(0,0,0,.1)" : "none" }}>
-                  {ico}{label}
-                </button>
-              );
-            })}
+      {/* ── PANNEAU GAUCHE — desktop uniquement ── */}
+      {isDesktop && <aside style={{
+        width:"42%", flexShrink:0,
+        background:"linear-gradient(145deg, #004a3a 0%, #007a64 45%, #009e82 100%)",
+        position:"relative", overflow:"hidden",
+        display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center",
+      }}>
+
+        {/* Sphère haut-gauche */}
+        <div style={{
+          position:"absolute", top:-60, left:-60, width:190, height:190, borderRadius:"50%",
+          background:"radial-gradient(circle at 32% 32%, #6ef7df 0%, #00c2a0 35%, #004a3a 100%)",
+          boxShadow:"10px 10px 30px rgba(0,0,0,.3)",
+        }} />
+
+        {/* Grande sphère bas-droite */}
+        <div style={{
+          position:"absolute", bottom:-100, right:-90, width:280, height:280, borderRadius:"50%",
+          background:"radial-gradient(circle at 28% 28%, #5df5d8 0%, #009e82 40%, #003d30 100%)",
+          boxShadow:"0 0 50px rgba(0,0,0,.35)",
+        }} />
+
+        {/* Sphère milieu-gauche flottante */}
+        <div style={{
+          position:"absolute", bottom:"22%", left:-35, width:110, height:110, borderRadius:"50%",
+          background:"radial-gradient(circle at 32% 32%, #a7f3e4 0%, #00c2a0 45%, #006652 100%)",
+          boxShadow:"6px 6px 20px rgba(0,0,0,.25)",
+        }} />
+
+        {/* Contenu */}
+        <div style={{ position:"relative", zIndex:1, textAlign:"center", padding:"0 44px", display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>
+          <div style={{ width:130, height:130, borderRadius:"50%", background:"#ffffff", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:8, boxShadow:"0 6px 24px rgba(0,0,0,.25)" }}>
+            <img src={logo} alt="PneumoIA" style={{ height:108, width:108, objectFit:"contain" }} />
           </div>
+          <h1 style={{ fontSize:46, fontWeight:900, color:"#ffffff", letterSpacing:3, textTransform:"uppercase", margin:0, lineHeight:1 }}>
+            BIENVENUE
+          </h1>
+          <p style={{ fontSize:13, fontWeight:700, color:"rgba(255,255,255,.75)", letterSpacing:2, textTransform:"uppercase", margin:0 }}>
+            ESPACE ADMINISTRATEUR
+          </p>
+          <div style={{ width:48, height:2, borderRadius:99, background:"rgba(255,255,255,.35)", margin:"4px 0" }} />
+          <AnimatedTagline />
         </div>
-      </header>
+      </aside>}
 
-      {/* ── MAIN ── */}
-      <main className="flex-1 flex flex-col lg:grid overflow-auto lg:overflow-hidden" style={{ gridTemplateColumns: "43% 57%" }}>
+      {/* ── PANNEAU DROIT ── */}
+      <section style={{
+        flex:1, background:rightBg,
+        display:"flex", flexDirection:"column",
+        overflow:"auto", transition:"background .25s", position:"relative",
+      }}>
 
-        {/* ── GAUCHE ── */}
-        <aside className="hidden lg:flex" style={{ position: "relative", flexDirection: "column", padding: "28px 28px", overflow: "hidden", background: asideBg }}>
-          <div style={{ position: "absolute", inset: 0, opacity: .03, backgroundImage: "radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)", backgroundSize: "22px 22px" }} />
-          <div style={{ position: "absolute", top: -70, right: -70, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.1), transparent 70%)" }} />
-          <div style={{ position: "absolute", bottom: -50, left: -50, width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,.08), transparent 70%)" }} />
-          <div style={{ position: "relative", marginBottom: 20, textAlign: "center" }}>
-            <p style={{ fontSize: 26, fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.5px" }}>Espace Administrateur</p>
+        {/* Bandeau mobile — visible uniquement si pas desktop */}
+        {!isDesktop && <div>
+          <div style={{
+            position:"relative", overflow:"hidden", flexShrink:0,
+            background:"linear-gradient(145deg, #004a3a 0%, #007a64 45%, #009e82 100%)",
+            padding:"28px 24px 32px", display:"flex", flexDirection:"column", alignItems:"center", gap:10,
+          }}>
+            <div style={{ position:"absolute", top:-40, left:-40, width:120, height:120, borderRadius:"50%", background:"radial-gradient(circle at 32% 32%, #6ef7df, #004a3a)", opacity:.8 }} />
+            <div style={{ position:"absolute", bottom:-50, right:-50, width:160, height:160, borderRadius:"50%", background:"radial-gradient(circle at 28% 28%, #5df5d8, #003d30)", opacity:.8 }} />
+            <div style={{ position:"absolute", bottom:"20%", left:-20, width:70, height:70, borderRadius:"50%", background:"radial-gradient(circle at 32% 32%, #a7f3e4, #006652)", opacity:.7 }} />
+            <div style={{ position:"relative", zIndex:1, width:80, height:80, borderRadius:"50%", background:"#fff", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(0,0,0,.2)" }}>
+              <img src={logo} alt="PneumoIA" style={{ height:64, width:64, objectFit:"contain" }} />
+            </div>
+            <div style={{ position:"relative", zIndex:1, textAlign:"center" }}>
+              <h1 style={{ fontSize:22, fontWeight:900, color:"#fff", letterSpacing:2, textTransform:"uppercase", margin:0 }}>BIENVENUE</h1>
+              <p style={{ fontSize:11, fontWeight:600, color:"rgba(255,255,255,.72)", letterSpacing:2, textTransform:"uppercase", margin:"4px 0 0" }}>ESPACE ADMINISTRATEUR</p>
+            </div>
           </div>
-          <div style={{ position: "relative", marginBottom: 20, textAlign: "center" }}>
-            <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".15em", color: "rgba(255,255,255,.6)", marginBottom: 10 }}>Mission du moment</p>
-            <AnimatedTagline />
+          {/* Toggle thème mobile */}
+          <div style={{ display:"flex", justifyContent:"center", padding:"14px 24px 0" }}>
+            <ThemeToggle dark={dark} setDark={setDark} prefix="m" />
           </div>
-          <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 12, flex: 1, justifyContent: "center" }}>
-            {MISSIONS.map((m, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, borderRadius: 12, padding: "14px 16px", background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.15)", cursor: "default", transition: "all .2s" }}
-                onMouseEnter={e => { e.currentTarget.style.background="rgba(255,255,255,.2)"; e.currentTarget.style.transform="translateX(5px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background="rgba(255,255,255,.1)"; e.currentTarget.style.transform="translateX(0)"; }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "rgba(255,255,255,.15)" }}>
-                  <span style={{ color: "#fff", transform: "scale(1.4)", display: "block" }}>{m.icon}</span>
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ fontSize: 18, fontWeight: 700, color: "#fff", lineHeight: 1.2, marginBottom: 3 }}>{m.title}</p>
-                  <p style={{ fontSize: 12, color: "rgba(255,255,255,.7)", lineHeight: 1.3, fontWeight: 400 }}>{m.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </aside>
+        </div>}
 
-        {/* ── DROITE ── */}
-        <section style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 16px", background: rightBg, overflowY: "auto", transition: "background .25s", minHeight: 0 }} className="flex-1 lg:px-8">
-          <div style={{ width: "100%", maxWidth: 440, borderRadius: 18, background: cardBg, border: `1px solid ${cardBord}`, boxShadow: dark ? "0 8px 40px rgba(0,0,0,.4)" : "0 8px 32px rgba(31,122,117,.12)", padding: "24px 20px", transition: "all .25s" }} className="md:px-7">
+        {/* Toggle thème desktop */}
+        {isDesktop && <div style={{ textAlign:"right", padding:"20px 32px 0" }}>
+          <ThemeToggle dark={dark} setDark={setDark} prefix="d" />
+        </div>}
 
-            {/* ── LOGIN ── */}
+        {/* Formulaire centré */}
+        <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", padding:"24px 20px" }}>
+          <div style={{ width:"100%", maxWidth:420, padding:"0 4px" }}>
+
+            {/* ── VUE LOGIN ── */}
             {view === "login" && (
               <>
-                <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <h2 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-.5px", color: tx1, marginBottom: 6 }}>Connexion</h2>
-                  <p style={{ fontSize: 13.5, color: tx2 }}>Accès réservé aux administrateurs autorisés</p>
+                <div style={{ marginBottom:28, textAlign:"center" }}>
+                  <h2 style={{ fontSize:32, fontWeight:800, color:tx1, marginBottom:6, letterSpacing:"-.5px" }}>
+                    Se connecter
+                  </h2>
+                  <p style={{ fontSize:13.5, color:tx2, lineHeight:1.5 }}>
+                    Accès réservé aux administrateurs autorisés de PneumoIA.
+                  </p>
                 </div>
+
                 <ErrorBox msg={error} />
-                <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 14 }} noValidate>
 
-                  {/* Email */}
-                  <Field label="Adresse email" id="email" type="email" value={email}
+                <form onSubmit={handleLogin} style={{ display:"flex", flexDirection:"column", gap:14 }} noValidate>
+                  <FormInput
+                    id="email" type="email" value={email}
                     onChange={e => { setEmail(e.target.value); setError(""); }}
-                    placeholder="admin@pneumoia.cm" dark={dark} icon={iconMail} />
-
-                  {/* Téléphone */}
-                  <Field label="Numéro de téléphone" id="phone" type="tel" value={phone}
+                    placeholder="Adresse email" icon={<IcoMail />} dark={dark}
+                  />
+                  <FormInput
+                    id="phone" type="tel" value={phone}
                     onChange={e => { setPhone(e.target.value); setError(""); }}
-                    placeholder="+237 6XX XXX XXX" dark={dark} icon={<IcoPhone />} />
-
-                  {/* Mot de passe */}
-                  <Field label="Mot de passe" id="current-password" type={showPwd ? "text" : "password"} value={pwd}
+                    placeholder="Numéro de téléphone" icon={<IcoPhone />} dark={dark}
+                  />
+                  <FormInput
+                    id="current-password" type={showPwd ? "text" : "password"} value={pwd}
                     onChange={e => { setPwd(e.target.value); setError(""); }}
-                    placeholder="••••••••" dark={dark} icon={iconLock}
-                    right={<EyeBtn show={showPwd} onToggle={() => setShowPwd(v => !v)} />} />
+                    placeholder="Mot de passe" icon={<IcoLock />} dark={dark}
+                    rightEl={<ShowHideBtn show={showPwd} onToggle={() => setShowPwd(v => !v)} />}
+                  />
 
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -4 }}>
-                    <button type="button" onClick={() => setView("reset")}
-                      style={{ fontSize: 12.5, fontWeight: 600, color: T2, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                  {/* Remember me + Forgot */}
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:-4 }}>
+                    <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", userSelect:"none" }}>
+                      <div onClick={() => setRemember(v => !v)} style={{
+                        width:18, height:18, borderRadius:5, flexShrink:0,
+                        border: remember ? "none" : `1.5px solid ${dark ? "rgba(255,255,255,.3)" : "#cbd5e1"}`,
+                        background: remember ? `linear-gradient(135deg, ${T1}, ${T2})` : "transparent",
+                        display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer",
+                        transition:"all .15s",
+                      }}>
+                        {remember && <svg width="10" height="10" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>}
+                      </div>
+                      <span style={{ fontSize:13, color:tx2 }}>Se souvenir de moi</span>
+                    </label>
+                    <button type="button" onClick={() => { setView("reset"); setError(""); }}
+                      style={{ fontSize:13, fontWeight:600, color:T2, background:"none", border:"none", cursor:"pointer", padding:0 }}>
                       Mot de passe oublié ?
                     </button>
                   </div>
 
                   <BtnPrimary label="Se connecter" loadingLabel="Vérification…" isLoading={loading} />
-                </form>
 
-                <div style={{ marginTop: 20, display: "flex", gap: 10, borderRadius: 12, padding: "12px 14px", background: dark ? `rgba(51,153,145,.15)` : `rgba(51,153,145,.08)`, border: `1px solid ${dark ? "rgba(51,153,145,.3)" : "rgba(51,153,145,.25)"}` }}>
-                  <span style={{ color: T2, flexShrink: 0, marginTop: 2 }}><IcoShield /></span>
-                  <p style={{ fontSize: 11.5, color: dark ? `rgba(160,240,230,.9)` : T1, lineHeight: 1.5 }}>
-                    <strong>Accès sécurisé.</strong> Réservé aux administrateurs habilités. Toute connexion est enregistrée dans les journaux d'audit.
-                  </p>
-                </div>
+                  {/* Sécurité */}
+                  <div style={{ display:"flex", alignItems:"center", gap:8, borderRadius:10, padding:"10px 14px",
+                    background: dark ? "rgba(0,158,130,.1)" : "rgba(0,158,130,.06)",
+                    border:`1px solid ${dark ? "rgba(0,158,130,.25)" : "rgba(0,158,130,.18)"}` }}>
+                    <span style={{ color:T2, flexShrink:0 }}><IcoShield /></span>
+                    <p style={{ fontSize:11.5, color: dark ? "rgba(160,240,230,.85)" : T1, lineHeight:1.5 }}>
+                      <strong>Accès sécurisé.</strong> Toute connexion est enregistrée dans les journaux d'audit.
+                    </p>
+                  </div>
+                </form>
               </>
             )}
 
-            {/* ── RESET — étape 1 : email + téléphone ── */}
+            {/* ── VUE RESET ── */}
             {view === "reset" && (
               <>
                 <button onClick={() => { setView("login"); setRError(""); }}
-                  style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: tx2, background: "none", border: "none", cursor: "pointer", marginBottom: 14, padding: 0 }}>
+                  style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, fontWeight:600, color:tx2, background:"none", border:"none", cursor:"pointer", marginBottom:20, padding:0 }}>
                   <IcoBack /> Retour à la connexion
                 </button>
-                <div style={{ marginBottom: 18 }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.4px", color: tx1, marginBottom: 5 }}>Réinitialiser</h2>
-                  <p style={{ fontSize: 12.5, color: tx2, lineHeight: 1.5 }}>Entrez votre email et votre numéro de téléphone enregistrés. Vous recevrez un code OTP par SMS.</p>
+                <div style={{ marginBottom:24, textAlign:"center" }}>
+                  <h2 style={{ fontSize:28, fontWeight:800, color:tx1, marginBottom:6, letterSpacing:"-.4px" }}>Réinitialiser</h2>
+                  <p style={{ fontSize:13, color:tx2, lineHeight:1.6 }}>Entrez votre email et votre téléphone. Vous recevrez un code OTP par SMS.</p>
                 </div>
                 <ErrorBox msg={rError} />
-                <form onSubmit={handleReset} style={{ display: "flex", flexDirection: "column", gap: 12 }} noValidate>
-                  <Field label="Adresse email" id="reset-email" type="email" value={rEmail}
+                <form onSubmit={handleReset} style={{ display:"flex", flexDirection:"column", gap:14 }} noValidate>
+                  <FormInput id="reset-email" type="email" value={rEmail}
                     onChange={e => { setREmail(e.target.value); setRError(""); }}
-                    placeholder="admin@pneumoia.cm" dark={dark} icon={iconMail} />
-                  <Field label="Numéro de téléphone" id="reset-phone" type="tel" value={rPhone}
+                    placeholder="Adresse email" icon={<IcoMail />} dark={dark} />
+                  <FormInput id="reset-phone" type="tel" value={rPhone}
                     onChange={e => { setRPhone(e.target.value); setRError(""); }}
-                    placeholder="+237 6XX XXX XXX" dark={dark} icon={<IcoPhone />} />
-                  <BtnPrimary label="Envoyer le code OTP" loadingLabel="Envoi en cours…" isLoading={rLoading}
-                    disabled={!rEmail || !rPhone} />
+                    placeholder="Numéro de téléphone" icon={<IcoPhone />} dark={dark} />
+                  <BtnPrimary label="Envoyer le code OTP" loadingLabel="Envoi en cours…" isLoading={rLoading} disabled={!rEmail || !rPhone} />
+                  <BtnOutlined label="Annuler" onClick={() => setView("login")} />
                 </form>
               </>
             )}
 
-            {/* ── OTP — étape 2 : code SMS + nouveau mot de passe ── */}
+            {/* ── VUE OTP ── */}
             {view === "otp" && (
               <>
                 <button onClick={() => { setView("reset"); setRError(""); setROtp(""); }}
-                  style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: tx2, background: "none", border: "none", cursor: "pointer", marginBottom: 14, padding: 0 }}>
+                  style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, fontWeight:600, color:tx2, background:"none", border:"none", cursor:"pointer", marginBottom:20, padding:0 }}>
                   <IcoBack /> Retour
                 </button>
-
-                {/* Bandeau confirmation SMS */}
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, borderRadius: 12, padding: "12px 14px", marginBottom: 18, background: dark ? "rgba(51,153,145,.15)" : "rgba(51,153,145,.08)", border: `1px solid ${dark ? "rgba(51,153,145,.3)" : "rgba(51,153,145,.25)"}` }}>
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>📱</span>
+                <div style={{ display:"flex", alignItems:"flex-start", gap:10, borderRadius:12, padding:"12px 14px", marginBottom:20,
+                  background: dark?"rgba(0,158,130,.12)":"rgba(0,158,130,.07)", border:`1px solid ${dark?"rgba(0,158,130,.28)":"rgba(0,158,130,.2)"}` }}>
+                  <span style={{ fontSize:18, flexShrink:0 }}>📱</span>
                   <div>
-                    <p style={{ fontSize: 12.5, fontWeight: 700, color: dark ? T3 : T1, marginBottom: 3 }}>Code OTP envoyé par SMS</p>
-                    <p style={{ fontSize: 11.5, color: dark ? "rgba(160,240,230,.8)" : T2, lineHeight: 1.5 }}>
-                      Un code à 6 chiffres a été envoyé au <strong>{rPhone}</strong>. Il est valide pendant <strong>10 minutes</strong>.
+                    <p style={{ fontSize:12.5, fontWeight:700, color: dark?T3:T1, marginBottom:2 }}>Code OTP envoyé par SMS</p>
+                    <p style={{ fontSize:11.5, color: dark?"rgba(160,240,230,.8)":T2, lineHeight:1.5 }}>
+                      Code à 6 chiffres envoyé au <strong>{rPhone}</strong>. Valide <strong>10 minutes</strong>.
                     </p>
                   </div>
                 </div>
-
-                <div style={{ marginBottom: 16 }}>
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: tx1, marginBottom: 3 }}>Nouveau mot de passe</h2>
-                  <p style={{ fontSize: 12, color: tx2 }}>Saisissez le code reçu et choisissez un nouveau mot de passe.</p>
+                <div style={{ marginBottom:18 }}>
+                  <h2 style={{ fontSize:22, fontWeight:800, color:tx1, marginBottom:4 }}>Nouveau mot de passe</h2>
+                  <p style={{ fontSize:12.5, color:tx2 }}>Saisissez le code reçu et choisissez un nouveau mot de passe.</p>
                 </div>
-
                 <ErrorBox msg={rError} />
-                <form onSubmit={handleOtp} style={{ display: "flex", flexDirection: "column", gap: 10 }} noValidate>
-
-                  {/* Champ OTP — grand et central */}
+                <form onSubmit={handleOtp} style={{ display:"flex", flexDirection:"column", gap:12 }} noValidate>
                   <div>
-                    <label style={{ display: "block", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6, color: dark ? "rgba(255,255,255,.6)" : "#374151" }}>
-                      Code OTP (6 chiffres)
-                    </label>
-                    <input
-                      type="text" inputMode="numeric" maxLength={6} value={rOtp}
+                    <input type="text" inputMode="numeric" maxLength={6} value={rOtp}
                       onChange={e => { setROtp(e.target.value.replace(/\D/g,"")); setRError(""); }}
                       placeholder="• • • • • •"
-                      style={{ width: "100%", height: 52, borderRadius: 12, border: rOtp.length===6 ? `2px solid ${T2}` : dark ? "1px solid rgba(255,255,255,.15)" : "1px solid #e5e7eb", background: dark ? "rgba(255,255,255,.08)" : "#f9fafb", color: dark ? "#fff" : "#111827", fontSize: 24, fontWeight: 700, textAlign: "center", letterSpacing: 12, outline: "none", boxSizing: "border-box", transition: "border .15s" }}
-                    />
+                      style={{ width:"100%", height:54, borderRadius:12, boxSizing:"border-box",
+                        border: rOtp.length===6 ? `2px solid ${T2}` : dark?"1px solid rgba(255,255,255,.15)":"1px solid #e2e8f0",
+                        background: dark?"rgba(255,255,255,.06)":"#f8fafc",
+                        color: dark?"#fff":"#0f172a", fontSize:26, fontWeight:700,
+                        textAlign:"center", letterSpacing:14, outline:"none", transition:"border .15s" }} />
                     {rOtp.length > 0 && rOtp.length < 6 && (
-                      <p style={{ fontSize: 10.5, color: "#f59e0b", marginTop: 4 }}>{6 - rOtp.length} chiffre{6-rOtp.length>1?"s":""} restant{6-rOtp.length>1?"s":""}</p>
+                      <p style={{ fontSize:11, color:"#f59e0b", marginTop:4 }}>{6-rOtp.length} chiffre{6-rOtp.length>1?"s":""} restant{6-rOtp.length>1?"s":""}</p>
                     )}
                   </div>
-
-                  {/* Nouveau mot de passe */}
                   <div>
-                    <FieldSm label="Nouveau mot de passe" id="new-password" type={showRPwd ? "text" : "password"} value={rPwd}
+                    <FormInput id="new-password" type={showRPwd?"text":"password"} value={rPwd}
                       onChange={e => { setRPwd(e.target.value); setRError(""); }}
-                      placeholder="Mot de passe fort" dark={dark} icon={iconLock}
-                      right={<EyeBtn show={showRPwd} onToggle={() => setShowRPwd(v => !v)} />} />
+                      placeholder="Nouveau mot de passe" icon={<IcoLock />} dark={dark}
+                      rightEl={<ShowHideBtn show={showRPwd} onToggle={() => setShowRPwd(v => !v)} />} />
                     <StrengthMeter pwd={rPwd} dark={dark} />
                   </div>
-
-                  {/* Confirmer */}
-                  <FieldSm label="Confirmer" id="confirm-password" type={showRConf ? "text" : "password"} value={rConfirm}
+                  <FormInput id="confirm-password" type={showRConf?"text":"password"} value={rConfirm}
                     onChange={e => { setRConfirm(e.target.value); setRError(""); }}
-                    placeholder="Répétez le mot de passe" dark={dark} icon={iconLock}
-                    right={<EyeBtn show={showRConf} onToggle={() => setShowRConf(v => !v)} />}
-                    hint={rConfirm ? (rPwd===rConfirm ? "✓ Correspondent" : "✗ Ne correspondent pas") : ""}
-                    hintColor={rConfirm ? (rPwd===rConfirm ? T2 : "#ef4444") : undefined} />
-
+                    placeholder="Confirmer le mot de passe" icon={<IcoLock />} dark={dark}
+                    rightEl={<ShowHideBtn show={showRConf} onToggle={() => setShowRConf(v => !v)} />} />
+                  {rConfirm && (
+                    <p style={{ fontSize:11.5, marginTop:-8, color: rPwd===rConfirm ? T2 : "#ef4444" }}>
+                      {rPwd===rConfirm ? "✓ Mots de passe identiques" : "✗ Ne correspondent pas"}
+                    </p>
+                  )}
                   <BtnPrimary label="Confirmer et réinitialiser" loadingLabel="Vérification…" isLoading={rLoading}
                     disabled={rOtp.length!==6 || !rPwd || !rConfirm || rPwd!==rConfirm || getStrength(rPwd).score < 2} />
-
-                  {/* Renvoyer le code */}
-                  <p style={{ textAlign: "center", fontSize: 11.5, color: tx3 }}>
+                  <p style={{ textAlign:"center", fontSize:12, color:tx3 }}>
                     Pas reçu ?{" "}
                     <button type="button" onClick={() => setView("reset")}
-                      style={{ fontSize: 11.5, fontWeight: 600, color: T2, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                      style={{ fontSize:12, fontWeight:700, color:T2, background:"none", border:"none", cursor:"pointer", padding:0 }}>
                       Renvoyer le code
                     </button>
                   </p>
@@ -465,29 +538,29 @@ export default function AdminLogin() {
               </>
             )}
 
-            {/* ── SENT ── */}
+            {/* ── VUE SENT ── */}
             {view === "sent" && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 18, padding: "20px 0" }}>
-                <div style={{ width: 68, height: 68, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: `rgba(51,153,145,.15)`, border: `2px solid rgba(51,153,145,.35)` }}>
-                  <svg width="30" height="30" fill="none" stroke={T2} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", gap:20, padding:"30px 0" }}>
+                <div style={{ width:72, height:72, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
+                  background:`linear-gradient(135deg, ${T1}, ${T2})`, boxShadow:"0 8px 24px rgba(0,158,130,.4)" }}>
+                  <svg width="32" height="32" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
                 <div>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, color: tx1, marginBottom: 8 }}>Mot de passe mis à jour !</h2>
-                  <p style={{ fontSize: 13.5, color: tx2, lineHeight: 1.6 }}>Modifié avec succès. Vous pouvez maintenant vous connecter.</p>
+                  <h2 style={{ fontSize:24, fontWeight:800, color:tx1, marginBottom:10 }}>Mot de passe mis à jour !</h2>
+                  <p style={{ fontSize:14, color:tx2, lineHeight:1.6 }}>Modifié avec succès. Vous pouvez maintenant vous connecter.</p>
                 </div>
-                <button onClick={() => { setView("login"); setREmail(""); setRPhone(""); setRPwd(""); setRConfirm(""); }}
-                  style={{ fontSize: 14, fontWeight: 700, color: T2, background: "none", border: "none", cursor: "pointer" }}>
-                  ← Aller à la connexion
-                </button>
+                <BtnPrimary label="Aller à la connexion" loadingLabel="" isLoading={false}
+                  type="button"
+                  onClick={() => { setView("login"); setREmail(""); setRPhone(""); setRPwd(""); setRConfirm(""); }} />
               </div>
             )}
 
-            <p style={{ textAlign: "center", fontSize: 11, color: tx3, marginTop: 22 }}>
+            <p style={{ textAlign:"center", fontSize:11, color:tx3, marginTop:20 }}>
               © {new Date().getFullYear()} PneumoIA · Tous droits réservés
             </p>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
     </div>
   );
 }

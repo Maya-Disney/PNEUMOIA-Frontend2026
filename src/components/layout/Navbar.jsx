@@ -1,16 +1,18 @@
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Sun, Moon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoginModal from '../../components/modals/LoginModal';
 import RegisterModal from '../../components/modals/RegisterModal';
 import logo from '../../assets/images/logo.png';
+import { useTheme } from '../../features/medecin/contexts/ThemeContext';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   const navItems = [
     { id: 'accueil', label: 'Accueil', path: '' },
@@ -37,7 +39,7 @@ export default function Navbar() {
         className="fixed top-0 left-0 right-0 bg-[var(--sf)] z-50 border-b border-[var(--ln)] transition-colors duration-300"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-17">
             {/* Logo - lien vers accueil */}
             <Link to="/" className="shrink-0">
               <motion.div 
@@ -49,21 +51,21 @@ export default function Navbar() {
                 <img 
                   src={logo} 
                   alt="PneumoDiag" 
-                  className="w-18 h-18 object-contain"
+                  className="w-23 h-23 object-contain"
                 />
               </motion.div>
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
+            <div className="hidden md:flex items-center gap-10">
               {navItems.map((item) => (
                 <Link
                   key={item.id}
                   to={item.path}
-                  className={`relative px-2 py-2 text-sm font-medium transition-colors ${
+                  className={`relative px-2 py-2 text-base font-semibold transition-colors ${
                       activeNav === item.id
                         ? 'text-blue-600'
-                        : 'text-[var(--t2)] hover:text-blue-600'
+                        : 'text-(--t2) hover:text-blue-600'
                     }`}
                 >
                   {item.label}
@@ -79,12 +81,12 @@ export default function Navbar() {
             </div>
 
             {/* Desktop Buttons */}
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-4">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsLoginOpen(true)}
-                className="px-5 py-2 text-[var(--t2)] hover:text-blue-600 transition-colors font-medium"
+                className="px-6 py-2.5 text-base text-(--t2) hover:text-blue-600 transition-colors font-semibold"
               >
                 Connexion
               </motion.button>
@@ -92,19 +94,38 @@ export default function Navbar() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsRegisterOpen(true)}
-                className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm text-base font-semibold"
               >
                 Inscription
               </motion.button>
+              {/* Bouton dark/light — après Inscription */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleTheme}
+                aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                className="p-2 rounded-lg text-(--t2) hover:text-blue-600 hover:bg-(--sf2) transition-colors"
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </motion.button>
             </div>
 
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-[var(--sf3)]"
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+            {/* Mobile: bouton dark/light + menu burger */}
+            <div className="md:hidden flex items-center gap-1">
+              <button
+                onClick={toggleTheme}
+                aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                className="p-2 rounded-lg hover:bg-(--sf3) text-(--t2) transition-colors"
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 rounded-lg hover:bg-(--sf3)"
+              >
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -116,18 +137,28 @@ export default function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="fixed top-0 right-0 h-full w-80 bg-[var(--sf)] shadow-2xl md:hidden z-50 border-l border-[var(--ln)]"
+              className="fixed top-0 right-0 h-full w-80 bg-(--sf) shadow-2xl md:hidden z-50 border-l border-(--ln)"
             >
               <div className="flex flex-col h-full">
                 {/* Header du menu mobile */}
                 <div className="flex justify-between items-center p-4 border-b border-(--ln)">
                   <h2 className="text-lg font-semibold text-(--t1)">Menu</h2>
-                  <button
-                    onClick={() => setIsMenuOpen(false)}
-                    className="p-2 rounded-lg hover:bg-(--sf2)"
-                  >
-                    <X className="w-6 h-6 text-(--t2)" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Bouton dark/light mobile */}
+                    <button
+                      onClick={toggleTheme}
+                      aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+                      className="p-2 rounded-lg hover:bg-(--sf2) text-(--t2) hover:text-blue-600 transition-colors"
+                    >
+                      {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    </button>
+                    <button
+                      onClick={() => setIsMenuOpen(false)}
+                      className="p-2 rounded-lg hover:bg-(--sf2)"
+                    >
+                      <X className="w-6 h-6 text-(--t2)" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Contenu du menu - Liens de navigation */}

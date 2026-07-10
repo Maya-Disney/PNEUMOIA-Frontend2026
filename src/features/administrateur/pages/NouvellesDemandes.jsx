@@ -1,78 +1,23 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { getDemandes, validerMedecin, rejeterMedecin } from "../api/adminApi";
 import { useOutletContext } from "react-router-dom";
+import { useAdminTheme } from "../context/useAdminTheme";
 import * as XLSX from "xlsx";
-import { Download, Eye, CheckCircle, XCircle, FileText } from "lucide-react";
+import { Download, Eye, CheckCircle, XCircle, FileText, MoreVertical, RefreshCw } from "lucide-react";
+import { brand, getSurface, getText } from "../theme";
+import {
+  TableContainer, Th, Tr, Td, EmptyCell, PersonCell,
+  MutedText, SubtleText, StatusText, PaginationBar, PaginationSelect, PaginationButton,
+} from "../components/ui/Table";
 
-const BRAND = "#0f766e";
-// ── Helpers date ───────────────────────────────────────────────────────────────
+import { mapMedecin, elapsedStr, pad } from "../api/demandesData";
+
 const JOURS = ["dim.","lun.","mar.","mer.","jeu.","ven.","sam."];
 const MOIS  = ["jan","fév","mar","avr","mai","juin","juil","août","sep","oct","nov","déc"];
-const pad   = (n) => String(n).padStart(2, "0");
 
 function formatFull(d) {
   return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
-function elapsedStr(d) {
-  const dm = Math.floor((Date.now() - d.getTime()) / 60000);
-  const dh = Math.floor(dm / 60);
-  const dd = Math.floor(dh / 24);
-  if (dm < 60) return `Il y a ${dm} min`;
-  if (dh < 24) return `Il y a ${dh}h${pad(dm % 60)}`;
-  return `Il y a ${dd}j ${dh % 24}h`;
-}
-
-// ── Mocks ─────────────────────────────────────────────────────────────────────
-const NOW = new Date();
-const sub = (ms) => new Date(NOW.getTime() - ms);
-
-const MOCK = [
-  {
-    id:1, initials:"DK", avatarBg:"#1D9E75",
-    name:"Dr. Kamga Denis", specialite:"Pneumologue",
-    hopital:"H. Central, Yaoundé", ville:"Yaoundé",
-    email:"kamga.denis@pneumo.cm", telephone:"+237 698 001 234",
-    cnom:"CM-2025-4401", submittedAt:sub(2*3600*1000), status:"en_attente",
-    documents:[
-      {label:"Diplôme de spécialisation en pneumologie", status:"verified"},
-      {label:"Diplôme de docteur en médecine",           status:"verified"},
-      {label:"Inscription à l'ordre des médecins",       status:"pending"},
-      {label:"Autorisation d'exercice",                  status:"verified"},
-      {label:"Carte professionnelle de médecin",         status:"missing"},
-      {label:"Carte nationale d'identité (CNI)",         status:"verified"},
-    ],
-  },
-  {
-    id:2, initials:"AN", avatarBg:"#7C3AED",
-    name:"Dr. Abena Nkolo", specialite:"Pneumologue",
-    hopital:"H. Laquintinie, Douala", ville:"Douala",
-    email:"abena.nkolo@pnm.cm", telephone:"+237 677 555 021",
-    cnom:"CM-2025-4398", submittedAt:sub(5*3600*1000), status:"en_attente",
-    documents:[
-      {label:"Diplôme de spécialisation en pneumologie", status:"verified"},
-      {label:"Diplôme de docteur en médecine",           status:"verified"},
-      {label:"Inscription à l'ordre des médecins",       status:"verified"},
-      {label:"Autorisation d'exercice",                  status:"verified"},
-      {label:"Carte professionnelle de médecin",         status:"verified"},
-      {label:"Carte nationale d'identité (CNI)",         status:"verified"},
-    ],
-  },
-  {
-    id:3, initials:"MB", avatarBg:"#D97706",
-    name:"Dr. Mbala Berthe", specialite:"Pneumologue",
-    hopital:"CHU, Bafoussam", ville:"Bafoussam",
-    email:"mbala.berthe@chu-baf.cm", telephone:"+237 655 300 887",
-    cnom:"CM-2025-4410", submittedAt:sub(24*3600*1000), status:"en_attente",
-    documents:[
-      {label:"Diplôme de spécialisation en pneumologie", status:"verified"},
-      {label:"Diplôme de docteur en médecine",           status:"pending"},
-      {label:"Inscription à l'ordre des médecins",       status:"verified"},
-      {label:"Autorisation d'exercice",                  status:"pending"},
-      {label:"Carte professionnelle de médecin",         status:"verified"},
-      {label:"Carte nationale d'identité (CNI)",         status:"verified"},
-    ],
-  },
-];
 
 const DOC_CFG = {
   verified:{label:"Vérifié",    cls:"bg-emerald-100 text-emerald-800 border-emerald-300 font-bold"},
@@ -80,100 +25,93 @@ const DOC_CFG = {
   missing: {label:"Manquant",   cls:"bg-red-100 text-red-700 border-red-300 font-bold"},
 };
 
-const MOTIFS = ["— Choisir un motif —","N° CNOM invalide ou introuvable","Spécialité non couverte","Documents manquants ou expirés","Informations incohérentes","Dossier incomplet","Autre"];
+const MOTIFS = [
+  "— Choisir un motif —",
+  "Documents incomplets",
+  "Documents flous / illisibles",
+  "Document bientôt périmé",
+  "Document expiré",
+  "N° CNOM invalide ou introuvable",
+  "Photo d'identité non conforme",
+  "Informations incohérentes",
+  "Signature manquante",
+  "Autre",
+];
 
 function docState(doc) {
-  // "ok" uniquement si tous les documents ont été vérifiés par l'admin
   if (doc.documents.every(d => d.status==="verified")) return "ok";
   if (doc.documents.some(d => d.status==="verified")) return "partial";
   return "wait";
 }
 
-function avatarColor(str) {
-  const colors = ["#1D9E75","#185FA5","#7C3AED","#DC2626","#D97706","#0891B2"];
-  let h = 0;
-  for (let i=0; i<str.length; i++) h = str.charCodeAt(i)+((h<<5)-h);
-  return colors[Math.abs(h) % colors.length];
-}
 
-function mapMedecin(m) {
-  return {
-    id:          m.id,
-    initials:    `${(m.prenom?.[0]||"").toUpperCase()}${(m.nom?.[0]||"").toUpperCase()}`,
-    name:        `${m.civilite||"Dr."} ${m.prenom} ${m.nom}`,
-    specialite:  m.specialite || "Pneumologue",
-    hopital:     m.etablissement || "—",
-    ville:       "—",
-    email:       m.email,
-    telephone:   m.telephone || "—",
-    cnom:        m.numero_rpps || "—",
-    photo_url:   m.photo_url || null,
-    submittedAt: new Date(m.created_at),
-    status:      m.statut || "en_attente",   // ← backend retourne "en_attente"
-    avatarBg:    avatarColor(`${m.prenom}${m.nom}`),
-    documents:   (m.documents || []).map(d => ({
-      label:  d.label,
-      url:    d.url,
-      status: "pending",   // l'admin part de zéro à chaque ouverture
-    })),
-  };
-}
-
-// ── Modal générique ────────────────────────────────────────────────────────────
 function Modal({ onClose, title, sub: subtitle, wide, children, footer, dark }) {
+  const surface = getSurface(dark);
+  const txt     = getText(dark);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
       onClick={e => e.target===e.currentTarget && onClose()}>
-      <div className={`w-full ${wide?"max-w-2xl":"max-w-lg"} max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden
-        ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-200"}`}>
-        <div className={`flex items-center justify-between px-5 py-4 border-b shrink-0 ${dark?"border-[#21262d]":"border-gray-100"}`}>
+      <div className={`w-full ${wide?"max-w-2xl":"max-w-lg"} max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden`}
+        style={{ background: surface.card, borderColor: surface.border }}>
+        <div className="flex items-center justify-between px-5 py-4 border-b shrink-0" style={{ borderColor: surface.border }}>
           <div>
-            <p className={`text-[13px] font-bold ${dark?"text-white":"text-gray-800"}`}>{title}</p>
-            {subtitle && <p className={`text-[10px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{subtitle}</p>}
+            <p className="text-[15px] font-bold" style={{ color: txt.primary }}>{title}</p>
+            {subtitle && <p className="text-[14px] mt-0.5" style={{ color: txt.subtle }}>{subtitle}</p>}
           </div>
-          <button onClick={onClose} className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${dark?"text-[#484f58] hover:bg-[#21262d]":"text-gray-400 hover:bg-gray-100"}`}>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
+            style={{ color: txt.subtle }}
+            onMouseEnter={e=>{e.currentTarget.style.background=surface.bg;}}
+            onMouseLeave={e=>{e.currentTarget.style.background="";}}>
             <XCircle size={13}/>
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className={`shrink-0 flex gap-2 px-5 py-4 border-t ${dark?"border-[#21262d]":"border-gray-100"}`}>{footer}</div>}
+        {footer && <div className="shrink-0 flex gap-2 px-5 py-4 border-t" style={{ borderColor: surface.border }}>{footer}</div>}
       </div>
     </div>
   );
 }
 
-// ── Modal photo CNI ────────────────────────────────────────────────────────────
 function ModaleProfil({ doc: m, onClose, dark }) {
+  const surface = getSurface(dark);
+  const txt     = getText(dark);
   return (
-    <Modal dark={dark} onClose={onClose} title={m.name} sub="Photo d'identité (CNI)"
-      footer={<button onClick={onClose} className={`flex-1 py-2 rounded-xl text-[12px] font-semibold border transition-colors ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>Fermer</button>}>
-      <div className="flex flex-col items-center gap-4 py-4">
+    <Modal dark={dark} onClose={onClose} title={m.name} sub="Photo d'identité (CNI)" wide
+      footer={
+        <button onClick={onClose} className="flex-1 py-2 rounded-xl text-[14px] font-semibold border transition-colors"
+          style={{ borderColor: surface.border, color: txt.muted }}
+          onMouseEnter={e=>{e.currentTarget.style.background=surface.bg;}}
+          onMouseLeave={e=>{e.currentTarget.style.background="";}}>
+          Fermer
+        </button>
+      }>
+      <div className="flex flex-col items-center gap-4">
         {m.photo_url
           ? <img src={m.photo_url} alt={m.name}
-              className="w-36 h-36 rounded-full object-cover border-2 border-gray-200 shadow" />
-          : <div className={`w-36 h-36 rounded-full flex flex-col items-center justify-center gap-2 border-2 border-dashed ${dark?"border-[#21262d] bg-[#0d1117] text-[#484f58]":"border-gray-200 bg-gray-50 text-gray-300"}`}>
+              className="w-full max-h-[42vh] rounded-xl object-contain border-2 border-gray-200 shadow" />
+          : <div className="w-full h-44 rounded-xl flex flex-col items-center justify-center gap-2 border-2 border-dashed"
+              style={{ borderColor: surface.border, background: surface.bg, color: txt.subtle }}>
               <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>
-              <span className="text-[10px] text-center px-2">Aucune photo</span>
+              <span className="text-[14px] text-center px-2">Aucune photo</span>
             </div>
         }
         <div className="text-center">
-          <p className={`text-[12px] font-bold ${dark?"text-white":"text-gray-800"}`}>{m.name}</p>
-          <p className={`text-[10px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.specialite} · CNOM {m.cnom}</p>
+          <p className="text-[14px] font-bold" style={{ color: txt.primary }}>{m.name}</p>
+          <p className="text-[14px] mt-0.5" style={{ color: txt.subtle }}>{m.specialite} · CNOM {m.cnom}</p>
         </div>
       </div>
     </Modal>
   );
 }
 
-// ── Modal dossier avec vérification interactive ────────────────────────────────
 function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
-  // État local des documents — l'admin coche chaque document qu'il a vérifié
-  // À l'ouverture : tous les documents sont "à vérifier" — l'admin part de zéro
+  const surface = getSurface(dark);
+  const txt     = getText(dark);
   const [docs,    setDocs]   = useState(m.documents.map(d => ({...d, status: "pending"})));
-  // Trace quels documents ont été ouverts (Voir ou Télécharger)
   const [opened,  setOpened] = useState({});
+  const [apercu,  setApercu] = useState(null);
 
   const verified = docs.filter(d => d.status==="verified").length;
   const total    = docs.length;
@@ -184,7 +122,6 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
   }
 
   function toggleDoc(i) {
-    // Bloqué si le document n'a pas encore été ouvert
     if (!opened[i]) return;
     setDocs(prev => {
       const next = [...prev];
@@ -194,7 +131,6 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
   }
 
   function handleClose() {
-    // Propager les changements au parent pour mettre à jour le compteur
     onUpdateDocs(m.id, docs);
     onClose();
   }
@@ -203,84 +139,60 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
     <Modal dark={dark} onClose={handleClose} title="Dossier de candidature" sub={`${m.name} · ${m.specialite}`} wide
       footer={
         <button onClick={handleClose}
-          className="flex-1 py-2 rounded-xl text-[12px] font-bold text-white transition-opacity hover:opacity-90"
-          style={{background: allOk ? "#0f766e" : "#6b7280"}}>
+          className="flex-1 py-2 rounded-xl text-[14px] font-bold text-white transition-opacity hover:opacity-90"
+          style={{background: allOk ? brand.DEFAULT : "#6b7280"}}>
           {allOk ? "✓ Dossier complet — Fermer" : `Fermer (${verified}/${total} vérifiés)`}
         </button>
       }>
       <div className="flex flex-col gap-3">
 
-        {/* Bandeau statut */}
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[11px] font-medium
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[15px] font-medium
           ${allOk
-            ? (dark?"bg-teal-900/20 border-teal-700/40 text-teal-300":"bg-teal-50 border-teal-200 text-teal-700")
+            ? (dark?"bg-blue-900/20 border-blue-700/40 text-blue-300":"bg-blue-50 border-blue-200 text-blue-800")
             : (dark?"bg-amber-900/20 border-amber-700/40 text-amber-300":"bg-amber-50 border-amber-200 text-amber-700")}`}>
           {allOk
             ? `✓ Tous les documents vérifiés — dossier complet`
             : `${verified}/${total} documents vérifiés — cliquez sur chaque document pour le marquer`}
         </div>
 
-        {/* Infos médecin */}
-        <div className={`rounded-xl border overflow-hidden ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
+        <div className="rounded-xl border overflow-hidden" style={{ background: surface.bg, borderColor: surface.border }}>
           {[{l:"Médecin",v:m.name},{l:"Spécialité",v:m.specialite},{l:"CNOM",v:m.cnom,mono:true},{l:"Établissement",v:m.hopital},{l:"E-mail",v:m.email},{l:"Téléphone",v:m.telephone},{l:"Soumis",v:formatFull(m.submittedAt)}].map(({l,v,mono})=>(
-            <div key={l} className={`flex items-center justify-between px-4 py-2.5 border-b last:border-0 ${dark?"border-[#21262d]":"border-gray-100"}`}>
-              <span className={`text-[11px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{l}</span>
-              <span className={`text-[11px] font-medium ${mono?"font-mono":""} ${dark?"text-[#8b949e]":"text-gray-700"}`}>{v}</span>
+            <div key={l} className="flex items-center justify-between px-4 py-2.5 border-b last:border-0" style={{ borderColor: surface.borderSoft }}>
+              <span className="text-[15px]" style={{ color: txt.subtle }}>{l}</span>
+              <span className={`text-[15px] font-medium ${mono?"font-mono":""}`} style={{ color: txt.secondary }}>{v}</span>
             </div>
           ))}
         </div>
 
-        {/* Documents — cliquables */}
         <div className="flex items-center justify-between">
-          <p className={`text-[10px] font-bold uppercase tracking-wider ${dark?"text-[#484f58]":"text-gray-300"}`}>
+          <p className="text-[14px] font-bold uppercase tracking-wider" style={{ color: txt.subtle }}>
             Pièces justificatives
           </p>
-          <span className={`text-[10px] font-bold ${allOk?"text-teal-600 dark:text-teal-400":"text-amber-600 dark:text-amber-400"}`}>
+          <span className="text-[14px] font-bold" style={{ color: allOk ? brand.DEFAULT : "#d97706" }}>
             {verified}/{total} vérifiés
           </span>
         </div>
 
-        <div className={`rounded-xl border overflow-hidden ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
+        <div className="rounded-xl border overflow-hidden" style={{ background: surface.bg, borderColor: surface.border }}>
           {docs.map((d, i) => {
             const isVerified = d.status === "verified";
-            const isMissing  = false; // L'admin décide, pas le système
             const cfg = DOC_CFG[d.status] || DOC_CFG.missing;
-
-            // URL mock — en prod: d.url fourni par le backend
             const fileUrl = d.url || null;
 
             function handleView(e) {
               e.stopPropagation();
               markOpened(i);
-              if (fileUrl) window.open(fileUrl, "_blank");
-              else alert("Document non disponible — sera accessible après connexion du backend.\nEndpoint : GET /api/admin/demandes/{id}/documents/{index}");
+              setApercu(d);
             }
-            function handleDownload(e) {
-              e.stopPropagation();
-              markOpened(i);
-              if (fileUrl) {
-                const a = document.createElement("a");
-                a.href = fileUrl;
-                a.download = d.label;
-                a.click();
-              } else {
-                alert("Téléchargement disponible après connexion du backend.\nEndpoint : GET /api/admin/demandes/{id}/documents/{index}");
-              }
-            }
-
             return (
-              <div key={i} className={`flex items-center gap-3 px-4 py-3 border-b last:border-0 ${dark?"border-[#21262d]":"border-gray-100"}`}>
+              <div key={i} className="flex items-center gap-3 px-4 py-3 border-b last:border-0" style={{ borderColor: surface.borderSoft }}>
 
-                {/* Checkbox — cliquable seulement après ouverture du document */}
                 <button onClick={() => toggleDoc(i)}
                   title={!opened[i] ? "Ouvrez d'abord le document pour pouvoir le valider" : isVerified ? "Décocher" : "Marquer comme vérifié"}
                   className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all
                     ${!opened[i] ? "cursor-not-allowed opacity-35" : "cursor-pointer"}
-                    ${isVerified
-                      ? "border-teal-500 bg-teal-500"
-                      : opened[i]
-                        ? (dark?"border-[#484f58] bg-[#0d1117] hover:border-teal-500":"border-gray-400 bg-white hover:border-teal-500")
-                        : (dark?"border-[#21262d] bg-[#0d1117]":"border-gray-200 bg-gray-50")}`}>
+                    ${isVerified ? "border-blue-500 bg-blue-500" : "hover:border-blue-500"}`}
+                  style={!isVerified ? { borderColor: opened[i] ? txt.subtle : surface.border, background: surface.bg } : undefined}>
                   {isVerified && (
                     <svg width="11" height="11" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <polyline points="20 6 9 17 4 12"/>
@@ -288,40 +200,28 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
                   )}
                 </button>
 
-                {/* Nom du document + indicateur si pas encore ouvert */}
                 <div className="flex-1 min-w-0">
-                  <span className={`text-[11px] font-medium ${dark?"text-[#8b949e]":"text-gray-600"}`}>{d.label}</span>
+                  <span className="text-[15px] font-medium" style={{ color: txt.secondary }}>{d.label}</span>
                   {!opened[i] && !isVerified && (
-                    <span className={`ml-2 text-[9px] ${dark?"text-[#484f58]":"text-gray-300"}`}>← ouvrir pour valider</span>
+                    <span className="ml-2 text-[15px]" style={{ color: txt.subtle }}>← ouvrir pour valider</span>
                   )}
                 </div>
 
-                {/* Boutons Voir + Télécharger */}
-                {!isMissing && (
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button onClick={handleView}
-                      title="Voir le document"
-                      className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-lg border transition-colors
-                        ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
-                      <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                      </svg>
-                      Voir
-                    </button>
-                    <button onClick={handleDownload}
-                      title="Télécharger le document"
-                      className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-lg border transition-colors
-                        ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-white":"border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
-                      <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                      </svg>
-                      Télécharger
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button onClick={handleView}
+                    title="Voir le document"
+                    className="flex items-center gap-1 px-2 py-1 text-[14px] font-bold rounded-lg border transition-colors"
+                    style={{ borderColor: surface.border, color: txt.muted }}
+                    onMouseEnter={e=>{e.currentTarget.style.background=surface.bg;}}
+                    onMouseLeave={e=>{e.currentTarget.style.background="";}}>
+                    <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Voir
+                  </button>
+                </div>
 
-                {/* Badge statut */}
-                <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${cfg.cls}`}>
+                <span className={`text-[15px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${cfg.cls}`}>
                   {cfg.label}
                 </span>
               </div>
@@ -329,39 +229,117 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
           })}
         </div>
 
-        <p className={`text-[10px] text-center ${dark?"text-[#484f58]":"text-gray-300"}`}>
+        <p className="text-[14px] text-center" style={{ color: txt.subtle }}>
           Cochez chaque document après l'avoir vérifié · Les fichiers sont fournis par le médecin à l'inscription
         </p>
       </div>
+
+      {apercu && <ModaleApercu doc={apercu} dark={dark} onClose={()=>setApercu(null)} />}
     </Modal>
   );
 }
 
-// ── Modal valider ──────────────────────────────────────────────────────────────
-function ModaleValider({ doc: m, onClose, onConfirm, dark }) {
+function isPdf(url, mime) {
+  if (mime) return mime.toLowerCase().includes("pdf");
+  if (!url) return false;
+  return url.toLowerCase().split("?")[0].endsWith(".pdf");
+}
+
+function isOffice(url, mime) {
+  if (mime) {
+    const m = mime.toLowerCase();
+    return m.includes("officedocument") || m.includes("msword") || m.includes("ms-excel") ||
+           m.includes("ms-powerpoint") || m.includes("opendocument");
+  }
+  if (!url) return false;
+  return /\.(docx?|xlsx?|pptx?)$/i.test(url.toLowerCase().split("?")[0]);
+}
+
+function ModaleApercu({ doc: d, onClose, dark }) {
+  const surface = getSurface(dark);
+  const txt     = getText(dark);
+  const fileUrl = d.url || null;
+  const pdf     = isPdf(fileUrl, d.mime);
+  const office  = !pdf && isOffice(fileUrl, d.mime);
+
+  const officeViewerUrl = fileUrl
+    ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`
+    : null;
+
   return (
-    <Modal dark={dark} onClose={onClose} title="Valider l'inscription" sub={m.name}
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black/80" onClick={e => e.target===e.currentTarget && onClose()}>
+      <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ background: surface.card, borderBottom: `1px solid ${surface.border}` }}>
+        <div>
+          <p className="text-[15px] font-bold" style={{ color: txt.primary }}>{d.label}</p>
+          <p className="text-[14px] mt-0.5" style={{ color: txt.subtle }}>Aperçu du document</p>
+        </div>
+        <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
+          style={{ color: txt.subtle }}
+          onMouseEnter={e=>{e.currentTarget.style.background=surface.bg;}}
+          onMouseLeave={e=>{e.currentTarget.style.background="";}}>
+          <XCircle size={18}/>
+        </button>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+        {!fileUrl ? (
+          <div className="flex flex-col items-center gap-3 text-center px-6 py-12 rounded-xl border-2 border-dashed"
+            style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.6)" }}>
+            <svg width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p className="text-[15px]">Document non disponible — connexion backend requise.</p>
+          </div>
+        ) : pdf ? (
+          <iframe src={fileUrl} title={d.label} className="w-full h-full rounded-lg" style={{ background: "#fff", border: "none" }} />
+        ) : office ? (
+          <iframe
+            src={officeViewerUrl}
+            title={d.label}
+            className="w-full h-full rounded-lg"
+            style={{ background: "#fff", border: "none" }}
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-3 text-center px-6 py-12 rounded-xl border-2 border-dashed"
+            style={{ borderColor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.6)" }}>
+            <svg width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p className="text-[15px]">Format non supporté — seuls les fichiers PDF, Word, Excel et PowerPoint sont acceptés.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ModaleValider({ doc: m, onClose, onConfirm, dark }) {
+  const surface = getSurface(dark);
+  const txt     = getText(dark);
+  return (
+    <Modal dark={dark} onClose={onClose} title="Valider la demande" sub={m.name}
       footer={<>
         <button onClick={onClose}
-          className="flex-1 py-2.5 rounded-xl text-[12px] font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+          className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold border transition-colors"
+          style={{ borderColor: surface.border, color: txt.muted }}>
           Annuler
         </button>
         <button onClick={onConfirm}
-          className="flex-1 py-2.5 rounded-xl text-[12px] font-bold text-white hover:opacity-90 transition-opacity"
-          style={{background:BRAND}}>
+          className="flex-1 py-2.5 rounded-xl text-[14px] font-bold text-white hover:opacity-90 transition-opacity"
+          style={{background:brand.DEFAULT}}>
           Confirmer la validation
         </button>
       </>}>
       <div className="flex flex-col gap-3">
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[11px] ${dark?"bg-teal-900/20 border-teal-700/40 text-teal-300":"bg-teal-50 border-teal-200 text-teal-700"}`}>
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-blue-900/20 border-blue-700/40 text-blue-300":"bg-blue-50 border-blue-200 text-blue-800"}`}>
           <CheckCircle size={13} className="shrink-0" />
           <span>Le compte de <strong>{m.name}</strong> sera activé. Un e-mail d'activation lui sera envoyé.</span>
         </div>
-        <div className={`rounded-xl border overflow-hidden ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
+        <div className="rounded-xl border overflow-hidden" style={{ background: surface.bg, borderColor: surface.border }}>
           {[{l:"Médecin",v:m.name},{l:"CNOM",v:m.cnom},{l:"E-mail",v:m.email},{l:"Ville",v:m.ville},{l:"Soumis",v:formatFull(m.submittedAt)}].map(({l,v})=>(
-            <div key={l} className={`flex items-center justify-between px-4 py-2.5 border-b last:border-0 ${dark?"border-[#21262d]":"border-gray-100"}`}>
-              <span className={`text-[11px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{l}</span>
-              <span className={`text-[11px] font-medium ${dark?"text-[#8b949e]":"text-gray-700"}`}>{v}</span>
+            <div key={l} className="flex items-center justify-between px-4 py-2.5 border-b last:border-0" style={{ borderColor: surface.borderSoft }}>
+              <span className="text-[15px]" style={{ color: txt.subtle }}>{l}</span>
+              <span className="text-[15px] font-medium" style={{ color: txt.secondary }}>{v}</span>
             </div>
           ))}
         </div>
@@ -370,63 +348,51 @@ function ModaleValider({ doc: m, onClose, onConfirm, dark }) {
   );
 }
 
-// ── Modal refuser ──────────────────────────────────────────────────────────────
 function ModaleRefuser({ doc: m, onClose, onConfirm, dark }) {
+  const surface = getSurface(dark);
+  const txt     = getText(dark);
   const [motif, setMotif] = useState("");
   const [msg,   setMsg]   = useState("");
   const ok  = motif && motif !== "— Choisir un motif —";
-  const inp = `w-full text-[12px] px-3 py-2 rounded-xl border outline-none transition-colors ${dark?"bg-[#0d1117] border-[#21262d] text-white":"bg-gray-50 border-gray-200 text-gray-800"}`;
+  const inp = `w-full text-[14px] px-3 py-2 rounded-xl border outline-none transition-colors`;
   return (
     <Modal dark={dark} onClose={onClose} title="Refuser la demande" sub={m.name}
       footer={<>
         <button onClick={onClose}
-          className="flex-1 py-2.5 rounded-xl text-[12px] font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+          className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold border transition-colors"
+          style={{ borderColor: surface.border, color: txt.muted }}>
           Annuler
         </button>
         <button onClick={()=>ok&&onConfirm({motif,msg})} disabled={!ok}
-          className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold text-white transition-colors ${ok?"bg-red-600 hover:bg-red-700":"bg-gray-200 text-gray-400 cursor-not-allowed"}`}>
+          className={`flex-1 py-2.5 rounded-xl text-[14px] font-bold text-white transition-colors ${ok?"bg-red-600 hover:bg-red-700":"bg-gray-200 text-gray-400 cursor-not-allowed"}`}>
           Confirmer le refus
         </button>
       </>}>
       <div className="flex flex-col gap-3">
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[11px] ${dark?"bg-red-900/20 border-red-700/40 text-red-300":"bg-red-50 border-red-200 text-red-700"}`}>
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-red-900/20 border-red-700/40 text-red-300":"bg-red-50 border-red-200 text-red-700"}`}>
           <XCircle size={13} className="shrink-0" />
           <span>La demande de <strong>{m.name}</strong> sera refusée. Un e-mail d'information lui sera envoyé.</span>
         </div>
         <div>
-          <label className={`block text-[11px] font-bold mb-1.5 ${dark?"text-[#8b949e]":"text-gray-600"}`}>Motif du refus <span className="text-red-500">*</span></label>
-          <select value={motif} onChange={e=>setMotif(e.target.value)} className={inp}>
+          <label className="block text-[15px] font-bold mb-1.5" style={{ color: txt.muted }}>Motif du refus <span className="text-red-500">*</span></label>
+          <select value={motif} onChange={e=>setMotif(e.target.value)} className={inp} style={{ background: surface.bg, borderColor: surface.border, color: txt.primary }}>
             {MOTIFS.map(r=><option key={r}>{r}</option>)}
           </select>
         </div>
         <div>
-          <label className={`block text-[11px] font-bold mb-1.5 ${dark?"text-[#8b949e]":"text-gray-600"}`}>Message complémentaire (optionnel)</label>
-          <textarea value={msg} onChange={e=>setMsg(e.target.value)} rows={3} placeholder="Explications supplémentaires…" className={`${inp} resize-none`}/>
+          <label className="block text-[15px] font-bold mb-1.5" style={{ color: txt.muted }}>Message complémentaire (optionnel)</label>
+          <textarea value={msg} onChange={e=>setMsg(e.target.value)} rows={3} placeholder="Explications supplémentaires…" className={`${inp} resize-none`} style={{ background: surface.bg, borderColor: surface.border, color: txt.primary }}/>
         </div>
       </div>
     </Modal>
   );
 }
 
-// ── Bouton pagination ─────────────────────────────────────────────────────────
-function PagBtn({ onClick, disabled, label, dark }) {
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className={`w-8 h-8 flex items-center justify-center rounded-lg border text-[11px] transition-colors
-        ${disabled
-          ? dark?"border-[#21262d] text-[#484f58] cursor-not-allowed":"border-gray-100 text-gray-300 cursor-not-allowed"
-          : dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-600 hover:bg-gray-100"}`}>
-      {label}
-    </button>
-  );
-}
-
-// ── Composant principal ───────────────────────────────────────────────────────
 export default function NouvellesDemandes() {
   const { dark } = useOutletContext() || {};
+  const { searchQuery: search } = useAdminTheme();
   const [demandes,       setDemandes]       = useState([]);
   const [loading,        setLoading]        = useState(true);
-  const [search,         setSearch]         = useState("");
   const [sortField,      setSortField]      = useState("submittedAt");
   const [sortDir,        setSortDir]        = useState("desc");
   const [page,           setPage]           = useState(1);
@@ -439,22 +405,34 @@ export default function NouvellesDemandes() {
   const [activationInfo, setActivationInfo] = useState(null);
   const [toast,          setToast]          = useState(null);
 
-  // Horloge
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
   useEffect(() => { const t = setInterval(()=>setClock(new Date()),1000); return ()=>clearInterval(t); }, []);
 
-  // Toast auto-dismiss
   useEffect(() => { if (!toast) return; const t=setTimeout(()=>setToast(null),3500); return ()=>clearTimeout(t); }, [toast]);
 
-  // Chargement API avec fallback mock
+  useEffect(() => {
+    if (openMenuId === null) return;
+    const handleClickOutside = () => setOpenMenuId(null);
+    const timeout = setTimeout(() => {
+      document.addEventListener("click", handleClickOutside);
+    }, 0);
+    return () => {
+      clearTimeout(timeout);
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [openMenuId]);
+
   useEffect(() => {
     setLoading(true);
     getDemandes()
-      .then(data => setDemandes(Array.isArray(data) ? data.map(mapMedecin) : MOCK))
-      .catch(() => setDemandes(MOCK))
+      .then(data => setDemandes(Array.isArray(data) ? data.map(mapMedecin) : []))
+      .catch(() => setDemandes([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [refreshKey]);
 
-  const pending = useMemo(() => demandes, [demandes]); // affiche tous les statuts
+  const pending = useMemo(() => demandes, [demandes]);
 
   const filtered = useMemo(() => {
     let items = pending.filter(d =>
@@ -486,7 +464,7 @@ export default function NouvellesDemandes() {
 
   function SortIcon({ field }) {
     if (sortField!==field) return <span className="ml-1 opacity-30">↕</span>;
-    return <span className="ml-1" style={{color:BRAND}}>{sortDir==="asc"?"↑":"↓"}</span>;
+    return <span className="ml-1" style={{color:brand.DEFAULT}}>{sortDir==="asc"?"↑":"↓"}</span>;
   }
 
   async function handleAction(id, action, extra={}) {
@@ -500,10 +478,12 @@ export default function NouvellesDemandes() {
         const motif = extra.motif || "Dossier incomplet";
         await rejeterMedecin(id, motif);
       }
+      setDemandes(p => p.map(item => item.id === id ? { ...item, status: action } : item));
+      return true;
     } catch(e) {
       console.error("[handleAction]", e.message);
+      return false;
     }
-    setDemandes(p => p.map(item => item.id === id ? { ...item, status: action } : item));
   }
 
   function handleUpdateDocs(id, newDocs) {
@@ -515,11 +495,17 @@ export default function NouvellesDemandes() {
     setToast({msg:`${modaleValider.name} validé — e-mail d'activation envoyé`, type:"success"});
     setModaleValider(null);
   }
-  function handleRefuser({motif, msg}) {
+  async function handleRefuser({motif, msg}) {
+    const nom = modaleRefuser.name;
+    const id  = modaleRefuser.id;
     const motifFull = msg ? `${motif} : ${msg}` : motif;
-    handleAction(modaleRefuser.id, "rejete", {motif:motifFull});
-    setToast({msg:`Demande de ${modaleRefuser.name} refusée`, type:"error"});
     setModaleRefuser(null);
+    const ok = await handleAction(id, "rejete", {motif:motifFull});
+    if (ok) {
+      setToast({msg:`Demande de ${nom} refusée`, type:"error"});
+    } else {
+      setToast({msg:`Erreur : impossible de refuser la demande de ${nom}`, type:"error"});
+    }
   }
 
   function exportExcel() {
@@ -533,229 +519,263 @@ export default function NouvellesDemandes() {
     XLSX.writeFile(wb, `demandes_${new Date().toISOString().slice(0,10)}.xlsx`);
   }
 
-  const th = `px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider border-b select-none cursor-pointer ${dark?"text-[#484f58] border-[#21262d] bg-[#0d1117]/50":"text-gray-400 border-gray-100 bg-gray-50"}`;
-  const td = `px-4 py-3 border-b ${dark?"border-[#21262d]":"border-gray-50"}`;
+  const surface = getSurface(dark);
+  const txt     = getText(dark);
 
   return (
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
-          <h1 className={`text-xl md:text-2xl font-black tracking-tight ${dark?"text-white":"text-gray-900"}`}>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: txt.primary }}>
             Nouvelles demandes
           </h1>
-          <p className={`text-[12px] mt-1 ${dark?"text-[#8b949e]":"text-gray-400"}`}>
+          <p className="text-[14px] mt-1" style={{ color: txt.muted }}>
             {pending.length} demande{pending.length!==1?"s":""} en attente · validation manuelle obligatoire
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <span className={`text-[10px] tabular-nums ${dark?"text-[#484f58]":"text-gray-400"}`}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="hidden md:inline text-[14px] tabular-nums" style={{ color: txt.subtle }}>
             {JOURS[clock.getDay()]} {clock.getDate()} {MOIS[clock.getMonth()]} {clock.getFullYear()}
             &nbsp;{pad(clock.getHours())}:{pad(clock.getMinutes())}:{pad(clock.getSeconds())}
           </span>
           <button onClick={exportExcel}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[12px] font-semibold transition-all border-gray-200 dark:border-[#21262d] text-gray-600 dark:text-[#8b949e]"
-            onMouseEnter={e=>{e.currentTarget.style.background=BRAND;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=BRAND;}}
-            onMouseLeave={e=>{e.currentTarget.style.background="";e.currentTarget.style.color="";e.currentTarget.style.borderColor="";}}>
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all"
+            style={{ borderColor: surface.border, color: txt.muted }}
+            onMouseEnter={e=>{e.currentTarget.style.background=brand.DEFAULT;e.currentTarget.style.color="#fff";e.currentTarget.style.borderColor=brand.DEFAULT;}}
+            onMouseLeave={e=>{e.currentTarget.style.background="";e.currentTarget.style.color=txt.muted;e.currentTarget.style.borderColor=surface.border;}}>
             <Download size={13}/> Export Excel
+          </button>
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            disabled={loading}
+            title="Actualiser"
+            className="p-2 rounded-xl border transition-colors"
+            style={{ borderColor: surface.border, color: txt.muted }}>
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
 
-      {/* Tableau */}
-      <div className={`rounded-2xl border overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-100 shadow-sm"}`}>
+      <div className="rounded-2xl border" style={{ background: surface.card, borderColor: surface.border, boxShadow: dark ? "none" : "0 1px 2px rgba(0,0,0,0.03)" }}>
 
-        {/* Toolbar */}
-        <div className={`flex items-center justify-between gap-4 px-5 py-3 border-b ${dark?"border-[#21262d]":"border-gray-100"}`}>
+        <div className="flex items-center justify-between gap-4 px-5 py-3 border-b" style={{ borderColor: surface.border }}>
           <div className="flex items-center gap-2">
-            <span className={`text-[12px] font-bold ${dark?"text-white":"text-gray-800"}`}>Demandes en attente</span>
-            <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{demandes.filter(d=>d.status==="en_attente").length} en attente</span>
+            <span className="text-[14px] font-bold" style={{ color: txt.primary }}>Demandes en attente</span>
+            <span className="bg-amber-100 text-amber-700 text-[14px] font-bold px-2 py-0.5 rounded-full">{demandes.filter(d=>d.status==="en_attente").length} en attente</span>
           </div>
-          <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}}
-            placeholder="Rechercher par nom, e-mail, CNOM, ville…"
-            className={`w-64 text-[12px] px-3 py-2 rounded-xl border outline-none transition-colors ${dark?"bg-[#0d1117] border-[#21262d] text-white placeholder-[#484f58] focus:border-[#0f766e]":"bg-gray-50 border-gray-200 text-gray-800 placeholder-gray-300 focus:border-[#0f766e]"}`}/>
+          {search && (
+            <span className="text-[13px] font-medium px-2 py-0.5 rounded-lg" style={{ background: `${brand.DEFAULT}18`, color: brand.DEFAULT }}>
+              Recherche : « {search} »
+            </span>
+          )}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse" style={{minWidth:800}}>
+        <div>
+        <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className={`${th} w-10 text-center`}>#</th>
-                <th className={th} onClick={()=>handleSort("name")}>Médecin <SortIcon field="name"/></th>
-                <th className={th}>Contact</th>
-                <th className={th}>Spécialité</th>
-                <th className={th}>Dossier</th>
-                <th className={th} onClick={()=>handleSort("submittedAt")}>Soumis <SortIcon field="submittedAt"/></th>
-                <th className={`${th} text-center`}>Statut</th>
-                <th className={th} style={{minWidth:250}}>Actions</th>
+                <Th dark={dark} center style={{width: 40}}>#</Th>
+                <Th dark={dark} onClick={()=>handleSort("name")}>Médecin <SortIcon field="name"/></Th>
+                <Th dark={dark}>Contact</Th>
+                <Th dark={dark}>Spécialité</Th>
+                <Th dark={dark}>Dossier</Th>
+                <Th dark={dark} onClick={()=>handleSort("submittedAt")}>Soumis <SortIcon field="submittedAt"/></Th>
+                <Th dark={dark} center>Statut</Th>
+                <Th dark={dark} center style={{width: 80}}>Actions</Th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className={`${td} text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Chargement…</td></tr>
+                <EmptyCell dark={dark} colSpan={8}>Chargement…</EmptyCell>
               ) : paginated.length===0 ? (
-                <tr><td colSpan={8} className={`${td} text-center py-14 text-[12px] ${dark?"text-[#484f58]":"text-gray-300"}`}>Aucune demande en attente</td></tr>
+                <EmptyCell dark={dark} colSpan={8}>Aucune demande en attente</EmptyCell>
               ) : paginated.map((doc, i) => {
                 const ds  = docState(doc);
                 const num = (page-1)*perPage+i+1;
+                const canAct = ds === "ok";
+                const isValide   = doc.status === "valide";
+                const isRejete   = doc.status === "rejete";
+                const isMenuOpen = openMenuId === doc.id;
+
                 return (
-                  <tr key={doc.id} className={`transition-colors ${dark?"hover:bg-[#0d1117]/60":"hover:bg-gray-50/80"}`}>
-                    <td className={`${td} text-center text-[10px] ${dark?"text-[#484f58]":"text-gray-300"}`}>{num}</td>
+                  <Tr key={doc.id} dark={dark}>
+                    <Td dark={dark} center><SubtleText dark={dark}>{num}</SubtleText></Td>
 
-                    {/* Médecin — clic avatar → photo CNI */}
-                    <td className={td}>
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] font-black shrink-0 cursor-pointer hover:opacity-75 transition-opacity"
-                          style={{background:doc.avatarBg}} onClick={()=>setModaleProfil(doc)} title="Voir la photo CNI">
-                          {doc.initials}
-                        </div>
-                        <div>
-                          <p className={`text-[12px] font-bold cursor-pointer hover:underline underline-offset-2 ${dark?"text-white":"text-gray-800"}`}
-                            onClick={()=>setModaleProfil(doc)}>{doc.name}</p>
-                          <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{doc.hopital} · {doc.ville}</p>
-                        </div>
-                      </div>
-                    </td>
+                    <Td dark={dark}>
+                      <PersonCell dark={dark} avatarColor={doc.avatarBg} initials={doc.initials}
+                        name={doc.name} subtitle={`${doc.hopital} · ${doc.ville}`} onClick={()=>setModaleProfil(doc)} photoUrl={doc.photo_url} />
+                    </Td>
 
-                    <td className={td}>
-                      <p className={`text-[11px] ${dark?"text-[#8b949e]":"text-gray-600"}`}>{doc.email}</p>
-                      <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{doc.telephone}</p>
-                    </td>
+                    <Td dark={dark}>
+                      <p className="text-[14px]" style={{ color: txt.secondary }}>{doc.email}</p>
+                      <p className="text-[13px] mt-0.5" style={{ color: txt.subtle }}>{doc.telephone}</p>
+                    </Td>
 
-                    <td className={td}>
-                      <p className={`text-[11px] font-medium ${dark?"text-[#8b949e]":"text-gray-700"}`}>{doc.specialite}</p>
-                      <p className={`text-[10px] font-mono ${dark?"text-[#484f58]":"text-gray-400"}`}>{doc.cnom}</p>
-                    </td>
+                    <Td dark={dark}>
+                      <p className="text-[14px] font-medium" style={{ color: txt.muted }}>{doc.specialite}</p>
+                      <p className="text-[13px] font-mono mt-0.5" style={{ color: txt.subtle }}>{doc.cnom}</p>
+                    </Td>
 
-                    <td className={td}>
+                    <Td dark={dark}>
                       <button onClick={()=>setModaleDossier(doc)}
-                        className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border transition-colors
-                          ${ds==="ok"
-                            ? (dark?"border-[#21262d] text-teal-400 hover:bg-teal-900/10":"border-gray-200 text-teal-700 hover:bg-gray-50")
-                            : (dark?"border-[#21262d] text-amber-400 hover:bg-amber-900/10":"border-gray-200 text-amber-600 hover:bg-gray-50")}`}>
-                        <FileText size={10}/>
+                        className="flex items-center gap-1.5 text-[13px] font-bold px-2.5 py-1.5 rounded-lg border transition-colors"
+                        style={ds==="ok"
+                          ? { borderColor: surface.border, color: brand.DEFAULT }
+                          : { borderColor: surface.border, color: "#d97706" }}>
+                        <FileText size={12}/>
                         {doc.documents.filter(d=>d.status==="verified").length}/{doc.documents.length} vérifiés
                       </button>
-                    </td>
+                    </Td>
 
-                    <td className={td}>
-                      <p className={`text-[11px] ${dark?"text-[#8b949e]":"text-gray-600"}`}>{formatFull(doc.submittedAt)}</p>
-                      <p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{elapsedStr(doc.submittedAt)}</p>
-                    </td>
+                    <Td dark={dark}>
+                      <p className="text-[15px]" style={{ color: txt.secondary }}>{formatFull(doc.submittedAt)}</p>
+                      <p className="text-[13px] mt-0.5" style={{ color: txt.subtle }}>{elapsedStr(doc.submittedAt)}</p>
+                    </Td>
 
-
-                    <td className={`${td} text-center`}>
+                    <Td dark={dark} center>
                       {{
-                        "en_attente": (
-                          <span style={{display:"inline-block",padding:"3px 10px",borderRadius:99,fontSize:10,fontWeight:700,background:"#fffbeb",color:"#b45309",border:"1px solid #fde68a",whiteSpace:"nowrap"}}>
-                            En attente
-                          </span>
-                        ),
-                        "valide": (
-                          <span style={{display:"inline-block",padding:"3px 10px",borderRadius:99,fontSize:10,fontWeight:700,background:"#ecfdf5",color:"#065f46",border:"1px solid #6ee7b7",whiteSpace:"nowrap"}}>
-                            Validé
-                          </span>
-                        ),
-                        "rejete": (
-                          <span style={{display:"inline-block",padding:"3px 10px",borderRadius:99,fontSize:10,fontWeight:700,background:"#fef2f2",color:"#991b1b",border:"1px solid #fca5a5",whiteSpace:"nowrap"}}>
-                            Refusé
-                          </span>
-                        ),
-                      }[doc.status] || (
-                        <span style={{display:"inline-block",padding:"3px 10px",borderRadius:99,fontSize:10,fontWeight:700,background:"#f3f4f6",color:"#6b7280",border:"1px solid #e5e7eb",whiteSpace:"nowrap"}}>
-                          Inconnu
-                        </span>
-                      )}
-                    </td>
-                    <td className={td}>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <button onClick={()=>setModaleDossier(doc)}
-                          style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:76,height:28,fontSize:10,fontWeight:700,borderRadius:8,cursor:"pointer",flexShrink:0,border:"1px solid #e5e7eb",background:"#fff",color:"#6b7280"}}>
-                          <Eye size={10}/> Dossier
+                        "en_attente": <StatusText color="warning">En attente</StatusText>,
+                        "valide":     <StatusText color="success">Validé</StatusText>,
+                        "rejete":     <StatusText color="danger">Refusé</StatusText>,
+                      }[doc.status] || <StatusText color="brand">Inconnu</StatusText>}
+                    </Td>
+
+                    <Td dark={dark} center>
+                      <div className="relative flex justify-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(isMenuOpen ? null : doc.id);
+                          }}
+                          title="Actions"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg border transition-all"
+                          style={isMenuOpen
+                            ? { background: surface.bg, borderColor: surface.borderSoft, color: txt.primary, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }
+                            : { borderColor: surface.border, color: txt.muted }}
+                        >
+                          <MoreVertical size={16} />
                         </button>
-                        {ds==="ok"
-                          ? <button onClick={()=>setModaleValider(doc)}
-                              style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:76,height:28,fontSize:10,fontWeight:700,borderRadius:8,cursor:"pointer",flexShrink:0,border:"1px solid #6ee7b7",background:"#ecfdf5",color:"#065f46"}}>
-                              <CheckCircle size={10}/> Valider
+
+                        {isMenuOpen && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-0 top-full mt-1.5 z-30 min-w-[180px] rounded-xl border shadow-xl overflow-hidden"
+                            style={{ background: surface.card, borderColor: surface.border, transformOrigin: "top right" }}
+                          >
+                            <button
+                              onClick={() => {
+                                setModaleDossier(doc);
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] font-medium transition-colors"
+                              style={{ color: txt.secondary }}
+                              onMouseEnter={e=>{e.currentTarget.style.background=surface.bg;}}
+                              onMouseLeave={e=>{e.currentTarget.style.background="";}}
+                            >
+                              <Eye size={14} className="shrink-0" style={{ color: brand.DEFAULT }} />
+                              Voir le dossier
                             </button>
-                          : <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:76,height:28,fontSize:10,borderRadius:8,flexShrink:0,border:"1px solid #e5e7eb",color:"#d1d5db"}}>
-                              Valider
-                            </span>
-                        }
-                        {ds==="ok"
-                          ? <button onClick={()=>setModaleRefuser(doc)}
-                              style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:4,width:76,height:28,fontSize:10,fontWeight:700,borderRadius:8,cursor:"pointer",flexShrink:0,border:"1px solid #fca5a5",background:"#fef2f2",color:"#991b1b"}}>
-                              <XCircle size={10}/> Refuser
+
+                            <div className="border-t" style={{ borderColor: surface.border }} />
+
+                            <button
+                              disabled={!canAct || isRejete}
+                              onClick={() => {
+                                if (!canAct || isRejete) return;
+                                setModaleValider(doc);
+                                setOpenMenuId(null);
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] font-medium transition-colors
+                                ${canAct && !isRejete
+                                  ? (dark?"text-emerald-300 hover:bg-emerald-900/20":"text-emerald-700 hover:bg-emerald-50")
+                                  : "cursor-not-allowed"}`}
+                              style={(!canAct || isRejete) ? { color: txt.subtle } : undefined}
+                            >
+                              <CheckCircle size={14} className="shrink-0" />
+                              <span>Valider</span>
+                              {isValide && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded font-bold" style={{ background: `${brand.DEFAULT}20`, color: brand.DEFAULT }}>Fait</span>}
+                              {isRejete && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded" style={{ background: surface.bg, color: txt.subtle }}>Refusé</span>}
+                              {!canAct && !isValide && !isRejete && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded" style={{ background: surface.bg, color: txt.subtle }}>Incomplet</span>}
                             </button>
-                          : <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:76,height:28,fontSize:10,borderRadius:8,flexShrink:0,border:"1px solid #e5e7eb",color:"#d1d5db"}}>
-                              Refuser
-                            </span>
-                        }
+
+                            <button
+                              disabled={!canAct || isValide}
+                              onClick={() => {
+                                if (!canAct || isValide) return;
+                                setModaleRefuser(doc);
+                                setOpenMenuId(null);
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[14px] font-medium transition-colors
+                                ${canAct && !isValide
+                                  ? (dark?"text-red-400 hover:bg-red-900/20":"text-red-700 hover:bg-red-50")
+                                  : "cursor-not-allowed"}`}
+                              style={(!canAct || isValide) ? { color: txt.subtle } : undefined}
+                            >
+                              <XCircle size={14} className="shrink-0" />
+                              <span>Refuser</span>
+                              {isRejete && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(220,38,38,0.12)", color: "#dc2626" }}>Fait</span>}
+                              {isValide && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded" style={{ background: surface.bg, color: txt.subtle }}>Validé</span>}
+                              {!canAct && !isValide && !isRejete && <span className="ml-auto text-[12px] px-1.5 py-0.5 rounded" style={{ background: surface.bg, color: txt.subtle }}>Incomplet</span>}
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 );
               })}
             </tbody>
-          </table>
+        </table>
         </div>
 
-        {/* Pagination */}
-        <div className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t text-[11px] ${dark?"border-[#21262d] text-[#484f58]":"border-gray-50 text-gray-400"}`}>
-          <span>Affichage {from} à {to} sur {filtered.length} demande{filtered.length>1?"s":""}</span>
-          <div className="flex items-center gap-2">
-            <span>Lignes :</span>
-            <select value={perPage} onChange={e=>{setPerPage(Number(e.target.value));setPage(1);}}
-              className={`text-[11px] px-2 py-1 rounded-lg border outline-none cursor-pointer ${dark?"bg-[#0d1117] border-[#21262d] text-white":"bg-white border-gray-200 text-gray-700"}`}>
-              {[5,10,20,50].map(n=><option key={n} value={n}>{n}</option>)}
-            </select>
-          </div>
-          <div className="flex items-center gap-1">
-            <PagBtn onClick={()=>setPage(1)} disabled={page===1} label="«" dark={dark}/>
-            <PagBtn onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} label="‹" dark={dark}/>
-            {Array.from({length:totalPages},(_,i)=>i+1)
-              .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
-              .reduce((acc,p,idx,arr)=>{if(idx>0&&p-arr[idx-1]>1)acc.push("…"+idx);acc.push(p);return acc;},[])
-              .map(p=>typeof p==="string"
-                ? <span key={p} className="px-1 opacity-30">…</span>
-                : <button key={p} onClick={()=>setPage(p)}
-                    className="w-7 h-7 rounded-lg border text-[11px] font-medium transition-colors"
-                    style={p===page?{background:BRAND,borderColor:BRAND,color:"#fff"}:{}}>{p}</button>
-              )}
-            <PagBtn onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} label="›" dark={dark}/>
-            <PagBtn onClick={()=>setPage(totalPages)} disabled={page===totalPages} label="»" dark={dark}/>
-          </div>
-        </div>
       </div>
 
-      {/* Modales */}
+      <PaginationBar dark={dark}>
+        <span>Affichage {from} à {to} sur {filtered.length} demande{filtered.length>1?"s":""}</span>
+        <div className="flex items-center gap-2">
+          <span>Lignes :</span>
+          <PaginationSelect dark={dark} value={perPage} onChange={e=>{setPerPage(Number(e.target.value));setPage(1);}} />
+        </div>
+        <div className="flex items-center gap-1">
+          <PaginationButton dark={dark} onClick={()=>setPage(1)} disabled={page===1}>«</PaginationButton>
+          <PaginationButton dark={dark} onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}>‹</PaginationButton>
+          {Array.from({length:totalPages},(_,i)=>i+1)
+            .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
+            .reduce((acc,p,idx,arr)=>{if(idx>0&&p-arr[idx-1]>1)acc.push("…"+idx);acc.push(p);return acc;},[])
+            .map(p=>typeof p==="string"
+              ? <span key={p} className="px-1 opacity-30">…</span>
+              : <PaginationButton key={p} dark={dark} onClick={()=>setPage(p)} active={p===page}>{p}</PaginationButton>
+            )}
+          <PaginationButton dark={dark} onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}>›</PaginationButton>
+          <PaginationButton dark={dark} onClick={()=>setPage(totalPages)} disabled={page===totalPages}>»</PaginationButton>
+        </div>
+      </PaginationBar>
+
       {modaleProfil  && <ModaleProfil  doc={modaleProfil}  dark={dark} onClose={()=>setModaleProfil(null)}/>}
       {modaleDossier && <ModaleDossier doc={modaleDossier} dark={dark} onClose={()=>setModaleDossier(null)} onUpdateDocs={handleUpdateDocs}/>}
       {modaleValider && <ModaleValider doc={modaleValider} dark={dark} onClose={()=>setModaleValider(null)} onConfirm={handleValider}/>}
       {modaleRefuser && <ModaleRefuser doc={modaleRefuser} dark={dark} onClose={()=>setModaleRefuser(null)} onConfirm={handleRefuser}/>}
 
-      {/* Popup lien activation fallback */}
       {activationInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className={`w-full max-w-md rounded-2xl border shadow-2xl p-6 ${dark?"bg-[#161b22] border-[#21262d] text-white":"bg-white border-gray-200 text-gray-900"}`}>
-            <p className="font-bold text-[13px] mb-1">E-mail non reçu ?</p>
-            <p className={`text-[11px] mb-3 ${dark?"text-[#484f58]":"text-gray-400"}`}>Copiez ce lien et transmettez-le manuellement à <strong>{activationInfo.email}</strong></p>
-            <div className={`flex items-center gap-2 p-3 rounded-xl border text-[11px] font-mono break-all ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-200"}`}>
+          <div className="w-full max-w-md rounded-2xl border shadow-2xl p-6" style={{ background: surface.card, borderColor: surface.border, color: txt.primary }}>
+            <p className="font-bold text-[15px] mb-1">E-mail non reçu ?</p>
+            <p className="text-[15px] mb-3" style={{ color: txt.subtle }}>Copiez ce lien et transmettez-le manuellement à <strong>{activationInfo.email}</strong></p>
+            <div className="flex items-center gap-2 p-3 rounded-xl border text-[15px] font-mono break-all" style={{ background: surface.bg, borderColor: surface.border }}>
               <span className="flex-1">{activationInfo.lien}</span>
               <button onClick={()=>navigator.clipboard.writeText(activationInfo.lien)}
-                className="shrink-0 px-2 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700">Copier</button>
+                className="shrink-0 px-2 py-1 bg-blue-600 text-white rounded-lg text-[14px] font-bold hover:bg-blue-700">Copier</button>
             </div>
             <button onClick={()=>setActivationInfo(null)}
-              className="mt-4 w-full py-2 rounded-xl text-[12px] font-bold text-white transition-colors"
-              style={{background:BRAND}}>Fermer</button>
+              className="mt-4 w-full py-2 rounded-xl text-[14px] font-bold text-white transition-colors"
+              style={{background:brand.DEFAULT}}>Fermer</button>
           </div>
         </div>
       )}
 
-      {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[12px] font-semibold text-white ${toast.type==="success"?"bg-teal-600":"bg-red-600"}`}>
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white ${toast.type==="success"?"bg-blue-700":"bg-red-600"}`}>
           {toast.msg}
         </div>
       )}

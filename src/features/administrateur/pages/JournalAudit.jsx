@@ -1,97 +1,370 @@
-import { useState, useCallback, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Trash2, X, AlertTriangle } from "lucide-react";
+import * as XLSX from "xlsx";
+import { Download, Search, ChevronLeft, ChevronRight, Trash2, X, AlertTriangle, Activity, CheckCircle2, XCircle, ShieldAlert, RefreshCw } from "lucide-react";
+import { brand, getSurface, getText } from "../theme";
+import {
+  Th, Tr, Td, EmptyCell, MutedText, SubtleText, PaginationBar,
+} from "../components/ui/Table";
+import { getAuditLogs, purgerAuditLogs } from "../api/adminApi";
 
-const BRAND="#0f766e";
-const NOW=new Date();
-const sub=(ms)=>new Date(NOW.getTime()-ms);
-const pad=(n)=>String(n).padStart(2,"0");
-function fmtDT(d){return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+const pad = (n) => String(n).padStart(2, "0");
+function fmtDT(d) { return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+function elapsed(d) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const eventDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dm = Math.floor((Date.now() - d) / 60000);
+  const dh = Math.floor(dm / 60);
+  if (dm < 60) return `${dm} min`;
+  if (eventDay.getTime() === today.getTime()) return `${dh}h`;
+  if (eventDay.getTime() === yesterday.getTime()) return "Hier";
+  const dd = Math.round((today - eventDay) / 86400000);
+  return `${dd}j`;
+}
 
-const MOCK=[
-  {id:1,initials:"DM",nom:"Dr. Mbang",specialite:"Pneumologue",hopital:"Clinique Sud, Douala",cnom:"CM-2020-0345",raison:"Signalement d'un confrère — comportement non conforme",duree:"30 jours",dureeType:"limitee",suspenduLe:sub(24*3600000),suspenduPar:"Super Admin"},
-];
+const TYPES = ["Tous","Connexion","Validation","Suspension","Consultation","Système","Erreur"];
+const STATUT_CFG = {
+  success: { cls:"bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/25", dot:"bg-emerald-500 dark:bg-emerald-400", label:"Succès"  },
+  warning: { cls:"bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/25",           dot:"bg-amber-500 dark:bg-amber-400",   label:"Warning" },
+  danger:  { cls:"bg-rose-50 dark:bg-rose-900/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800/25",                 dot:"bg-rose-500 dark:bg-rose-400",     label:"Erreur"  },
+  info:    { cls:"bg-slate-50 dark:bg-slate-800/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/30",            dot:"bg-slate-400 dark:bg-slate-500",   label:"Info"    },
+};
 
-function Modal({onClose,title,children,footer}){
-  return(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#161b22] border border-gray-200 dark:border-[#21262d] shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-[#21262d]">
-          <p className="text-[13px] font-bold text-gray-800 dark:text-white">{title}</p>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 dark:text-[#484f58] hover:bg-gray-100 dark:hover:bg-[#21262d]"><X size={13}/></button>
+function matchType(l, t) {
+  if (t === "Tous") return true;
+  if (t === "Connexion") return l.action.toLowerCase().includes("connexion");
+  if (t === "Validation") return l.action.toLowerCase().includes("valid") || l.action.toLowerCase().includes("rejeté");
+  if (t === "Suspension") return l.action.toLowerCase().includes("suspendu");
+  if (t === "Consultation") return l.action.toLowerCase().includes("consultation") || l.action.toLowerCase().includes("cas");
+  if (t === "Système") return l.role === "Système" || l.action === "erreur_systeme" || l.action.toLowerCase().includes("mis à jour") || l.action.toLowerCase().includes("sauvegarde") || l.action.toLowerCase().includes("paramètre");
+  if (t === "Erreur") return l.statut === "danger" || l.action === "erreur_systeme" || l.action === "compte_bloque_tentatives";
+  return true;
+}
+
+const ROLE_BADGE = {
+  Admin:   "bg-violet-50 text-violet-600 border border-violet-200 dark:bg-violet-900/10 dark:text-violet-400 dark:border-violet-800/25",
+  Médecin: "bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-900/10 dark:text-sky-400 dark:border-sky-800/25",
+  Système: "bg-zinc-100 text-zinc-500 border border-zinc-200 dark:bg-zinc-800/20 dark:text-zinc-400 dark:border-zinc-700/30",
+  default: "bg-gray-50 text-gray-400 border border-gray-200 dark:bg-gray-800/10 dark:text-gray-500 dark:border-gray-700/20",
+};
+
+function RoleBadge({ role }) {
+  const cls = ROLE_BADGE[role] ?? ROLE_BADGE.default;
+  return <span className={`text-[12px] font-medium px-2.5 py-0.5 rounded-md ${cls}`}>{role}</span>;
+}
+
+function CleanModal({ dark, onClean, onClose, lastClean }) {
+  const fmtDate = (iso) => {
+    if (!iso) return "Jamais";
+    const d = new Date(iso);
+    return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+  };
+
+  const opts = [
+    { label: "Entrées de plus de 7 jours",  days: 7,  color: "text-orange-600" },
+    { label: "Entrées de plus de 30 jours", days: 30, color: "text-orange-500" },
+    { label: "Tout effacer",                days: 0,  color: "text-red-600"    },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]" onClick={onClose}>
+      <div
+        onClick={e => e.stopPropagation()}
+        className={`w-[340px] rounded-2xl shadow-xl border p-5 flex flex-col gap-4 ${dark ? "bg-[#161b22] border-[#21262d] text-white" : "bg-white border-gray-200 text-gray-900"}`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Trash2 size={16} className="text-red-500" />
+            <span className="font-bold text-[15px]">Nettoyer le journal</span>
+          </div>
+          <button onClick={onClose} className={`w-7 h-7 flex items-center justify-center rounded-lg ${dark ? "hover:bg-[#21262d]" : "hover:bg-gray-100"}`}><X size={14} /></button>
         </div>
-        <div className="px-5 py-4">{children}</div>
-        {footer&&<div className="flex gap-2 px-5 py-4 border-t border-gray-100 dark:border-[#21262d]">{footer}</div>}
+
+        <div className={`flex items-center gap-2 text-[13px] px-3 py-2 rounded-xl ${dark ? "bg-[#21262d]" : "bg-gray-50"}`}>
+          <AlertTriangle size={13} className="text-orange-500 shrink-0" />
+          <span className={dark ? "text-[#8b949e]" : "text-gray-500"}>
+            Dernier nettoyage&nbsp;: <strong>{fmtDate(lastClean)}</strong>
+          </span>
+        </div>
+
+        <p className={`text-[13px] ${dark ? "text-[#8b949e]" : "text-gray-400"}`}>
+          Choisissez quelles entrées supprimer. Cette action est irréversible.
+        </p>
+
+        <div className="flex flex-col gap-2">
+          {opts.map(o => (
+            <button
+              key={o.days}
+              onClick={() => onClean(o.days)}
+              className={`flex items-center justify-between px-4 py-2.5 rounded-xl border text-[14px] font-semibold transition-colors ${dark ? "border-[#21262d] hover:bg-[#21262d]" : "border-gray-200 hover:bg-gray-50"}`}
+            >
+              <span>{o.label}</span>
+              <span className={o.color}>{o.days === 0 ? "Tout" : `> ${o.days}j`}</span>
+            </button>
+          ))}
+        </div>
+
+        <p className={`text-[12px] text-center ${dark ? "text-[#484f58]" : "text-gray-300"}`}>
+          Nettoyage automatique chaque semaine activé
+        </p>
       </div>
     </div>
   );
 }
 
-export default function MedecinsSuspendus(){
-  const {dark}=useOutletContext()||{};
-  const [suspendus,setSuspendus]=useState(MOCK);
-  const [modaleSuppr,setModaleSuppr]=useState(null);
-  const [toast,setToast]=useState(null);
+function normalizeLog(l) {
+  return {
+    id:     l.id,
+    date:   l.date instanceof Date ? l.date : new Date(/Z$|[+-]\d{2}:?\d{2}$/.test(l.date) ? l.date : l.date + "Z"),
+    acteur: l.acteur,
+    role:   l.role,
+    action: l.action,
+    cible:  l.cible,
+    ip:     l.ip,
+    ville:  l.ville,
+    statut: l.statut,
+  };
+}
 
-  useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(null),3000);return()=>clearTimeout(t);},[toast]);
+export default function JournalAudit() {
+  const { dark } = useOutletContext() || {};
+  const [search, setSearch] = useState("");
+  const [type, setType] = useState("Tous");
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showClean, setShowClean] = useState(false);
+  const [lastClean,  setLastClean]  = useState(() => localStorage.getItem("auditLastClean") || null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const PER_PAGE = 8;
 
-  function reactiver(id){setSuspendus(p=>p.filter(m=>m.id!==id));setToast({msg:"Compte réactivé",type:"success"});}
-  function supprimer(){setSuspendus(p=>p.filter(m=>m.id!==modaleSuppr.id));setToast({msg:`Compte de ${modaleSuppr.nom} supprimé`,type:"error"});setModaleSuppr(null);}
+  useEffect(() => {
+    setLoading(true);
+    getAuditLogs()
+      .then(res => {
+        const entries = Array.isArray(res) ? res : (res?.logs ?? []);
+        setData(entries.map(normalizeLog));
+      })
+      .catch(() => setData([]))
+      .finally(() => setLoading(false));
+  }, [refreshKey]);
 
-  const th=`px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider border-b ${dark?"text-[#484f58] border-[#21262d] bg-[#0d1117]/50":"text-gray-400 border-gray-100 bg-gray-50"}`;
-  const td=`px-4 py-3 border-b ${dark?"border-[#21262d]":"border-gray-50"}`;
+  async function handleClean(days) {
+    try {
+      await purgerAuditLogs(days);
+    } catch {}
+    // Recharge les données après purge
+    const res = await getAuditLogs().catch(() => null);
+    const entries = Array.isArray(res) ? res : (res?.logs ?? []);
+    setData(entries.map(normalizeLog));
+    const now = new Date().toISOString();
+    localStorage.setItem("auditLastClean", now);
+    setLastClean(now);
+    setShowClean(false);
+    setPage(1);
+  }
 
-  return(
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return data.filter(l => matchType(l, type) && (!q || l.acteur.toLowerCase().includes(q) || l.action.toLowerCase().includes(q) || l.ip.includes(q) || l.cible.toLowerCase().includes(q)));
+  }, [search, type, data]);
+
+  const total = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const from = filtered.length === 0 ? 0 : (page - 1) * PER_PAGE + 1;
+  const to = Math.min(page * PER_PAGE, filtered.length);
+
+  function exportExcel() {
+    const ws = XLSX.utils.json_to_sheet(filtered.map((l, i) => ({ "#": i + 1, "Date/heure": fmtDT(l.date), Acteur: l.acteur, Rôle: l.role, Action: l.action, Cible: l.cible, IP: l.ip, Ville: l.ville, Statut: STATUT_CFG[l.statut]?.label || l.statut })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Audit");
+    XLSX.writeFile(wb, `audit_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  const txt = getText(dark);
+
+  return (
     <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
-      <div>
-        <h1 className={`text-xl md:text-2xl font-black tracking-tight ${dark?"text-white":"text-gray-900"}`}>Comptes suspendus</h1>
-        <p className={`text-[12px] mt-1 ${dark?"text-[#8b949e]":"text-gray-400"}`}>{suspendus.length} compte{suspendus.length>1?"s":""} suspendu{suspendus.length>1?"s":""}</p>
+      {showClean && (
+        <CleanModal
+          dark={dark}
+          onClean={handleClean}
+          onClose={() => setShowClean(false)}
+          lastClean={lastClean}
+        />
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div>
+          <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${dark ? "text-white" : "text-gray-900"}`}>Journal d'audit</h1>
+          <p className={`text-[15px] mt-1 ${dark ? "text-[#8b949e]" : "text-gray-400"}`}>Traçabilité complète de chaque action</p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            disabled={loading}
+            title="Actualiser"
+            className={`p-2 rounded-xl border transition-colors ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-[#21262d]" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button
+            onClick={() => setShowClean(true)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[14px] font-semibold transition-all ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-red-900/20 hover:border-red-700/40 hover:text-red-400" : "border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-500"}`}
+          >
+            <Trash2 size={13} />Nettoyer
+          </button>
+          <button
+            onClick={exportExcel}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border text-[15px] font-semibold transition-all border-gray-200 dark:border-[#21262d] text-gray-600 dark:text-[#8b949e]"
+            onMouseEnter={e => { e.currentTarget.style.background = brand.DEFAULT; e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = brand.DEFAULT; }}
+            onMouseLeave={e => { e.currentTarget.style.background = ""; e.currentTarget.style.color = ""; e.currentTarget.style.borderColor = ""; }}
+          >
+            <Download size={13} />Export Excel
+          </button>
+        </div>
       </div>
 
-      <div className={`rounded-2xl border overflow-hidden ${dark?"bg-[#161b22] border-[#21262d]":"bg-white border-gray-100 shadow-sm"}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse" style={{minWidth:700}}>
-            <thead><tr>
-              {["Médecin","CNOM","Raison","Durée","Suspendu le","Suspendu par","Actions"].map(h=><th key={h} className={th}>{h}</th>)}
-            </tr></thead>
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          {
+            l: "Total événements",
+            v: data.length,
+            Icon: Activity,
+            num: dark ? "text-white" : "text-gray-800",
+            iconBg: dark ? "bg-slate-800/60 text-slate-400" : "bg-slate-100 text-slate-500",
+          },
+          {
+            l: "Succès",
+            v: data.filter(l => l.statut === "success").length,
+            Icon: CheckCircle2,
+            num: dark ? "text-emerald-400" : "text-emerald-600",
+            iconBg: dark ? "bg-emerald-900/20 text-emerald-400" : "bg-emerald-50 text-emerald-500",
+          },
+          {
+            l: "Erreurs",
+            v: data.filter(l => l.statut === "danger").length,
+            Icon: XCircle,
+            num: dark ? "text-rose-400" : "text-rose-600",
+            iconBg: dark ? "bg-rose-900/20 text-rose-400" : "bg-rose-50 text-rose-500",
+          },
+          {
+            l: "IPs suspectes",
+            v: [...new Set(data.filter(l => l.statut === "danger" && l.ip !== "—").map(l => l.ip))].length,
+            Icon: ShieldAlert,
+            num: dark ? "text-amber-400" : "text-amber-600",
+            iconBg: dark ? "bg-amber-900/20 text-amber-400" : "bg-amber-50 text-amber-500",
+          },
+        ].map(({ l, v, Icon, num, iconBg }) => (
+          <div key={l} className={`rounded-xl border px-4 py-3.5 flex items-center gap-3 ${dark ? "bg-[#161b22] border-[#21262d]" : "bg-white border-gray-100 shadow-sm"}`}>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
+              <Icon size={16} />
+            </div>
+            <div>
+              <p className={`text-xl font-black leading-tight ${num}`}>{v}</p>
+              <p className={`text-[12px] mt-0.5 leading-tight ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{l}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Table card */}
+      <div className={`rounded-2xl border ${dark ? "bg-[#161b22] border-[#21262d]" : "bg-white border-gray-100 shadow-sm"}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 dark:border-[#21262d]">
+          <div className="flex flex-wrap gap-1.5">
+            {TYPES.map(t => (
+              <button
+                key={t}
+                onClick={() => { setType(t); setPage(1); }}
+                className="px-3 py-1 rounded-lg text-[14px] font-semibold border transition-colors"
+                style={
+                  type === t
+                    ? { background: brand.DEFAULT, borderColor: brand.DEFAULT, color: "#fff" }
+                    : { background: dark ? "transparent" : "#fff", borderColor: dark ? "#30363d" : "#e5e7eb", color: dark ? "#6e7681" : "#9ca3af" }
+                }
+              >{t}</button>
+            ))}
+          </div>
+
+          <div className={`flex items-center gap-2 h-8 px-3 rounded-lg border w-full sm:w-56 ${dark ? "bg-[#1c2128] border-[#30363d]" : "bg-gray-50 border-gray-200"}`}>
+            <Search size={12} className={`shrink-0 ${dark ? "text-[#6e7681]" : "text-gray-400"}`} />
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Acteur, action, IP…"
+              className={`flex-1 bg-transparent text-[14px] outline-none ${dark ? "text-[#cdd5de] placeholder-[#6e7681]" : "text-gray-700 placeholder-gray-400"}`}
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col gap-2 p-5">
+            {[1,2,3,4].map(i => <div key={i} className="h-10 rounded-xl animate-pulse" style={{ background: dark ? "#21262d" : "#f3f4f6" }} />)}
+          </div>
+        ) : (
+          <div>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <Th dark={dark}>Date / Heure</Th>
+                <Th dark={dark}>Acteur</Th>
+                <Th dark={dark}>Rôle</Th>
+                <Th dark={dark}>Action</Th>
+                <Th dark={dark}>Cible</Th>
+                <Th dark={dark}>IP</Th>
+                <Th dark={dark}>Statut</Th>
+              </tr>
+            </thead>
             <tbody>
-              {suspendus.length===0
-                ? <tr><td colSpan={7} className={`${td} text-center py-14 text-[12px] text-gray-300 dark:text-[#484f58]`}>Aucun compte suspendu</td></tr>
-                : suspendus.map(m=>(
-                  <tr key={m.id} className={`transition-colors ${dark?"hover:bg-[#0d1117]/60":"hover:bg-gray-50/80"}`}>
-                    <td className={td}>
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${dark?"bg-[#21262d] text-[#8b949e]":"bg-gray-100 text-gray-600"}`}>{m.initials}</div>
-                        <div><p className={`text-[12px] font-bold ${dark?"text-white":"text-gray-800"}`}>{m.nom}</p><p className={`text-[10px] ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.specialite} · {m.hopital}</p></div>
-                      </div>
-                    </td>
-                    <td className={`${td} text-[11px] font-mono ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.cnom}</td>
-                    <td className={`${td} text-[11px] font-medium text-orange-500 dark:text-orange-400 max-w-xs`}>{m.raison}</td>
-                    <td className={td}><span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${m.dureeType==="indefinie"?"bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400":"bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400"}`}>{m.duree}</span></td>
-                    <td className={`${td} text-[11px] ${dark?"text-[#484f58]":"text-gray-400"} whitespace-nowrap`}>{fmtDT(m.suspenduLe)}</td>
-                    <td className={`${td} text-[11px] ${dark?"text-[#8b949e]":"text-gray-500"}`}>{m.suspenduPar}</td>
-                    <td className={td}>
-                      <div className="flex items-center gap-2">
-                        <button onClick={()=>reactiver(m.id)} className="px-3 py-1.5 text-[11px] font-semibold rounded-xl border border-teal-200 dark:border-teal-700/40 text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors">Réactiver</button>
-                        <button onClick={()=>setModaleSuppr(m)} className="px-3 py-1.5 text-[11px] font-semibold rounded-xl border border-red-200 dark:border-red-700/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">Supprimer</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+              {paginated.length === 0
+                ? <EmptyCell dark={dark} colSpan={7}>Aucun événement trouvé</EmptyCell>
+                : paginated.map(l => {
+                    const s = STATUT_CFG[l.statut] || STATUT_CFG.info;
+                    return (
+                      <Tr key={l.id} dark={dark}>
+                        <Td dark={dark}>
+                          <p className="text-[14px] font-mono whitespace-nowrap" style={{ color: txt.secondary }}>{fmtDT(l.date)}</p>
+                          <SubtleText dark={dark}>{elapsed(l.date)}</SubtleText>
+                        </Td>
+                        <Td dark={dark}>
+                          <span className="text-[14px] font-semibold" style={{ color: txt.primary }}>{l.acteur}</span>
+                        </Td>
+                        <Td dark={dark}>
+                          <RoleBadge role={l.role} />
+                        </Td>
+                        <Td dark={dark}>
+                          <p className="truncate text-[14px]" style={{ color: txt.muted, maxWidth: 200 }}>{l.action}</p>
+                        </Td>
+                        <Td dark={dark}>
+                          <p className="truncate text-[14px]" style={{ color: txt.subtle, maxWidth: 140 }}>{l.cible}</p>
+                        </Td>
+                        <Td dark={dark}><MutedText dark={dark} mono>{l.ip}</MutedText></Td>
+                        <Td dark={dark}>
+                          <span className={`flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-0.5 rounded-md border w-fit ${s.cls}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.dot}`} />{s.label}
+                          </span>
+                        </Td>
+                      </Tr>
+                    );
+                  })
               }
             </tbody>
           </table>
-        </div>
+          </div>
+        )}
       </div>
 
-      {modaleSuppr&&<Modal onClose={()=>setModaleSuppr(null)} title="Supprimer le compte"
-        footer={<><button onClick={()=>setModaleSuppr(null)} className={`flex-1 py-2 rounded-xl text-[12px] font-semibold border ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>Annuler</button><button onClick={supprimer} className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[12px] font-bold transition-colors">Supprimer définitivement</button></>}>
-        <div className="flex items-start gap-2 px-4 py-3 rounded-xl border border-red-200 dark:border-red-700/40 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[11px]">
-          <AlertTriangle size={13} className="shrink-0 mt-0.5"/>Supprimer définitivement le compte de <strong className="mx-1">{modaleSuppr.nom}</strong> ? Action irréversible.
+      <PaginationBar dark={dark}>
+        <span>{from}–{to} sur {filtered.length} événement{filtered.length > 1 ? "s" : ""}</span>
+        <div className="flex items-center gap-1">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={`w-7 h-7 flex items-center justify-center rounded-lg border text-[14px] ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-[#21262d]" : "border-gray-200 text-gray-500 hover:bg-gray-100"} disabled:opacity-30 disabled:cursor-not-allowed transition-colors`}><ChevronLeft size={13} /></button>
+          <span className={`text-[14px] px-2 ${dark ? "text-[#8b949e]" : "text-gray-500"}`}>{page}/{total}</span>
+          <button onClick={() => setPage(p => Math.min(total, p + 1))} disabled={page === total} className={`w-7 h-7 flex items-center justify-center rounded-lg border text-[14px] ${dark ? "border-[#21262d] text-[#8b949e] hover:bg-[#21262d]" : "border-gray-200 text-gray-500 hover:bg-gray-100"} disabled:opacity-30 disabled:cursor-not-allowed transition-colors`}><ChevronRight size={13} /></button>
         </div>
-      </Modal>}
-
-      {toast&&<div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[12px] font-semibold text-white ${toast.type==="success"?"bg-emerald-600":"bg-red-600"}`}>{toast.msg}</div>}
+      </PaginationBar>
     </div>
   );
 }

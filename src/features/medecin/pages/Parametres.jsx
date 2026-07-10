@@ -1,298 +1,255 @@
-// src/features/medecin/pages/Settings.jsx
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  User, Bell, Shield, Share2, Lock,
+  User, Bell, Lock, Shield,
   Eye, EyeOff, CheckCircle, AlertCircle,
-  Smartphone, Save, Trash2, X,
-  Download, Loader2, ChevronRight
+  Save, Sun, Moon, Download, Loader2,
+  ChevronRight, Trash2, Globe, Settings,
+  Smartphone, Check, KeyRound,Share2
 } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
+import { useTheme } from '../contexts/ThemeContext';
 
-export default function Settings() {
-  const toast = useToast();
-  const [activeTab, setActiveTab] = useState('compte');
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveError, setSaveError] = useState(false);
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const P  = '#2563eb';
+const P2 = '#1d4ed8';
 
-  // État des paramètres
-  const [settings, setSettings] = useState({
-    compte: {
-      emailNotifications: true,
-      smsNotifications: false,
-      newsletter: true,
-      rappelsConsultations: true,
-      rappelsSuivi: true,
-      langue: 'fr',
-      theme: 'light',
-      timezone: 'Africa/Douala'
-    },
-    confidentialite: {
-      profilPublic: true,
-      visibleDansAnnuaire: true,
-      partageCasAuto: true,
-      anonymisationCas: true,
-      accepteDemandes: true,
-      visibleStats: true
-    },
-    partage: {
-      partageAutomatique: false,
-      partageCommunaute: true,
-      partageReseauxSociaux: false,
-      notificationPartage: true,
-      creditPartage: true,
-      telechargementCas: false
-    },
-    affichage: {
-      compactView: false,
-      showThumbnails: true,
-      defaultView: 'cards',
-      itemsPerPage: 10,
-      sortBy: 'date',
-      sortOrder: 'desc'
-    },
-    notifications: {
-      nouvellesConsultations: true,
-      messagesRecus: true,
-      commentairesCas: true,
-      partagesRecus: true,
-      rappelsSysteme: true,
-      misesAJour: true,
-      evenementsCommunaute: false
-    }
-  });
+const hdrs = () => ({
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${localStorage.getItem('token')}`,
+});
 
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
+const DEFAULT_PREFS = {
+  emailNotifications:          true,
+  smsNotifications:            false,
+  newsletter:                  true,
+  rappelsConsultations:        true,
+  rappelsSuivi:                true,
+  notifNouvellesConsultations: true,
+  notifMessagesRecus:          true,
+  notifCommentairesCas:        true,
+  notifPartagesRecus:          true,
+  notifRappelsSysteme:         true,
+  notifMisesAJour:             true,
+  notifEvenements:             false,
+  langue:                      'fr',
+  timezone:                    'Africa/Douala',
+  compactView:                 false,
+  showThumbnails:              true,
+  defaultView:                 'cards',
+  itemsPerPage:                10,
+  sortBy:                      'date',
+  sortOrder:                   'desc',
+  profilPublic:                true,
+  visibleDansAnnuaire:         true,
+  anonymisationCas:            true,
+  accepteDemandes:             true,
+};
 
-  const [passwordErrors, setPasswordErrors] = useState({});
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+function SectionCard({ icon: Icon, iconCls, title, delay = 0, children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.3 }}
+      className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden shadow-sm"
+    >
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-(--ln)">
+        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${iconCls}`}>
+          <Icon size={15} />
+        </div>
+        <span className="text-sm font-bold text-(--t1)">{title}</span>
+      </div>
+      <div className="divide-y divide-(--ln)">{children}</div>
+    </motion.div>
+  );
+}
 
-  const [sessions, setSessions] = useState([
-    { id: 1, device: 'Chrome sur Windows', browser: 'Chrome', os: 'Windows 11', ip: '192.168.1.1', lastActivity: new Date(), current: true },
-    { id: 2, device: 'Safari sur iPhone', browser: 'Safari', os: 'iOS 17', ip: '192.168.1.2', lastActivity: new Date(Date.now() - 86400000), current: false }
-  ]);
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    setLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const savedSettings = localStorage.getItem('medecin_settings');
-      if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
-      }
-    } catch (error) {
-      console.error('Erreur chargement:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setSaveError(false);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      localStorage.setItem('medecin_settings', JSON.stringify(settings));
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (error) {
-      setSaveError(true);
-      setTimeout(() => setSaveError(false), 3000);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSettingChange = (category, key, value) => {
-    setSettings(prev => ({
-      ...prev,
-      [category]: { ...prev[category], [key]: value }
-    }));
-  };
-
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordData(prev => ({ ...prev, [name]: value }));
-    if (passwordErrors[name]) {
-      setPasswordErrors(prev => ({ ...prev, [name]: '' }));
-    }
-    setPasswordSuccess(false);
-  };
-
-  const validatePassword = () => {
-    const errors = {};
-    if (!passwordData.currentPassword) {
-      errors.currentPassword = 'Mot de passe actuel requis';
-    }
-    if (!passwordData.newPassword) {
-      errors.newPassword = 'Nouveau mot de passe requis';
-    } else if (passwordData.newPassword.length < 8) {
-      errors.newPassword = 'Minimum 8 caractères';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])/.test(passwordData.newPassword)) {
-      errors.newPassword = 'Doit contenir majuscule, minuscule et chiffre';
-    }
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      errors.confirmPassword = 'Les mots de passe ne correspondent pas';
-    }
-    setPasswordErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleUpdatePassword = async () => {
-    if (!validatePassword()) return;
-    setPasswordLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      localStorage.setItem('medecin_password', passwordData.newPassword);
-      setPasswordSuccess(true);
-      setTimeout(() => {
-        setShowPasswordForm(false);
-        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-        setPasswordSuccess(false);
-      }, 2000);
-    } catch (error) {
-      setPasswordErrors({ general: 'Erreur lors du changement' });
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
-
-  const handleLogoutSession = async (sessionId) => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
-    } catch (error) {
-      console.error('Erreur déconnexion session:', error);
-    }
-  };
-
-  const handleExportData = async () => {
-    const exportData = {
-      profile: JSON.parse(localStorage.getItem('medecin_profile') || '{}'),
-      settings: settings,
-      exportDate: new Date().toISOString()
-    };
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `pneumoia_export_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleDeleteAccount = () => {
-    toast.error('Pour supprimer votre compte, contactez le support à contact@pneumoia.cm', { duration: 6000 });
-  };
-
-  const tabs = [
-    { id: 'compte', label: 'Compte', icon: User },
-    { id: 'confidentialite', label: 'Confidentialité', icon: Shield },
-    { id: 'partage', label: 'Partage', icon: Share2 },
-    { id: 'affichage', label: 'Affichage', icon: Eye },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'securite', label: 'Sécurité', icon: Lock }
-  ];
-
-  const SettingToggle = ({ label, description, category, settingKey, value }) => (
-    <div className="flex items-center justify-between py-3 border-b border-(--ln) last:border-0">
-      <div className="flex-1">
-        <p className="text-sm font-medium text-(--t1)">{label}</p>
+function ToggleRow({ label, description, value, onChange }) {
+  return (
+    <div className="flex items-center justify-between px-5 py-4 gap-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-(--t1)">{label}</p>
         {description && <p className="text-xs text-(--t4) mt-0.5">{description}</p>}
       </div>
       <button
-        onClick={() => handleSettingChange(category, settingKey, !value)}
-        className="relative inline-flex h-6 w-11 items-center rounded-full transition-all shrink-0"
-        style={{ backgroundColor: value ? '#2563eb' : '#e2e8f0' }}
+        onClick={() => onChange(!value)}
+        className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 shrink-0"
+        style={{ background: value ? P : 'var(--sf3)' }}
       >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-all ${value ? 'translate-x-6' : 'translate-x-1'}`} />
+        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${value ? 'translate-x-6' : 'translate-x-1'}`} />
       </button>
     </div>
   );
+}
 
-  const SelectSetting = ({ label, category, settingKey, value, options }) => (
-    <div className="flex items-center justify-between py-3 border-b border-(--ln) last:border-0 flex-wrap gap-3">
-      <p className="text-sm font-medium text-(--t1)">{label}</p>
+function SelectRow({ label, value, onChange, options }) {
+  return (
+    <div className="flex items-center justify-between px-5 py-4 gap-4 flex-wrap">
+      <p className="text-sm font-semibold text-(--t1)">{label}</p>
       <select
-        value={value}
-        onChange={(e) => handleSettingChange(category, settingKey, e.target.value)}
-        className="px-3 py-1.5 text-sm border border-(--ln) rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-(--sf) text-(--t1)"
+        value={value} onChange={e => onChange(e.target.value)}
+        className="px-3 py-1.5 text-sm border border-(--ln) rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-(--sf) text-(--t1)"
       >
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </div>
   );
+}
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-      </div>
-    );
-  }
+const TABS = [
+  { id: 'compte',          label: 'Compte',           icon: User    },
+  { id: 'notifications',   label: 'Notifications',    icon: Bell    },
+  { id: 'confidentialite', label: 'Confidentialité',  icon: Shield  },
+  { id: 'affichage',       label: 'Affichage',        icon: Eye     },
+  { id: 'securite',        label: 'Sécurité',         icon: Lock    },
+];
+
+export default function Parametres() {
+  const toast = useToast();
+  const { theme, toggleTheme } = useTheme();
+  const [activeTab,   setActiveTab]   = useState('compte');
+  const [loading,     setLoading]     = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [saved,       setSaved]       = useState(false);
+  const [saveErr,     setSaveErr]     = useState(false);
+
+  const [prefs, setPrefs] = useState(DEFAULT_PREFS);
+  const setPref = (key, val) => setPrefs(p => ({ ...p, [key]: val }));
+
+  // Mot de passe
+  const [pwOpen,    setPwOpen]    = useState(false);
+  const [pwData,    setPwData]    = useState({ current: '', next: '', confirm: '' });
+  const [pwErrors,  setPwErrors]  = useState({});
+  const [pwOk,      setPwOk]      = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
+  const [showCur,   setShowCur]   = useState(false);
+  const [showNxt,   setShowNxt]   = useState(false);
+  const [showCfm,   setShowCfm]   = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/medecins/me/preferences`, { headers: hdrs() })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setPrefs({ ...DEFAULT_PREFS, ...d }); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true); setSaveErr(false);
+    try {
+      const res  = await fetch(`${API_URL}/medecins/me/preferences`, {
+        method: 'PATCH', headers: hdrs(), body: JSON.stringify(prefs),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Erreur');
+      setPrefs(data);
+      localStorage.setItem('medecin_prefs', JSON.stringify(data));
+      window.dispatchEvent(new CustomEvent('pneumoia-prefs-updated', { detail: data }));
+      setSaved(true); setTimeout(() => setSaved(false), 3000);
+    } catch {
+      setSaveErr(true); setTimeout(() => setSaveErr(false), 3000);
+    } finally { setSaving(false); }
+  };
+
+  const handleUpdatePassword = async () => {
+    const errs = {};
+    if (!pwData.current) errs.current = 'Requis';
+    if (!pwData.next) errs.next = 'Requis';
+    else if (pwData.next.length < 8) errs.next = 'Minimum 8 caractères';
+    if (pwData.next !== pwData.confirm) errs.confirm = 'Ne correspond pas';
+    setPwErrors(errs);
+    if (Object.keys(errs).length) return;
+
+    setPwLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/change-password`, {
+        method: 'PATCH', headers: hdrs(),
+        body: JSON.stringify({ current_password: pwData.current, new_password: pwData.next }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        setPwErrors({ general: d.detail || 'Erreur' });
+        return;
+      }
+      setPwOk(true);
+      setTimeout(() => { setPwOpen(false); setPwData({ current:'',next:'',confirm:'' }); setPwOk(false); }, 2000);
+    } catch { setPwErrors({ general: 'Erreur réseau' }); }
+    finally { setPwLoading(false); }
+  };
+
+  const handleExportData = () => {
+    const blob = new Blob([JSON.stringify({ preferences: prefs, exportDate: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `pneumoia_export_${new Date().toISOString().split('T')[0]}.json` });
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+
+  const inp = (hasErr) =>
+    `w-full px-3.5 py-2.5 bg-(--sf2) border rounded-xl text-sm text-(--t1) placeholder:text-(--t4) focus:outline-none focus:ring-2 focus:border-blue-400 transition-all pr-10 ${hasErr ? 'border-red-400' : 'border-(--ln)'}`;
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-8 h-8 animate-spin" style={{ color: P }} />
+    </div>
+  );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 px-4 sm:px-0">
-      {/* En-tête */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-(--t1)">Paramètres</h1>
-          <p className="text-sm text-(--t3) mt-1">Gérez vos préférences et options de la plateforme</p>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-all"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-        </button>
-      </div>
+    <div className="space-y-5 w-full">
 
-      {/* Messages */}
-      {saveSuccess && (
-        <div className="flex items-center gap-2 p-3 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300 rounded-xl">
-          <CheckCircle className="w-4 h-4" />
-          Vos paramètres ont été sauvegardés avec succès
+      {/* ── Bannière ─────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        className="relative rounded-2xl overflow-hidden"
+        style={{ background: `linear-gradient(135deg,${P2} 0%,${P} 55%,#3b82f6 100%)`, boxShadow: `0 8px 32px rgba(37,99,235,0.25)` }}
+      >
+        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full opacity-15"
+          style={{ background: 'radial-gradient(circle,#bfdbfe,transparent)' }} />
+        <div style={{ position:'absolute', inset:0, opacity:0.06, backgroundImage:'radial-gradient(circle at 2px 2px,#fff 1px,transparent 0)', backgroundSize:'18px 18px' }} />
+        <div className="relative px-6 py-5 flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+              style={{ background:'rgba(255,255,255,0.18)', border:'1.5px solid rgba(255,255,255,0.28)' }}>
+              <Settings size={20} className="text-white" />
+            </div>
+            <div>
+              <p className="text-blue-200/80 text-[10px] font-black uppercase tracking-widest">Configuration</p>
+              <h1 className="text-xl font-black text-white">Paramètres</h1>
+            </div>
+          </div>
+          <button onClick={handleSave} disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-xl transition-all active:scale-95 disabled:opacity-60"
+            style={{ background:'rgba(255,255,255,0.18)', border:'1.5px solid rgba(255,255,255,0.28)', color:'white' }}>
+            {saving ? <Loader2 size={15} className="animate-spin"/> : <Save size={15}/>}
+            {saving ? 'Sauvegarde…' : 'Sauvegarder'}
+          </button>
         </div>
-      )}
-      {saveError && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 rounded-xl">
-          <AlertCircle className="w-4 h-4" />
-          Une erreur est survenue lors de la sauvegarde
-        </div>
-      )}
+      </motion.div>
 
-      {/* Tabs avec overflow horizontal */}
-      <div className="overflow-x-auto pb-2 -mx-4 px-4">
+      {/* ── Feedback ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {saved && (
+          <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
+            className="flex items-center gap-2.5 p-3.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm font-medium">
+            <Check size={15} className="shrink-0"/> Paramètres sauvegardés avec succès.
+          </motion.div>
+        )}
+        {saveErr && (
+          <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
+            className="flex items-center gap-2.5 p-3.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl text-red-700 dark:text-red-300 text-sm font-medium">
+            <AlertCircle size={15} className="shrink-0"/> Erreur lors de la sauvegarde.
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Tabs ──────────────────────────────────────────── */}
+      <div className="overflow-x-auto -mx-1 px-1">
         <div className="flex gap-1 border-b border-(--ln) min-w-max">
-          {tabs.map(tab => {
-            const Icon = tab.icon;
+          {TABS.map(tab => {
+            const Icon     = tab.icon;
             const isActive = activeTab === tab.id;
             return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all relative whitespace-nowrap ${isActive ? 'text-blue-600' : 'text-(--t3) hover:text-(--t1)'}`}
-              >
-                <Icon className="w-4 h-4" />
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all relative whitespace-nowrap ${isActive ? 'text-blue-600' : 'text-(--t3) hover:text-(--t1)'}`}>
+                <Icon size={14} />
                 {tab.label}
                 {isActive && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />}
               </button>
@@ -301,259 +258,202 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Contenu - Version simplifiée sans erreur jsx */}
-      <div className="bg-(--sf) rounded-xl border border-(--ln) overflow-hidden">
-        {/* Compte */}
-        {activeTab === 'compte' && (
-          <div>
-            <div className="p-5 border-b border-(--ln)">
-              <h3 className="font-semibold text-(--t1) mb-4">Préférences générales</h3>
-              <SelectSetting label="Langue" category="compte" settingKey="langue" value={settings.compte.langue} options={[{ value: 'fr', label: 'Français' }, { value: 'en', label: 'English' }]} />
-              <SelectSetting label="Fuseau horaire" category="compte" settingKey="timezone" value={settings.compte.timezone} options={[{ value: 'Africa/Douala', label: 'Afrique/Douala (GMT+1)' }, { value: 'Europe/Paris', label: 'Europe/Paris' }]} />
-            </div>
-            <div className="p-5">
-              <h3 className="font-semibold text-(--t1) mb-4">Notifications</h3>
-              <SettingToggle label="Notifications par email" description="Recevoir les notifications importantes par email" category="compte" settingKey="emailNotifications" value={settings.compte.emailNotifications} />
-              <SettingToggle label="Notifications par SMS" description="Recevoir les alertes par SMS" category="compte" settingKey="smsNotifications" value={settings.compte.smsNotifications} />
-              <SettingToggle label="Newsletter" description="Recevoir la newsletter mensuelle" category="compte" settingKey="newsletter" value={settings.compte.newsletter} />
-              <SettingToggle label="Rappels de consultations" description="Recevoir des rappels pour les consultations à venir" category="compte" settingKey="rappelsConsultations" value={settings.compte.rappelsConsultations} />
-              <SettingToggle label="Rappels de suivi" description="Recevoir des rappels pour le suivi des patients" category="compte" settingKey="rappelsSuivi" value={settings.compte.rappelsSuivi} />
-            </div>
-          </div>
-        )}
+      {/* ══ COMPTE ═══════════════════════════════════════════ */}
+      {activeTab === 'compte' && (
+        <div className="space-y-4">
+          <SectionCard icon={Globe} iconCls="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:bg-indigo-400" title="Préférences générales" delay={0.05}>
+            <SelectRow label="Langue" value={prefs.langue} onChange={v => setPref('langue', v)}
+              options={[{ value:'fr', label:'Français' }, { value:'en', label:'English' }]} />
+            <SelectRow label="Fuseau horaire" value={prefs.timezone} onChange={v => setPref('timezone', v)}
+              options={[{ value:'Africa/Douala', label:'Afrique/Douala (GMT+1)' }, { value:'Europe/Paris', label:'Europe/Paris (GMT+1/+2)' }]} />
+          </SectionCard>
 
-        {/* Confidentialité */}
-        {activeTab === 'confidentialite' && (
-          <div className="p-5">
-            <h3 className="font-semibold text-(--t1) mb-4">Visibilité</h3>
-            <SettingToggle label="Profil public" description="Votre profil est visible par les autres médecins" category="confidentialite" settingKey="profilPublic" value={settings.confidentialite.profilPublic} />
-            <SettingToggle label="Visible dans l'annuaire" description="Apparaître dans l'annuaire des médecins" category="confidentialite" settingKey="visibleDansAnnuaire" value={settings.confidentialite.visibleDansAnnuaire} />
-            <SettingToggle label="Statistiques visibles" description="Les autres médecins voient vos statistiques" category="confidentialite" settingKey="visibleStats" value={settings.confidentialite.visibleStats} />
-            <h3 className="font-semibold text-(--t1) mt-6 mb-4">Cas cliniques</h3>
-            <SettingToggle label="Partage automatique" description="Partager automatiquement vos cas dans la communauté" category="confidentialite" settingKey="partageCasAuto" value={settings.confidentialite.partageCasAuto} />
-            <SettingToggle label="Anonymisation des cas" description="Anonymiser automatiquement les données patients" category="confidentialite" settingKey="anonymisationCas" value={settings.confidentialite.anonymisationCas} />
-            <SettingToggle label="Accepter les demandes" description="Accepter les demandes de collaboration" category="confidentialite" settingKey="accepteDemandes" value={settings.confidentialite.accepteDemandes} />
-          </div>
-        )}
+          <SectionCard icon={Bell} iconCls="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" title="Communications email" delay={0.10}>
+            <ToggleRow label="Notifications par email" description="Recevoir les alertes non-critiques par email (hors OTP de connexion)" value={prefs.emailNotifications} onChange={v => setPref('emailNotifications', v)} />
+            <ToggleRow label="Newsletter mensuelle" description="Recevoir la newsletter PneumoIA chaque mois" value={prefs.newsletter} onChange={v => setPref('newsletter', v)} />
+            <ToggleRow label="Rappels de consultations" description="Emails de rappel avant vos consultations planifiées" value={prefs.rappelsConsultations} onChange={v => setPref('rappelsConsultations', v)} />
+            <ToggleRow label="Rappels de suivi patients" description="Emails de rappel pour le suivi de vos patients" value={prefs.rappelsSuivi} onChange={v => setPref('rappelsSuivi', v)} />
+          </SectionCard>
+        </div>
+      )}
 
-        {/* Partage */}
-        {activeTab === 'partage' && (
-          <div className="p-5">
-            <h3 className="font-semibold text-(--t1) mb-4">Options de partage</h3>
-            <SettingToggle label="Partage automatique" description="Partager automatiquement vos publications" category="partage" settingKey="partageAutomatique" value={settings.partage.partageAutomatique} />
-            <SettingToggle label="Partage communauté" description="Partager avec la communauté médicale" category="partage" settingKey="partageCommunaute" value={settings.partage.partageCommunaute} />
-            <SettingToggle label="Partage réseaux sociaux" description="Partager sur les réseaux sociaux" category="partage" settingKey="partageReseauxSociaux" value={settings.partage.partageReseauxSociaux} />
-            <SettingToggle label="Notification de partage" description="Être notifié quand vos contenus sont partagés" category="partage" settingKey="notificationPartage" value={settings.partage.notificationPartage} />
-            <SettingToggle label="Crédit de partage" description="Afficher votre nom lors des partages" category="partage" settingKey="creditPartage" value={settings.partage.creditPartage} />
-            <SettingToggle label="Téléchargement des cas" description="Permettre le téléchargement de vos cas" category="partage" settingKey="telechargementCas" value={settings.partage.telechargementCas} />
-          </div>
-        )}
+      {/* ══ NOTIFICATIONS ════════════════════════════════════ */}
+      {activeTab === 'notifications' && (
+        <div className="space-y-4">
+          <SectionCard icon={Bell} iconCls="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" title="Notifications plateforme" delay={0.05}>
+            <ToggleRow
+              label="Notifications plateforme (global)"
+              description="Désactiver pour ne plus recevoir aucune notification dans l'interface PneumoIA"
+              value={prefs.notifRappelsSysteme}
+              onChange={v => setPref('notifRappelsSysteme', v)}
+            />
+            <ToggleRow label="Nouvelles consultations" description="Notification lors d'une nouvelle consultation ajoutée" value={prefs.notifNouvellesConsultations} onChange={v => setPref('notifNouvellesConsultations', v)} />
+            <ToggleRow label="Messages reçus" description="Notification pour les nouveaux messages dans le canal équipe" value={prefs.notifMessagesRecus} onChange={v => setPref('notifMessagesRecus', v)} />
+            <ToggleRow label="Commentaires sur cas" description="Notification quand quelqu'un commente vos cas cliniques" value={prefs.notifCommentairesCas} onChange={v => setPref('notifCommentairesCas', v)} />
+            <ToggleRow label="Partages reçus" description="Notification quand vos contenus sont partagés" value={prefs.notifPartagesRecus} onChange={v => setPref('notifPartagesRecus', v)} />
+            <ToggleRow label="Mises à jour" description="Notifications pour les nouvelles fonctionnalités PneumoIA" value={prefs.notifMisesAJour} onChange={v => setPref('notifMisesAJour', v)} />
+            <ToggleRow label="Événements communauté" description="Notifications pour les événements médicaux" value={prefs.notifEvenements} onChange={v => setPref('notifEvenements', v)} />
+          </SectionCard>
+        </div>
+      )}
 
-        {/* Affichage */}
-        {activeTab === 'affichage' && (
-          <div className="p-5">
-            <h3 className="font-semibold text-(--t1) mb-4">Préférences d'affichage</h3>
-            <SettingToggle label="Vue compacte" description="Afficher plus d'informations par écran" category="affichage" settingKey="compactView" value={settings.affichage.compactView} />
-            <SettingToggle label="Afficher les miniatures" description="Afficher les aperçus des images" category="affichage" settingKey="showThumbnails" value={settings.affichage.showThumbnails} />
-            <SelectSetting label="Vue par défaut" category="affichage" settingKey="defaultView" value={settings.affichage.defaultView} options={[{ value: 'cards', label: 'Cartes' }, { value: 'list', label: 'Liste' }]} />
-            <SelectSetting label="Éléments par page" category="affichage" settingKey="itemsPerPage" value={settings.affichage.itemsPerPage} options={[{ value: 10, label: '10' }, { value: 20, label: '20' }, { value: 50, label: '50' }]} />
-            <SelectSetting label="Trier par" category="affichage" settingKey="sortBy" value={settings.affichage.sortBy} options={[{ value: 'date', label: 'Date' }, { value: 'name', label: 'Nom' }, { value: 'status', label: 'Statut' }]} />
-            <SelectSetting label="Ordre de tri" category="affichage" settingKey="sortOrder" value={settings.affichage.sortOrder} options={[{ value: 'desc', label: 'Décroissant' }, { value: 'asc', label: 'Croissant' }]} />
-          </div>
-        )}
+      {/* ══ CONFIDENTIALITÉ ══════════════════════════════════ */}
+      {activeTab === 'confidentialite' && (
+        <div className="space-y-4">
+          <SectionCard icon={Shield} iconCls="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" title="Visibilité" delay={0.05}>
+            <ToggleRow label="Profil public" description="Votre profil est visible par les autres médecins de la plateforme" value={prefs.profilPublic} onChange={v => setPref('profilPublic', v)} />
+            <ToggleRow label="Visible dans l'annuaire" description="Apparaître dans l'annuaire des médecins PneumoIA" value={prefs.visibleDansAnnuaire} onChange={v => setPref('visibleDansAnnuaire', v)} />
+          </SectionCard>
 
-        {/* Notifications */}
-        {activeTab === 'notifications' && (
-          <div className="p-5">
-            <h3 className="font-semibold text-(--t1) mb-4">Types de notifications</h3>
-            <SettingToggle label="Nouvelles consultations" description="Notification lors d'une nouvelle consultation" category="notifications" settingKey="nouvellesConsultations" value={settings.notifications.nouvellesConsultations} />
-            <SettingToggle label="Messages reçus" description="Notification pour les nouveaux messages" category="notifications" settingKey="messagesRecus" value={settings.notifications.messagesRecus} />
-            <SettingToggle label="Commentaires sur cas" description="Notification pour les commentaires sur vos cas" category="notifications" settingKey="commentairesCas" value={settings.notifications.commentairesCas} />
-            <SettingToggle label="Partages reçus" description="Notification quand vos contenus sont partagés" category="notifications" settingKey="partagesRecus" value={settings.notifications.partagesRecus} />
-            <SettingToggle label="Rappels système" description="Notifications système importantes" category="notifications" settingKey="rappelsSysteme" value={settings.notifications.rappelsSysteme} />
-            <SettingToggle label="Mises à jour" description="Notifications pour les mises à jour de la plateforme" category="notifications" settingKey="misesAJour" value={settings.notifications.misesAJour} />
-            <SettingToggle label="Événements communauté" description="Notifications pour les événements de la communauté" category="notifications" settingKey="evenementsCommunaute" value={settings.notifications.evenementsCommunaute} />
-          </div>
-        )}
+          <SectionCard icon={Share2} iconCls="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400" title="Cas cliniques & Partage" delay={0.10}>
+            <ToggleRow label="Anonymisation des cas" description="Anonymiser automatiquement les données patients dans les cas partagés" value={prefs.anonymisationCas} onChange={v => setPref('anonymisationCas', v)} />
+            <ToggleRow label="Accepter les demandes de collaboration" description="Recevoir des demandes de collaboration d'autres médecins" value={prefs.accepteDemandes} onChange={v => setPref('accepteDemandes', v)} />
+            <ToggleRow label="Notification de partage" description="Être notifié quand vos publications sont partagées" value={prefs.notifPartagesRecus} onChange={v => setPref('notifPartagesRecus', v)} />
+          </SectionCard>
+        </div>
+      )}
 
-        {/* Sécurité */}
-        {activeTab === 'securite' && (
-          <div className="divide-y divide-slate-100">
-            {/* Changement mot de passe */}
-            <div className="p-5">
-              <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-                <div>
-                  <h3 className="font-semibold text-(--t1)">Mot de passe</h3>
-                  <p className="text-xs text-(--t4)">Modifier votre mot de passe</p>
-                </div>
-                {!showPasswordForm && (
-                  <button onClick={() => setShowPasswordForm(true)} className="text-sm text-blue-600 hover:underline">
-                    Modifier
-                  </button>
-                )}  
+      {/* ══ AFFICHAGE ════════════════════════════════════════ */}
+      {activeTab === 'affichage' && (
+        <div className="space-y-4">
+          <SectionCard icon={Sun} iconCls="bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400" title="Thème de l'interface" delay={0.05}>
+            <div className="flex items-center justify-between px-5 py-4 gap-4">
+              <div>
+                <p className="text-sm font-semibold text-(--t1)">Thème d'interface</p>
+                <p className="text-xs text-(--t4) mt-0.5">{theme === 'dark' ? 'Mode sombre activé' : 'Mode clair activé'}</p>
               </div>
-              
-              {showPasswordForm && (
-                <div className="space-y-4 mt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-(--t2) mb-1">Mot de passe actuel</label>
-                    <div className="relative">
-                      <input
-                        type={showCurrentPassword ? "text" : "password"}
-                        name="currentPassword"
-                        value={passwordData.currentPassword}
-                        onChange={handlePasswordChange}
-                        className={`w-full px-3 py-2 pr-10 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-(--sf) text-(--t1) ${passwordErrors.currentPassword ? 'border-red-500' : 'border-(--ln)'}`}
-                        placeholder="Entrez votre mot de passe actuel"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2"
-                      >
-                        {showCurrentPassword ? <EyeOff className="w-4 h-4 text-slate-400" /> : <Eye className="w-4 h-4 text-slate-400" />}
-                      </button>
-                    </div>
-                    {passwordErrors.currentPassword && <p className="text-xs text-red-500 mt-1">{passwordErrors.currentPassword}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-(--t2) mb-1">Nouveau mot de passe</label>
-                    <div className="relative">
-                      <input
-                        type={showNewPassword ? "text" : "password"}
-                        name="newPassword"
-                        value={passwordData.newPassword}
-                        onChange={handlePasswordChange}
-                        className={`w-full px-3 py-2 pr-10 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-(--sf) text-(--t1) ${passwordErrors.newPassword ? 'border-red-500' : 'border-(--ln)'}`}
-                        placeholder="8 caractères minimum"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2"
-                      >
-                        {showNewPassword ? <EyeOff className="w-4 h-4 text-slate-400" /> : <Eye className="w-4 h-4 text-slate-400" />}
-                      </button>
-                    </div>
-                    {passwordErrors.newPassword && <p className="text-xs text-red-500 mt-1">{passwordErrors.newPassword}</p>}
-                    <p className="text-xs text-slate-400 mt-1">Doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-(--t2) mb-1">Confirmer le mot de passe</label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        name="confirmPassword"
-                        value={passwordData.confirmPassword}
-                        onChange={handlePasswordChange}
-                        className={`w-full px-3 py-2 pr-10 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-(--sf) text-(--t1) ${passwordErrors.confirmPassword ? 'border-red-500' : 'border-(--ln)'}`}
-                        placeholder="Répétez le nouveau mot de passe"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2"
-                      >
-                        {showConfirmPassword ? <EyeOff className="w-4 h-4 text-slate-400" /> : <Eye className="w-4 h-4 text-slate-400" />}
-                      </button>
-                    </div>
-                    {passwordErrors.confirmPassword && <p className="text-xs text-red-500 mt-1">{passwordErrors.confirmPassword}</p>}
-                  </div>
-
-                  <div key="settings-content" className="flex gap-3 pt-2" key="loading-state">
-                    <button
-                      onClick={handleUpdatePassword}
-                      disabled={passwordLoading}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Mettre à jour'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowPasswordForm(false);
-                        setPasswordErrors({});
-                        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-                      }}
-                      className="px-4 py-2 border border-(--ln) rounded-lg text-sm font-medium text-(--t2) bg-(--sf) hover:bg-(--sf2) transition-colors"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                  
-                  {passwordSuccess && (
-                    <div className="flex items-center gap-2 p-3 bg-emerald-50 text-emerald-700 rounded-lg text-sm">
-                      <CheckCircle className="w-4 h-4" />
-                      Mot de passe modifié avec succès !
-                    </div>
-                  )}
-                </div>
-              )}
+              <button onClick={toggleTheme}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-(--ln) hover:bg-(--sf2) transition-colors text-sm font-bold text-(--t2)">
+                {theme === 'dark' ? <><Sun size={14}/> Mode clair</> : <><Moon size={14}/> Mode sombre</>}
+              </button>
             </div>
+          </SectionCard>
 
-            {/* Sessions actives */}
-            <div className="p-5">
-            <h3 className="font-semibold text-(--t1) mb-4">Sessions actives</h3>
-              <div className="space-y-3">
-                {sessions.map((session) => (
-                  <div key={session.id} className="flex items-center justify-between p-3 bg-(--sf2) rounded-lg flex-wrap gap-3">
-                    <div className="flex items-center gap-3">
-                      <Smartphone className="w-4 h-4 text-(--t3)" />
-                      <div>
-                        <p className="text-sm font-medium text-(--t1)">{session.device}</p>
-                        <p className="text-xs text-(--t4)">
-                          Dernière activité : {session.lastActivity.toLocaleDateString('fr-FR')}
-                        </p>
+          <SectionCard icon={Eye} iconCls="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400" title="Préférences d'affichage" delay={0.10}>
+            <ToggleRow label="Vue compacte" description="Afficher plus d'informations par écran" value={prefs.compactView} onChange={v => setPref('compactView', v)} />
+            <ToggleRow label="Afficher les miniatures" description="Afficher les aperçus d'images dans les cas cliniques" value={prefs.showThumbnails} onChange={v => setPref('showThumbnails', v)} />
+            <SelectRow label="Vue par défaut" value={prefs.defaultView} onChange={v => setPref('defaultView', v)}
+              options={[{ value:'cards', label:'Cartes' }, { value:'list', label:'Liste' }]} />
+            <SelectRow label="Éléments par page" value={prefs.itemsPerPage} onChange={v => setPref('itemsPerPage', Number(v))}
+              options={[{ value:10, label:'10' }, { value:20, label:'20' }, { value:50, label:'50' }]} />
+            <SelectRow label="Trier par" value={prefs.sortBy} onChange={v => setPref('sortBy', v)}
+              options={[{ value:'date', label:'Date' }, { value:'name', label:'Nom' }, { value:'status', label:'Statut' }]} />
+            <SelectRow label="Ordre" value={prefs.sortOrder} onChange={v => setPref('sortOrder', v)}
+              options={[{ value:'desc', label:'Décroissant' }, { value:'asc', label:'Croissant' }]} />
+          </SectionCard>
+        </div>
+      )}
+
+      {/* ══ SÉCURITÉ ═════════════════════════════════════════ */}
+      {activeTab === 'securite' && (
+        <div className="space-y-4">
+
+          {/* Mot de passe */}
+          <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.05, duration:0.3 }}
+            className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden shadow-sm">
+            <button onClick={() => { setPwOpen(o => !o); setPwErrors({}); }}
+              className="w-full flex items-center gap-3 px-5 py-4 border-b border-(--ln) hover:bg-(--sf2) transition-colors">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
+                <KeyRound size={14} className="text-blue-600 dark:text-blue-400" />
+              </div>
+              <span className="text-sm font-bold text-(--t1) flex-1 text-left">Changer le mot de passe</span>
+              <span className="text-[10px] font-semibold text-(--t4)">{pwOpen ? '▲ Masquer' : '▼ Modifier'}</span>
+            </button>
+            <AnimatePresence>
+              {pwOpen && (
+                <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }} className="overflow-hidden">
+                  <div className="p-5 space-y-4">
+                    <AnimatePresence>
+                      {pwOk && (
+                        <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+                          className="flex items-center gap-2.5 p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm font-medium">
+                          <Check size={14} className="shrink-0"/> Mot de passe modifié avec succès !
+                        </motion.div>
+                      )}
+                      {pwErrors.general && (
+                        <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+                          className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl text-red-700 dark:text-red-300 text-sm">
+                          <AlertCircle size={14} className="shrink-0"/> {pwErrors.general}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    {[
+                      { key:'current',  label:'Mot de passe actuel',             show:showCur, toggle:()=>setShowCur(s=>!s) },
+                      { key:'next',     label:'Nouveau mot de passe',            show:showNxt, toggle:()=>setShowNxt(s=>!s) },
+                      { key:'confirm',  label:'Confirmer le nouveau mot de passe', show:showCfm, toggle:()=>setShowCfm(s=>!s) },
+                    ].map(f => (
+                      <div key={f.key}>
+                        <label className="block text-[10px] font-bold uppercase tracking-widest text-(--t4) mb-1.5">{f.label}</label>
+                        <div className="relative">
+                          <input type={f.show?'text':'password'}
+                            className={inp(!!pwErrors[f.key])}
+                            value={pwData[f.key]}
+                            onChange={e => { setPwData(p=>({...p,[f.key]:e.target.value})); setPwErrors(p=>({...p,[f.key]:''})); }}
+                            placeholder="••••••••" />
+                          <button type="button" onClick={f.toggle}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-(--t4) hover:text-(--t2) transition-colors">
+                            {f.show ? <EyeOff size={15}/> : <Eye size={15}/>}
+                          </button>
+                        </div>
+                        {pwErrors[f.key] && <p className="text-xs text-red-500 mt-1">{pwErrors[f.key]}</p>}
                       </div>
-                    </div>
-                    {session.current ? (
-                      <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">En cours</span>
-                    ) : (
-                      <button
-                        onClick={() => handleLogoutSession(session.id)}
-                        className="text-xs text-red-600 hover:underline"
-                      >
-                        Déconnecter
+                    ))}
+                    <div className="flex gap-3 pt-1">
+                      <button onClick={handleUpdatePassword} disabled={pwLoading}
+                        className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 transition-all active:scale-95"
+                        style={{ background:`linear-gradient(135deg,${P2},${P})`, boxShadow:`0 4px 14px rgba(37,99,235,0.28)` }}>
+                        {pwLoading ? <Loader2 size={14} className="animate-spin"/> : <Lock size={14}/>}
+                        {pwLoading ? 'Mise à jour…' : 'Mettre à jour'}
                       </button>
-                    )}
+                      <button onClick={() => { setPwOpen(false); setPwErrors({}); setPwData({ current:'',next:'',confirm:'' }); }}
+                        className="px-4 py-2.5 text-sm font-semibold text-(--t2) border border-(--ln) rounded-xl hover:bg-(--sf2) transition-colors">
+                        Annuler
+                      </button>
+                    </div>
                   </div>
-                ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Données */}
+          <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.10, duration:0.3 }}
+            className="bg-(--sf) border border-(--ln) rounded-2xl overflow-hidden shadow-sm">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-(--ln)">
+              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-500/10 flex items-center justify-center">
+                <Smartphone size={14} className="text-slate-600 dark:text-slate-400" />
               </div>
+              <span className="text-sm font-bold text-(--t1)">Données & Compte</span>
             </div>
-
-            {/* Export et suppression */}
-            <div className="p-5">
-              <h3 className="font-semibold text-(--t1) mb-4">Données</h3>
-              <button onClick={handleExportData} className="w-full flex items-center justify-between p-3 bg-(--sf2) rounded-lg hover:bg-(--sf2) transition-colors">
+            <div className="divide-y divide-(--ln)">
+              <button onClick={handleExportData}
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-(--sf2) transition-colors text-left">
                 <div className="flex items-center gap-3">
-                  <Download className="w-4 h-4 text-blue-600" />
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-(--t1)">Exporter mes données</p>
-                    <p className="text-xs text-(--t4)">Télécharger toutes vos données personnelles</p>
+                  <Download size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-(--t1)">Exporter mes données</p>
+                    <p className="text-xs text-(--t4)">Télécharger vos préférences en JSON</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-(--t4)" />
+                <ChevronRight size={15} className="text-(--t4)" />
               </button>
-              <button onClick={handleDeleteAccount} className="w-full flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-800 transition-colors mt-3">
+              <button onClick={() => toast.error('Pour supprimer votre compte, contactez le support à contact@pneumoia.cm', { duration: 6000 })}
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-left">
                 <div className="flex items-center gap-3">
-                  <Trash2 className="w-4 h-4 text-red-600 dark:text-red-300" />
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-red-900 dark:text-red-200">Supprimer mon compte</p>
-                    <p className="text-xs text-red-500 dark:text-red-300">Cette action est irréversible</p>
+                  <Trash2 size={15} className="text-red-500 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-600 dark:text-red-400">Supprimer le compte</p>
+                    <p className="text-xs text-red-400">Cette action est irréversible</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-red-400 dark:text-red-300" />
+                <ChevronRight size={15} className="text-red-400" />
               </button>
             </div>
-          </div>
-        )}
-      </div>
+          </motion.div>
+        </div>
+      )}
 
-      {/* Footer */}
-      <div className="text-center text-xs text-(--t4) py-4">
-        Dernière modification : {new Date().toLocaleDateString('fr-FR')}
-      </div>
+      <p className="text-center text-[10px] text-(--t4) pb-4">PneumoIA v2.0 · 2026</p>
     </div>
   );
 }

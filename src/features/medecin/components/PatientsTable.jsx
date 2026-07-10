@@ -1,6 +1,8 @@
 // src/features/medecin/components/PatientsTable.jsx
+import { useState } from 'react';
 import { PatientCard } from './PatientsCard';
 import { useFormatters } from '../hooks/useFormatters';
+import { TablePagination } from '../../../components/ui/TablePagination';
 
 export function PatientsTable({
   patients,
@@ -9,6 +11,11 @@ export function PatientsTable({
   onDeletePatient,
 }) {
   const { formatDate, getInitials } = useFormatters();
+  const [page,     setPage]     = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const total     = patients.length;
+  const from      = (page - 1) * pageSize;
+  const paginated = patients.slice(from, from + pageSize);
 
   if (patients.length === 0) {
     return (
@@ -35,7 +42,7 @@ export function PatientsTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-(--ln)">
-            {patients.map((patient, idx) => (
+            {paginated.map((patient) => (
               <PatientCard
                 key={patient.id}
                 patient={patient}
@@ -49,6 +56,13 @@ export function PatientsTable({
           </tbody>
         </table>
       </div>
+      <TablePagination
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={s => { setPageSize(s); setPage(1); }}
+      />
     </div>
   );
 }

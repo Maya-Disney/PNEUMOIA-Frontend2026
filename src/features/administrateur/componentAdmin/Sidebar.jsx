@@ -1,186 +1,177 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { adminLogout } from "../api/adminApi";
+﻿import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { useNavigate, NavLink } from "react-router-dom";
+import { adminLogout, getMedecinsActifs, countRequetesEnAttente, countComptesBloques } from "../api/adminApi";
 import logo from "../../../assets/images/logo.png";
-import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, UserPlus, UserCheck, UserX,
   Stethoscope, UserMinus, LineChart, BarChart2,
-  Brain, MapPin, FileSearch, Settings, LogOut, Menu, X
+  Brain, MapPin, FileSearch, Settings, LogOut,
+  X, HelpCircle, MessageCircle, Trash2, AlertCircle
 } from "lucide-react";
 
-// ── Palette professionnelle ───────────────────────────────────────────────────
-const BRAND      = "#0f766e";
-const BG_LIGHT   = "#f0faf8";
-const BG_DARK    = "#0a1a18";
+const BRAND    = "#009e82";   // Vert médical
+const BG_LIGHT = "#ffffff";   // Fond sidebar — blanc
+const BG_DARK  = "#0a1a18";   // Fond sidebar — vert nuit
 
-// Item actif
-const ACTIVE_BG_L  = "rgba(255,255,255,0.70)";
-const ACTIVE_TX_L  = "#0c5f58";
-const ACTIVE_BG_D  = "rgba(15,118,110,0.20)";
-const ACTIVE_TX_D  = "#5eead4";
+const ACTIVE_BG_L = "rgba(0,158,130,0.10)";
+const ACTIVE_TX_L = "#007a64";
+const ACTIVE_BG_D = "rgba(0,158,130,0.18)";
+const ACTIVE_TX_D = "#5eead4";
 
-// Item normal
-const ITEM_TX_L  = "#1a4a46";
-const ITEM_TX_D  = "rgba(255,255,255,0.70)";
-const HOVER_BG_L = "rgba(255,255,255,0.45)";
-const HOVER_BG_D = "rgba(255,255,255,0.05)";
+const ITEM_TX_L  = "#374151";
+const ITEM_TX_D  = "rgba(255,255,255,0.72)";
+const HOVER_BG_L = "rgba(0,158,130,0.05)";
+const HOVER_BG_D = "rgba(255,255,255,0.09)";
 
-// Section labels
-const SEC_L = "rgba(15,80,75,0.55)";
-const SEC_D = "rgba(255,255,255,0.30)";
+const SEC_L    = "#94a3b8";
+const SEC_D    = "rgba(255,255,255,0.35)";
+const BORDER_L = "rgba(0,0,0,0.06)";
+const BORDER_D = "rgba(255,255,255,0.08)";
 
-// Bordure séparatrice
-const BORDER_L = "rgba(15,118,110,0.15)";
-const BORDER_D = "rgba(255,255,255,0.07)";
-
-function getNav(counts) { return [
-  {
-    section: null,
-    items: [{ to: "/administrateur/dashboard", icon: LayoutDashboard, label: "Tableau de bord" }]
-  },
-  {
-    section: "Inscriptions",
-    items: [
-      { to: "/administrateur/demandes",  icon: UserPlus,    label: "Nouvelles demandes", badge: counts.demandes, badgeColor: "orange" },
-      { to: "/administrateur/validees",  icon: UserCheck,   label: "Validées ce mois" },
-      { to: "/administrateur/refusees",  icon: UserX,       label: "Refusées" },
-    ]
-  },
-  {
-    section: "Médecins",
-    items: [
-      { to: "/administrateur/medecins",  icon: Stethoscope, label: "Médecins actifs", badge: counts.actifs,    badgeColor: "teal" },
-      { to: "/administrateur/suspendus", icon: UserMinus,   label: "Suspendus" },
-    ]
-  },
-  {
-    section: "Analyse",
-    items: [
-      { to: "/administrateur/activite",     icon: LineChart,  label: "Courbe d'activité"   },
-      { to: "/administrateur/stats",        icon: BarChart2,  label: "Stats consultations" },
-      { to: "/administrateur/performances", icon: Brain,      label: "Performances IA"     },
-      { to: "/administrateur/geo",          icon: MapPin,     label: "Répartition géo"     },
-    ]
-  },
-  {
-    section: "Système",
-    items: [
-      { to: "/administrateur/audit",      icon: FileSearch, label: "Journal d'audit" },
-      { to: "/administrateur/parametres", icon: Settings,   label: "Paramètres"      },
-    ]
-  },
-];
+function getNav(counts) {
+  return [
+    {
+      section: null,
+      items: [
+        { to: "/administrateur/dashboard", icon: LayoutDashboard, label: "Tableau de bord" },
+      ]
+    },
+    {
+      section: "Inscriptions",
+      items: [
+        { to: "/administrateur/demandes", icon: UserPlus,  label: "Nouvelles demandes" },
+        { to: "/administrateur/validees", icon: UserCheck, label: "Validées ce mois" },
+        { to: "/administrateur/refusees", icon: UserX,     label: "Refusées" },
+      ]
+    },
+    {
+      section: "Médecins",
+      items: [
+        { to: "/administrateur/medecins",  icon: Stethoscope,  label: "Médecins",  badge: counts.actifs,   badgeColor: "teal"   },
+        { to: "/administrateur/suspendus", icon: UserMinus,    label: "Suspendus", badge: counts.bloques,  badgeColor: "red"    },
+        { to: "/administrateur/faq",       icon: HelpCircle,   label: "FAQ Médecins" },
+        { to: "/administrateur/requetes",  icon: AlertCircle,  label: "Requêtes Médecins", badge: counts.requetes,  badgeColor: "orange" },
+      ]
+    },
+    {
+      section: "Analyse",
+      items: [
+        { to: "/administrateur/activite",     icon: LineChart, label: "Courbe d'activité"   },
+        { to: "/administrateur/performances", icon: Brain,     label: "Performances IA"     },
+        { to: "/administrateur/geo",          icon: MapPin,    label: "Répartition géo"     },
+      ]
+    },
+    {
+      section: "Système",
+      items: [
+        { to: "/administrateur/commentaires", icon: MessageCircle, label: "Commentaires" },
+        { to: "/administrateur/audit",        icon: FileSearch,    label: "Journal d'audit" },
+        { to: "/administrateur/parametres",   icon: Settings,      label: "Paramètres"      },
+      ]
+    },
+  ];
 }
 
 function getBadgeStyle(color, dark) {
   const styles = {
     light: {
-      teal:   { background: "rgba(255,255,255,0.60)", color: "#0c5f58", border: "1px solid rgba(15,118,110,0.25)" },
-      red:    { background: "rgba(255,255,255,0.60)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.25)" },
-      orange: { background: "rgba(255,255,255,0.60)", color: "#ea580c", border: "1px solid rgba(234,88,12,0.25)" },
+      teal:   { background: "rgba(0,158,130,0.10)",   color: "#007a64", border: "1px solid rgba(0,158,130,0.20)" },
+      red:    { background: "rgba(254,226,226,0.90)", color: "#dc2626", border: "1px solid rgba(220,38,38,0.25)" },
+      orange: { background: "rgba(255,237,213,0.90)", color: "#c2410c", border: "1px solid rgba(234,88,12,0.25)" },
     },
     dark: {
-      teal:   { background: "rgba(20,184,166,.15)", color: "#5eead4", border: "1px solid rgba(20,184,166,.2)" },
-      red:    { background: "rgba(239,68,68,.15)",  color: "#fca5a5", border: "1px solid rgba(239,68,68,.2)"  },
-      orange: { background: "rgba(251,146,60,.15)", color: "#fdba74", border: "1px solid rgba(251,146,60,.2)" },
+      teal:   { background: "rgba(0,158,130,0.20)",   color: "#5eead4", border: "1px solid rgba(0,158,130,0.30)" },
+      red:    { background: "rgba(239,68,68,.15)",    color: "#fca5a5", border: "1px solid rgba(239,68,68,.2)"    },
+      orange: { background: "rgba(251,146,60,.15)",   color: "#fdba74", border: "1px solid rgba(251,146,60,.2)"   },
     },
   };
   return (dark ? styles.dark : styles.light)[color] || {};
 }
 
-export default function Sidebar({ dark }) {
-  const [open, setOpen] = useState(false);
+export default function Sidebar({ dark, onClose }) {
+  const navigate = useNavigate();
   const [showLogout, setShowLogout] = useState(false);
-  const [counts, setCounts] = useState({ demandes: 0, actifs: 0 });
+  const [counts, setCounts] = useState({ actifs: 0, requetes: 0, bloques: 0 });
 
   useEffect(() => {
-    // ── Mock en attendant le backend ──
-    // Remplacer par : getCounts().then(setCounts).catch(() => {})
-    setCounts({ demandes: 4, actifs: 38 });
+    function fetchCounts() {
+      getMedecinsActifs()
+        .then(data => setCounts(c => ({ ...c, actifs: Array.isArray(data) ? data.length : 0 })))
+        .catch(() => {});
+      countRequetesEnAttente()
+        .then(data => setCounts(c => ({ ...c, requetes: data?.count ?? 0 })))
+        .catch(() => {});
+      countComptesBloques()
+        .then(data => setCounts(c => ({ ...c, bloques: data?.count ?? 0 })))
+        .catch(() => {});
+    }
+    fetchCounts();
+    const t = setInterval(fetchCounts, 30000);
+    return () => clearInterval(t);
   }, []);
-  const navigate = useNavigate();
 
-  const handleLogout = () => setShowLogout(true);
-
-  const confirmLogout = () => {
+  function confirmLogout() {
     adminLogout();
-    navigate("/administrateur/login");
-  };
+    navigate("/pneumo-admin-secure");
+  }
 
-  const bg     = dark ? BG_DARK    : BG_LIGHT;
-  const border = dark ? BORDER_D   : BORDER_L;
+  const bg     = dark ? BG_DARK  : BG_LIGHT;
+  const border = dark ? BORDER_D : BORDER_L;
 
   const inner = (
     <aside
       className="h-full flex flex-col shrink-0 overflow-hidden"
-      style={{
-        width: "224px", minWidth: "224px", maxWidth: "224px",
-        background: bg,
-        borderRight: `1px solid ${border}`,
-      }}
+      style={{ width:260, minWidth:260, maxWidth:260, background:bg, borderRight:`1px solid ${border}` }}
     >
-      {/* ── Logo ── */}
-      <div
-        className="h-[88px] flex items-center justify-center px-4 shrink-0 relative"
-        style={{ borderBottom: `1px solid ${border}` }}
-      >
-        <img
-          src={logo} alt="PneumoIA"
-          style={{
-            height: 68, width: "auto", objectFit: "contain", maxWidth: 200,
-            filter: dark ? "brightness(1.1)" : "none",
-          }}
-        />
-        <button
-          onClick={() => setOpen(false)}
+      {/* Logo */}
+      <div className="h-[96px] flex items-center justify-center px-4 shrink-0 relative"
+        style={{ borderBottom:`1px solid ${border}` }}>
+        <img src={logo} alt="PneumoIA"
+          style={{ height:74, width:"auto", objectFit:"contain", maxWidth:200, filter:"none" }}/>
+        <button onClick={() => onClose?.()}
           className="absolute right-3 top-1/2 -translate-y-1/2 lg:hidden"
-          style={{ color: dark ? ITEM_TX_D : SEC_L }}
-        >
-          <X size={15} />
+          style={{ color: dark ? ITEM_TX_D : SEC_L }}>
+          <X size={15}/>
         </button>
       </div>
 
-      {/* ── Nav scrollable ── */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2.5">
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-3 px-2.5 sidebar-nav">
         {getNav(counts).map(({ section, items }, gi) => (
           <div key={gi} className={gi > 0 ? "mt-1" : ""}>
             {section && (
-              <p
-                className="text-[10px] font-bold uppercase tracking-[.12em] px-3 pt-3 pb-1.5"
-                style={{ color: dark ? SEC_D : SEC_L }}
-              >
+              <p className="text-[11px] font-bold uppercase tracking-[.12em] px-3 pt-3 pb-1.5"
+                style={{ color: dark ? SEC_D : SEC_L }}>
                 {section}
               </p>
             )}
             {items.map(({ to, icon: Icon, label, badge, badgeColor }) => (
-              <NavLink
-                key={to} to={to} onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-[8px] rounded-[10px] text-[13px] font-medium transition-all mb-[2px]"
+              <NavLink key={to} to={to} onClick={() => onClose?.()}
+                className="flex items-center gap-2.5 px-3 py-[9px] rounded-[10px] text-[14px] font-medium transition-all mb-[2px]"
                 style={({ isActive }) => ({
-                  background: isActive ? (dark ? ACTIVE_BG_D : ACTIVE_BG_L) : "transparent",
-                  color:      isActive ? (dark ? ACTIVE_TX_D : ACTIVE_TX_L) : (dark ? ITEM_TX_D : ITEM_TX_L),
-                  fontWeight: isActive ? 600 : 500,
+                  background:  isActive ? (dark ? ACTIVE_BG_D : ACTIVE_BG_L) : "transparent",
+                  color:       isActive ? (dark ? ACTIVE_TX_D : ACTIVE_TX_L) : (dark ? ITEM_TX_D : ITEM_TX_L),
+                  fontWeight:  isActive ? 700 : 500,
+                  borderLeft:  isActive ? `3px solid ${dark ? "#5eead4" : "#007a64"}` : "3px solid transparent",
+                  paddingLeft: isActive ? "9px" : "12px",
+                  borderTopLeftRadius:    isActive ? 4  : 10,
+                  borderBottomLeftRadius: isActive ? 4  : 10,
                 })}
                 onMouseEnter={e => {
-                  const isActive = e.currentTarget.getAttribute("aria-current") === "page";
-                  if (!isActive) e.currentTarget.style.background = dark ? HOVER_BG_D : HOVER_BG_L;
+                  if (e.currentTarget.getAttribute("aria-current") !== "page")
+                    e.currentTarget.style.background = dark ? HOVER_BG_D : HOVER_BG_L;
                 }}
                 onMouseLeave={e => {
-                  const isActive = e.currentTarget.getAttribute("aria-current") === "page";
-                  if (!isActive) e.currentTarget.style.background = "transparent";
+                  if (e.currentTarget.getAttribute("aria-current") !== "page")
+                    e.currentTarget.style.background = "transparent";
                 }}
               >
-                {/* Icône avec accent couleur si actif */}
-                <span style={{ flexShrink: 0, opacity: 0.85 }}>
-                  <Icon size={15} />
-                </span>
+                <span style={{ flexShrink:0, opacity:0.85 }}><Icon size={16}/></span>
                 <span className="truncate flex-1">{label}</span>
                 {badge > 0 && (
-                  <span
-                    className="text-[10px] font-bold px-[7px] py-[2px] rounded-full"
-                    style={{ ...getBadgeStyle(badgeColor, dark), flexShrink: 0 }}
-                  >
+                  <span className="text-[11px] font-bold px-[7px] py-[2px] rounded-full"
+                    style={{ ...getBadgeStyle(badgeColor, dark), flexShrink:0 }}>
                     {badge}
                   </span>
                 )}
@@ -190,43 +181,41 @@ export default function Sidebar({ dark }) {
         ))}
       </nav>
 
-      {/* ── Footer fixe ── */}
-      <div
-        className="shrink-0 px-3 py-4"
+      {/* ── Footer — gradient teal façon WelcomeBanner ── */}
+      <div className="shrink-0 px-3 py-4 relative overflow-hidden"
         style={{
           borderTop: `1px solid ${border}`,
-          background: dark ? "rgba(0,0,0,0.15)" : "rgba(13,121,114,0.12)",
-        }}
-      >
-        {/* Profil admin + icône déconnexion sur même ligne */}
-        <div className="flex items-center gap-3 px-2">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0"
-            style={{ background: dark ? "rgba(15,118,110,0.6)" : BRAND }}
-          >
+          background: dark
+            ? "linear-gradient(135deg, #030c0a 0%, #0a1a18 55%, #0d2420 100%)"
+            : "linear-gradient(135deg, #005c4b 0%, #009e82 55%, #00c2a0 100%)",
+        }}>
+
+        {/* Motif de points façon WelcomeBanner */}
+        <div style={{ position:"absolute", inset:0, opacity:.06,
+          backgroundImage:"radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)",
+          backgroundSize:"14px 14px", pointerEvents:"none" }} />
+
+        <div className="relative flex items-center gap-3 px-2">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0"
+            style={{ background:"rgba(255,255,255,0.18)", color:"#fff", border:"1.5px solid rgba(255,255,255,0.30)" }}>
             AD
           </div>
           <div className="min-w-0 flex-1">
-            <p
-              className="text-[12px] font-bold truncate leading-tight"
-              style={{ color: dark ? "#e2faf8" : "#0a3d39" }}
-            >
+            <p className="text-[13px] font-bold truncate leading-tight" style={{ color:"#ffffff" }}>
               Administrateur
             </p>
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-              <span className="text-[10px]" style={{ color: dark ? "#6ee7b7" : "#059669" }}>En ligne</span>
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background:"#5eead4" }}/>
+              <span className="text-[11px]" style={{ color:"#5eead4" }}>En ligne</span>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
+          <button onClick={()=>setShowLogout(true)}
             className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-            style={{ color: dark ? "rgba(255,255,255,0.35)" : "rgba(13,80,75,0.45)" }}
-            onMouseEnter={e => e.currentTarget.style.color = "#ef4444"}
-            onMouseLeave={e => e.currentTarget.style.color = dark ? "rgba(255,255,255,0.35)" : "rgba(13,80,75,0.45)"}
-            title="Se déconnecter"
-          >
-            <LogOut size={15} />
+            style={{ color:"rgba(255,255,255,0.65)" }}
+            onMouseEnter={e=>{e.currentTarget.style.color="#fff";e.currentTarget.style.background="rgba(255,255,255,0.12)";}}
+            onMouseLeave={e=>{e.currentTarget.style.color="rgba(255,255,255,0.65)";e.currentTarget.style.background="transparent";}}
+            title="Se déconnecter">
+            <LogOut size={15}/>
           </button>
         </div>
       </div>
@@ -235,71 +224,55 @@ export default function Sidebar({ dark }) {
 
   return (
     <>
-      {/* ── Modale confirmation déconnexion ── */}
-      {showLogout && (
-        <div
-          style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(2px)" }}
-          onClick={() => setShowLogout(false)}
-        >
-          <div
-            style={{ background: "#fff", borderRadius: 16, padding: "28px 28px 24px", width: 320, boxShadow: "0 20px 60px rgba(0,0,0,0.2)", textAlign: "center" }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Icône */}
-            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <LogOut size={22} style={{ color: "#ef4444" }} />
+      {/* ── Modal déconnexion — header gradient teal façon WelcomeBanner ── */}
+      {showLogout && createPortal(
+        <div style={{ position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.45)",backdropFilter:"blur(2px)" }}
+          onClick={()=>setShowLogout(false)}>
+          <div style={{ background:"#fff",borderRadius:16,width:320,boxShadow:"0 20px 60px rgba(0,0,0,0.2)",textAlign:"center",overflow:"hidden" }}
+            onClick={e=>e.stopPropagation()}>
+
+            {/* Header gradient teal */}
+            <div style={{
+              background: "linear-gradient(135deg, #005c4b 0%, #009e82 55%, #00c2a0 100%)",
+              backgroundImage: `
+                radial-gradient(circle, rgba(255,255,255,0.10) 1px, transparent 1px),
+                linear-gradient(135deg, #005c4b 0%, #009e82 55%, #00c2a0 100%)
+              `,
+              backgroundSize: "16px 16px, 100% 100%",
+              padding: "28px 28px 24px",
+              position: "relative",
+            }}>
+              <div style={{ width:52,height:52,borderRadius:"50%",background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px" }}>
+                <LogOut size={22} style={{ color:"#ffffff" }}/>
+              </div>
+              <p style={{ fontSize:17,fontWeight:700,color:"#ffffff" }}>Déconnexion</p>
             </div>
 
-            <p style={{ fontSize: 17, fontWeight: 700, color: "#111827", marginBottom: 8 }}>
-              Déconnexion
-            </p>
-            <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5, marginBottom: 24 }}>
-              Êtes-vous sûr de vouloir vous déconnecter de la plateforme ?
-            </p>
-
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={() => setShowLogout(false)}
-                style={{ flex: 1, height: 40, borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#fff", color: "#374151", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
-                onMouseLeave={e => e.currentTarget.style.background = "#fff"}
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmLogout}
-                style={{ flex: 1, height: 40, borderRadius: 10, border: "none", background: "#ef4444", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#dc2626"}
-                onMouseLeave={e => e.currentTarget.style.background = "#ef4444"}
-              >
-                Se déconnecter
-              </button>
+            {/* Corps */}
+            <div style={{ padding:"24px 28px" }}>
+              <p style={{ fontSize:13,color:"#6b7280",lineHeight:1.5,marginBottom:24 }}>
+                Êtes-vous sûr de vouloir vous déconnecter de la plateforme ?
+              </p>
+              <div style={{ display:"flex",gap:10 }}>
+                <button onClick={()=>setShowLogout(false)}
+                  style={{ flex:1,height:40,borderRadius:10,border:"1.5px solid #e5e7eb",background:"#fff",color:"#374151",fontSize:13,fontWeight:600,cursor:"pointer" }}
+                  onMouseEnter={e=>e.currentTarget.style.background="#f9fafb"}
+                  onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+                  Annuler
+                </button>
+                <button onClick={confirmLogout}
+                  style={{ flex:1,height:40,borderRadius:10,border:"none",background:"#009e82",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer" }}
+                  onMouseEnter={e=>e.currentTarget.style.background="#007a64"}
+                  onMouseLeave={e=>e.currentTarget.style.background="#009e82"}>
+                  Se déconnecter
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
-      <div className="hidden lg:flex">{inner}</div>
-
-      {open && (
-        <div className="lg:hidden fixed inset-0 z-40 flex">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative z-50" style={{ width: "224px" }}>{inner}</div>
-        </div>
-      )}
-
-      <button
-        id="sidebar-toggle"
-        onClick={() => setOpen(true)}
-        className="lg:hidden fixed top-3 left-3 z-30 w-9 h-9 flex items-center justify-center rounded-xl shadow-sm"
-        style={{
-          background:  bg,
-          border:      `1px solid ${border}`,
-          color:       dark ? ITEM_TX_D : ITEM_TX_L,
-        }}
-      >
-        <Menu size={16} />
-      </button>
+      {inner}
     </>
   );
 }

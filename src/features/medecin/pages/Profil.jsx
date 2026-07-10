@@ -1,6 +1,6 @@
 // src/features/medecin/pages/Profile.jsx
 import { useState, useEffect, useRef } from 'react';
-import { useProfil } from '../hooks/useAuth';
+import { useProfil, updateProfilCache } from '../hooks/useAuth';
 import {
   User, Mail, Phone, MapPin, Calendar, Award,
   Stethoscope, Users, Clock, Edit2, Save,
@@ -10,12 +10,15 @@ import {
   Lock, KeyRound, Eye, EyeOff, AlertCircle, X, Download
 } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
 export default function Profile() {
   const { profil, loading: profilLoading, error: profilError } = useProfil();
   const originalData = useRef(null); // snapshot avant édition
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -30,6 +33,7 @@ export default function Profile() {
     emailPro: '',
     telephone: '',
     adresse: '',
+    ville: '',
     bio: '',
     social: { linkedin: '', website: '' }
   });
@@ -47,6 +51,7 @@ export default function Profile() {
         emailPro:      profil.email          || '',
         telephone:     profil.telephone      || '',
         adresse:       profil.adresse        || '',
+        ville:         profil.ville          || '',
         bio:           profil.bio            || '',
         social: {
           linkedin: profil.linkedin || '',
@@ -64,7 +69,7 @@ export default function Profile() {
     if (!profil) return;
     const token = localStorage.getItem('token');
     if (!token) return;
-    fetch('http://localhost:8000/api/v1/auth/documents', {
+    fetch(`${API_URL}/auth/documents`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.ok ? r.json() : [])
@@ -81,18 +86,23 @@ export default function Profile() {
 
   const [passwordErrors, setPasswordErrors] = useState({});
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [saveLoading, setSaveLoading]   = useState(false);
+  const [saveError,   setSaveError]     = useState('');
+  const [pwdLoading,  setPwdLoading]    = useState(false);
+  const [pwdError,    setPwdError]      = useState('');
+  const [realStats,   setRealStats]     = useState(null);
 
   const stats = [
-    { label: 'Années d\'expérience', value: '12+', icon: Clock },
-    { label: 'Patients traités', value: '2 847', icon: Users },
-    { label: 'Cas partagés', value: '124', icon: Activity },
-    { label: 'Taux de satisfaction', value: '98%', icon: Heart }
+    { label: 'Patients suivis',  value: realStats ? realStats.nb_patients      : '—', icon: Users    },
+    { label: 'Consultations',    value: realStats ? realStats.nb_consultations  : '—', icon: Activity },
+    { label: 'Cas partagés',     value: realStats ? realStats.nb_partages       : '—', icon: Heart    },
+    { label: 'Score IA',         value: realStats ? `${realStats.score_ia}%`    : '—', icon: Award    },
   ];
 
   const achievements = [
     { title: 'Expert en Pneumonie', date: '2025', icon: Award, color: 'blue' },
-    { title: 'Top Contributeur', date: '2024', icon: Award, color: 'purple' },
-    { title: '100 Cas partagés', date: '2024', icon: Award, color: 'emerald' }
+    { title: 'Top Contributeur', date: '2026', icon: Award, color: 'purple' },
+    { title: '100 Cas partagés', date: '2026', icon: Award, color: 'emerald' }
   ];
 
   const handleInputChange = (e) => {
@@ -131,28 +141,55 @@ export default function Profile() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleUpdatePassword = () => {
-    if (validatePassword()) {
+  const handleUpdatePassword = async () => {
+    if (!validatePassword()) return;
+    setPwdLoading(true);
+    setPwdError('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/auth/change-password`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          current_password: passwordData.currentPassword,
+          new_password:     passwordData.newPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `Erreur ${res.status}`);
       setPasswordSuccess(true);
       setTimeout(() => {
         setIsChangingPassword(false);
         setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         setPasswordSuccess(false);
       }, 2000);
+    } catch (err) {
+      setPwdError(err.message || 'Erreur lors du changement de mot de passe');
+    } finally {
+      setPwdLoading(false);
     }
   };
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setPhotoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPhotoPreview(reader.result);
       reader.readAsDataURL(file);
     }
   };
 
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [saveError,   setSaveError]   = useState('');
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch(`${API_URL}/medecins/mon-rang`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setRealStats(d); })
+      .catch(() => {});
+  }, []);
 
   const startEditing = () => {
     originalData.current = JSON.parse(JSON.stringify(formData)); // snapshot deep copy
@@ -163,6 +200,7 @@ export default function Profile() {
   const handleCancel = () => {
     if (originalData.current) setFormData(originalData.current); // restaure
     setPhotoPreview(null);
+    setPhotoFile(null);
     setSaveError('');
     setIsEditing(false);
   };
@@ -173,16 +211,19 @@ export default function Profile() {
     try {
       const token = localStorage.getItem('token');
       const payload = {
-        civilite:      formData.civilite      || null,
+        nom:           formData.nom            || null,
+        prenom:        formData.prenom         || null,
+        civilite:      formData.civilite       || null,
         etablissement: formData.etablissement  || null,
         telephone:     formData.telephone      || null,
         adresse:       formData.adresse        || null,
+        ville:         formData.ville          || null,
         bio:           formData.bio            || null,
         linkedin:      formData.social?.linkedin || null,
         website:       formData.social?.website  || null,
       };
 
-      const res = await fetch('http://localhost:8000/api/v1/auth/profil', {
+      const res = await fetch(`${API_URL}/auth/profil`, {
         method:  'PATCH',
         headers: {
           'Content-Type':  'application/json',
@@ -194,17 +235,44 @@ export default function Profile() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || `Erreur ${res.status}`);
 
-      // Mettre à jour le formData avec la réponse du serveur
+      let updatedProfil = data;
+
+      // Upload de la photo si une nouvelle a été sélectionnée
+      if (photoFile) {
+        const formPhoto = new FormData();
+        formPhoto.append('photo', photoFile);
+        const photoRes = await fetch(`${API_URL}/auth/photo`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formPhoto,
+        });
+        const photoData = await photoRes.json().catch(() => ({}));
+        if (photoRes.ok && photoData.photo_url) {
+          updatedProfil = { ...updatedProfil, photo_url: photoData.photo_url };
+          setPhotoPreview(photoData.photo_url);
+        } else {
+          setPhotoPreview(null);
+        }
+        setPhotoFile(null);
+      }
+
+      // Mettre à jour le cache module-level avec les données fraîches du serveur
+      updateProfilCache(updatedProfil);
+
+      // Mettre à jour le formData avec la réponse du serveur (visible immédiatement)
       setFormData(prev => ({
         ...prev,
-        civilite:      data.civilite       || prev.civilite,
-        etablissement: data.etablissement  || prev.etablissement,
-        telephone:     data.telephone      || prev.telephone,
-        adresse:       data.adresse        || prev.adresse,
-        bio:           data.bio            || prev.bio,
+        nom:           updatedProfil.nom           ?? prev.nom,
+        prenom:        updatedProfil.prenom        ?? prev.prenom,
+        civilite:      updatedProfil.civilite      ?? prev.civilite,
+        etablissement: updatedProfil.etablissement ?? prev.etablissement,
+        telephone:     updatedProfil.telephone     ?? prev.telephone,
+        adresse:       updatedProfil.adresse       ?? prev.adresse,
+        ville:         updatedProfil.ville         ?? prev.ville,
+        bio:           updatedProfil.bio           ?? prev.bio,
         social: {
-          linkedin: data.linkedin || prev.social?.linkedin,
-          website:  data.website  || prev.social?.website,
+          linkedin: updatedProfil.linkedin ?? prev.social?.linkedin,
+          website:  updatedProfil.website  ?? prev.social?.website,
         },
       }));
 
@@ -230,7 +298,7 @@ export default function Profile() {
 
   if (profilLoading) {
     return (
-      <div className="max-w-5xl mx-auto flex items-center justify-center h-64">
+      <div className="w-full flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-3 text-(--t3)">
           <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm">Chargement du profil…</p>
@@ -246,7 +314,7 @@ export default function Profile() {
       ? 'Vous n\'êtes pas connecté.'
       : 'Impossible de contacter le serveur. Vérifiez que le backend est démarré sur http://localhost:8000';
     return (
-      <div className="max-w-5xl mx-auto flex items-center justify-center h-64">
+      <div className="w-full flex items-center justify-center h-64">
         <div className="flex flex-col items-center gap-4 text-center max-w-sm">
           <div className="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
             <AlertCircle className="w-7 h-7 text-red-500" />
@@ -265,7 +333,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* En-tête */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -325,6 +393,11 @@ export default function Profile() {
             </div>
           </div>
           <div className="p-5 space-y-4">
+            {pwdError && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg text-sm border border-red-200">
+                <AlertCircle className="w-4 h-4 shrink-0" />{pwdError}
+              </div>
+            )}
             {passwordSuccess && (
               <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm">
                 <CheckCircle className="w-4 h-4" />
@@ -394,9 +467,11 @@ export default function Profile() {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <button onClick={handleUpdatePassword}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all">
-                Mettre à jour le mot de passe
+              <button onClick={handleUpdatePassword} disabled={pwdLoading}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all disabled:opacity-60">
+                {pwdLoading
+                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Sauvegarde…</>
+                  : 'Mettre à jour le mot de passe'}
               </button>
               <button onClick={() => { setIsChangingPassword(false); setPasswordErrors({}); setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' }); }}
                 className="px-4 py-2 border border-(--ln) rounded-lg text-sm font-medium text-(--t2) hover:bg-(--sf2) transition-all">
@@ -519,15 +594,8 @@ export default function Profile() {
                     : <p className="text-sm text-(--t1)">{formData.civilite}</p>}
                 </div>
                 <div>
-                  <label className={labelCls}>Spécialité</label>
-                  {isEditing
-                    ? <select name="specialite" value={formData.specialite} onChange={handleInputChange} className={inputCls}>
-                        <option value="Pneumologie">Pneumologie</option>
-                        <option value="Médecine générale">Médecine générale</option>
-                        <option value="Cardiologie">Cardiologie</option>
-                        <option value="Pédiatrie">Pédiatrie</option>
-                      </select>
-                    : <p className="text-sm text-(--t1)">{formData.specialite}</p>}
+                  <label className={labelCls}>Spécialité <span className="text-(--t4) font-normal normal-case">(non modifiable)</span></label>
+                  <p className="text-sm text-(--t1)">{formData.specialite}</p>
                 </div>
               </div>
 
@@ -547,10 +615,8 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className={labelCls}>Numéro RPPS</label>
-                {isEditing
-                  ? <input type="text" name="numeroRPPS" value={formData.numeroRPPS} onChange={handleInputChange} className={inputCls} />
-                  : <div className="flex items-center gap-2"><IdCard className="w-4 h-4 text-(--t4)" /><p className="text-sm text-(--t1)">{formData.numeroRPPS}</p></div>}
+                <label className={labelCls}>Numéro RPPS <span className="text-(--t4) font-normal normal-case">(non modifiable)</span></label>
+                <div className="flex items-center gap-2"><IdCard className="w-4 h-4 text-(--t4)" /><p className="text-sm text-(--t1)">{formData.numeroRPPS}</p></div>
               </div>
 
               <div>
@@ -561,10 +627,8 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className={labelCls}>Email professionnel</label>
-                {isEditing
-                  ? <input type="email" name="emailPro" value={formData.emailPro} onChange={handleInputChange} className={inputCls} />
-                  : <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-(--t4)" /><p className="text-sm text-(--t1)">{formData.emailPro}</p></div>}
+                <label className={labelCls}>Email professionnel <span className="text-(--t4) font-normal normal-case">(non modifiable)</span></label>
+                <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-(--t4)" /><p className="text-sm text-(--t1)">{formData.emailPro}</p></div>
               </div>
 
               <div>
@@ -572,6 +636,21 @@ export default function Profile() {
                 {isEditing
                   ? <input type="tel" name="telephone" value={formData.telephone} onChange={handleInputChange} className={inputCls} />
                   : <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-(--t4)" /><p className="text-sm text-(--t1)">{formData.telephone}</p></div>}
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Adresse</label>
+                  {isEditing
+                    ? <input type="text" name="adresse" value={formData.adresse} onChange={handleInputChange} className={inputCls} placeholder="123 rue de la Paix" />
+                    : <p className="text-sm text-(--t1)">{formData.adresse || '—'}</p>}
+                </div>
+                <div>
+                  <label className={labelCls}>Ville</label>
+                  {isEditing
+                    ? <input type="text" name="ville" value={formData.ville} onChange={handleInputChange} className={inputCls} placeholder="Douala, Yaoundé..." />
+                    : <p className="text-sm text-(--t1)">{formData.ville || '—'}</p>}
+                </div>
               </div>
 
               <div>
@@ -611,7 +690,14 @@ export default function Profile() {
                         </p>
                       </div>
                     </div>
-                    <a href={doc.url} target="_blank" rel="noreferrer"
+                    <a
+                      href={(() => {
+                        const base = API_URL.replace('/api/v1', '');
+                        const u = doc.url || '';
+                        if (u.startsWith('http')) return u.replace(/^https?:\/\/[^/]+/, base);
+                        return `${base}/${u.replace(/^\/+/, '')}`;
+                      })()}
+                      target="_blank" rel="noreferrer"
                       className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0">
                       <Download className="w-3 h-3" /> Voir
                     </a>

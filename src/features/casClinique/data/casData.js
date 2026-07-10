@@ -17,7 +17,7 @@ export const casData = [
     differentials: ["Bronchite aigue", "Tuberculose", "Pneumonie virale"],
     treatments: ["Antibiothérapie", "Oxygénothérapie", "Surveillance glycémique"],
     similarCases: [2, 3, 4],
-    doctor: "Dr. Dupont",
+    doctor: "Dr. Nom",
     hospital: "Hop. Laquintinie, Douala",
     date: "2026-04-01"
   },

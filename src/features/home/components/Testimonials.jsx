@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import doctor1 from '../../../assets/images/doctor1.jpeg';
-import doctor2 from '../../../assets/images/doctor2.jpeg';
-import doctor3 from '../../../assets/images/doctor3.jpeg';
-import doctor4 from '../../../assets/images/doctor4.jpeg';
-import doctor5 from '../../../assets/images/doctor3.jpeg';
-import doctor6 from '../../../assets/images/doctor2.jpeg';
+import { MapPin, Calendar, ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 export default function TestimonialsSection() {
+  const [testimonials, setTestimonials] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [windowWidth, setWindowWidth]   = useState(window.innerWidth);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/medecins/public/temoignages`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setTestimonials(data))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -18,189 +22,160 @@ export default function TestimonialsSection() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const testimonials = [
-    {
-      id: 1,
-      name: "Laticia Pablo Roys",
-      role: "Pneumologue",
-      location: "Nord Cameroun",
-      date: "2026.04.06",
-      text: "Grâce à cette application, je gagne plus de temps et je me rends compte que l'association IA et Medecin est très efficace.",
-      image: doctor1
-    },
-    {
-      id: 2,
-      name: "Laticia Pablo Roys",
-      role: "Pneumologue",
-      location: "Nord Cameroun",
-      date: "2026.04.06",
-      text: "Grâce à cette application, je gagne plus de temps et je me rends compte que l'association IA et Medecin est très efficace.",
-      image: doctor2
-    },
-    {
-      id: 3,
-      name: "Dr. Marie Lambert",
-      role: "Pneumologue",
-      location: "Paris, France",
-      date: "2026.03.15",
-      text: "Une plateforme révolutionnaire qui change notre pratique quotidienne. L'intelligence artificielle est d'une précision remarquable.",
-      image: doctor3
-    },
-    {
-      id: 4,
-      name: "Dr. Thomas Bernard",
-      role: "Chef de service",
-      location: "Lyon, France",
-      date: "2026.02.28",
-      text: "La fiabilité des résultats et la fluidité de l'interface en font un outil indispensable pour notre équipe.",
-      image: doctor4
-    },
-    {
-      id: 5,
-      name: "Dr. Sarah Kone",
-      role: "Pneumologue",
-      location: "Abidjan, Côte d'Ivoire",
-      date: "2026.04.10",
-      text: "L'association IA et expertise médicale est un véritable gain de temps. Mes patients bénéficient de diagnostics plus rapides.",
-      image: doctor5
-    },
-    {
-      id: 6,
-      name: "Dr. Jean Dupont",
-      role: "Pneumologue",
-      location: "Dakar, Sénégal",
-      date: "2026.03.20",
-      text: "PneumoDiag a transformé ma pratique quotidienne. Un outil indispensable pour tout pneumologue moderne.",
-      image: doctor6
-    }
-  ];
-
-  // Nombre de témoignages à afficher selon la taille d'écran
   const itemsPerPage = windowWidth >= 1024 ? 2 : 1;
-  
-  // Grouper les témoignages par pages
+
   const groupedTestimonials = [];
   for (let i = 0; i < testimonials.length; i += itemsPerPage) {
     groupedTestimonials.push(testimonials.slice(i, i + itemsPerPage));
   }
 
-  // Auto-défilement toutes les 5 secondes
   useEffect(() => {
+    if (groupedTestimonials.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % groupedTestimonials.length);
+      setCurrentIndex(prev => (prev + 1) % groupedTestimonials.length);
     }, 5000);
     return () => clearInterval(interval);
   }, [groupedTestimonials.length]);
 
-  const nextTestimonial = () => {
-    setCurrentIndex((prev) => (prev + 1) % groupedTestimonials.length);
-  };
-
-  const prevTestimonial = () => {
-    setCurrentIndex((prev) => (prev - 1 + groupedTestimonials.length) % groupedTestimonials.length);
-  };
+  const next = () => setCurrentIndex(prev => (prev + 1) % groupedTestimonials.length);
+  const prev = () => setCurrentIndex(prev => (prev - 1 + groupedTestimonials.length) % groupedTestimonials.length);
 
   return (
-    <section className="py-20 px-4 bg-[var(--sf2)]">
+    <section className="py-20 px-4 bg-(--sf2)">
       <div className="max-w-7xl mx-auto">
+
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold text-[var(--t1)] mb-3">Témoignages</h2>
+          <h2 className="text-4xl md:text-5xl font-bold text-(--t1) mb-3">Témoignages</h2>
           <h3 className="text-3xl md:text-4xl font-semibold text-blue-600 mb-6">
             Ce que les Docteurs pensent de notre plateforme
           </h3>
-          <p className="text-[var(--t2)] max-w-3xl mx-auto text-lg leading-relaxed">
-            Derrière chaque diagnostic, il y a des médecins passionnés, engagés et expérimentés. 
-            Notre équipe regroupe des spécialistes en pneumologie qui allient savoir médical et 
+          <p className="text-(--t2) max-w-3xl mx-auto text-lg leading-relaxed">
+            Derrière chaque diagnostic, il y a des médecins passionnés, engagés et expérimentés.
+            Notre équipe regroupe des spécialistes en pneumologie qui allient savoir médical et
             intelligence artificielle pour vous offrir un accompagnement fiable, humain et personnalisé.
           </p>
         </div>
 
-        {/* Carrousel */}
-        <div className="relative">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentIndex}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.5 }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-            >
-              {groupedTestimonials[currentIndex].map((testimonial) => (
-                <div
-                  key={testimonial.id}
-                  className="bg-[var(--sf)] rounded-2xl p-6 md:p-8 shadow-lg hover:shadow-xl transition-all"
-                >
-                  {/* Image et nom */}
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-blue-100 shadow-md shrink-0">
-                      <img 
-                        src={testimonial.image} 
-                        alt={testimonial.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-[var(--t1)]">{testimonial.name}</h3>
-                      <p className="text-blue-600 font-medium">{testimonial.role}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Texte */}
-                  <p className="text-[var(--t2)] leading-relaxed mb-6 italic">
-                    "{testimonial.text}"
-                  </p>
-                  
-                  {/* Localisation et date */}
-                  <div className="flex items-center gap-4 text-[var(--t2)] text-sm">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      <span>{testimonial.location}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      <span>{testimonial.date}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Boutons de navigation */}
-          {groupedTestimonials.length > 1 && (
-            <>
-              <button
-                onClick={prevTestimonial}
-                className="absolute left-0 top-1/2 -translate-y-1/2 -ml-4 lg:-ml-8 p-2 bg-[var(--sf)] rounded-full shadow-lg hover:bg-[var(--sf3)] transition-all border border-[var(--ln)]"
-              >
-                <ChevronLeft className="w-5 h-5 text-(--t2)" />
-              </button>
-              <button
-                onClick={nextTestimonial}
-                className="absolute right-0 top-1/2 -translate-y-1/2 -mr-4 lg:-mr-8 p-2 bg-[var(--sf)] rounded-full shadow-lg hover:bg-[var(--sf3)] transition-all border border-[var(--ln)]"
-              >
-                <ChevronRight className="w-5 h-5 text-[var(--t2)]" />
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Points indicateurs */}
-        {groupedTestimonials.length > 1 && (
-          <div className="flex justify-center gap-2 mt-8">
-            {groupedTestimonials.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentIndex(idx)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  currentIndex === idx ? 'w-6 bg-blue-600' : 'bg-gray-300'
-                }`}
-              />
-            ))}
+        {/* Contenu : carrousel ou état vide */}
+        {testimonials.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-4 text-(--t4)">
+            <Quote className="w-12 h-12 opacity-30" />
+            <p className="text-lg font-medium text-center">Les témoignages des médecins seront bientôt disponibles.</p>
+            <p className="text-sm text-center opacity-70">
+              Connectez-vous et partagez votre expérience via l'onglet "Mon témoignage".
+            </p>
           </div>
+        ) : (
+          <>
+            <div className="relative">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentIndex}
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -50 }}
+                  transition={{ duration: 0.5 }}
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+                >
+                  {(groupedTestimonials[currentIndex] ?? []).map((t, i) => {
+                    const initials = `${(t.prenom || '')[0] || ''}${(t.nom || '')[0] || ''}`.toUpperCase();
+                    return (
+                      <div
+                        key={i}
+                        className="bg-(--sf) rounded-2xl p-6 md:p-8 shadow-lg hover:shadow-xl transition-all"
+                      >
+                        {/* Avatar + nom */}
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-blue-100 shadow-md shrink-0">
+                            {t.photo_url ? (
+                              <img src={t.photo_url} alt={`${t.prenom} ${t.nom}`} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold">
+                                {initials || '?'}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-(--t1)">
+                              Dr. {t.prenom} {t.nom}
+                            </h3>
+                            <p className="text-blue-600 font-medium">{t.specialite || 'Pneumologue'}</p>
+                          </div>
+                        </div>
+
+                        {/* Étoiles */}
+                        {t.note > 0 && (
+                          <div className="flex gap-0.5 mb-3">
+                            {[1, 2, 3, 4, 5].map(s => (
+                              <Star
+                                key={s}
+                                className={`w-4 h-4 ${s <= t.note ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`}
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Texte */}
+                        <p className="text-(--t2) leading-relaxed mb-6 italic">
+                          &ldquo;{t.texte}&rdquo;
+                        </p>
+
+                        {/* Localisation et date */}
+                        <div className="flex items-center gap-4 text-(--t2) text-sm">
+                          {(t.ville || t.hopital) && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              <span>{t.ville || t.hopital}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>{t.date}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Navigation */}
+              {groupedTestimonials.length > 1 && (
+                <>
+                  <button
+                    onClick={prev}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -ml-4 lg:-ml-8 p-2 bg-(--sf) rounded-full shadow-lg hover:bg-(--sf3) transition-all border border-(--ln)"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-(--t2)" />
+                  </button>
+                  <button
+                    onClick={next}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 -mr-4 lg:-mr-8 p-2 bg-(--sf) rounded-full shadow-lg hover:bg-(--sf3) transition-all border border-(--ln)"
+                  >
+                    <ChevronRight className="w-5 h-5 text-(--t2)" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Indicateurs */}
+            {groupedTestimonials.length > 1 && (
+              <div className="flex justify-center gap-2 mt-8">
+                {groupedTestimonials.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentIndex(idx)}
+                    className={`h-2 rounded-full transition-all ${
+                      currentIndex === idx ? 'w-6 bg-blue-600' : 'w-2 bg-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
+
       </div>
     </section>
   );

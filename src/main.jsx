@@ -8,3 +8,6 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
+
+// Les modèles ONNX sont chargés à la demande (première consultation offline)
+// Pas de préchargement au démarrage pour éviter les erreurs mémoire WebAssembly

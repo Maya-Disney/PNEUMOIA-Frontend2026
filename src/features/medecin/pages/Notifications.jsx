@@ -4,130 +4,96 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell, MessageCircle, Users, Stethoscope, Award,
-  Clock, CheckCircle, AlertCircle,
-  ChevronRight, CheckCheck, BellOff, Trash2
+  Clock, CheckCircle, AlertCircle, FileText,
+  ChevronRight, CheckCheck, BellOff, Trash2, RefreshCw
 } from 'lucide-react';
+import {
+  getNotifications, marquerNotifLue, marquerToutesLues,
+  supprimerNotif, supprimerNotifsLues
+} from '../services/api';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [activeFilter, setActiveFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     loadNotifications();
+    const interval = setInterval(loadNotifications, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
-  const loadNotifications = () => {
-    const mockNotifications = [
-      {
-        id: 1,
-        type: 'consultation',
-        title: 'Nouvelle consultation',
-        message: 'Dr. Martin a programmé une consultation avec Tamo Bernard',
-        time: '2026-04-08T10:00:00',
-        read: false,
-        icon: 'Stethoscope',
-        actionLink: '/medecin/consultation',
-        actionType: 'consultation'
-      },
-      {
-        id: 2,
-        type: 'patient',
-        title: 'Patient critique',
-        message: "KAMGA Jean - Suivi dépassé depuis 9 jours",
-        time: '2026-04-08T08:30:00',
-        read: false,
-        icon: 'AlertCircle',
-        actionLink: '/medecin/patients',
-        actionType: 'patient'
-      },
-      {
-        id: 3,
-        type: 'message',
-        title: 'Nouveau message',
-        message: "Dr. Nkoa a commenté votre cas clinique #124",
-        time: '2026-04-08T07:15:00',
-        read: false,
-        icon: 'MessageCircle',
-        actionLink: '/medecin/messagerie',
-        actionType: 'message'
-      },
-      {
-        id: 4,
-        type: 'community',
-        title: 'Cas partagé',
-        message: "Votre cas 'BPCO stade avancé' a été partagé 5 fois",
-        time: '2026-04-07T16:45:00',
-        read: true,
-        icon: 'Users',
-        actionLink: '/medecin/cas-cliniques',
-        actionType: 'cas'
-      },
-      {
-        id: 5,
-        type: 'achievement',
-        title: 'Badge débloqué',
-        message: "Expert en pneumonie - 50 cas partagés",
-        time: '2026-04-07T10:30:00',
-        read: true,
-        icon: 'Award',
-        actionLink: '/medecin/profil',
-        actionType: 'profil'
-      },
-      {
-        id: 6,
-        type: 'consultation',
-        title: 'Consultation terminée',
-        message: "Rapport disponible pour Fouda Marie",
-        time: '2026-04-06T15:20:00',
-        read: true,
-        icon: 'CheckCircle',
-        actionLink: '/medecin/historique',
-        actionType: 'consultation'
-      }
-    ];
+  const TYPE_ICON = {
+    nouveau_commentaire:        'MessageCircle',
+    nouveau_message_equipe:     'MessageCircle',
+    nouveau_message_medecin:    'MessageCircle',
+    nouveau_post:               'FileText',
+    referent_like:              'Award',
+    validation:                 'CheckCircle',
+    groupe_accepte:             'CheckCircle',
+    demande_groupe:             'Users',
+    aide_demande:               'Users',
+    nouvelle_inscription_medecin: 'Users',
+    aide_nouveau_patient:       'Stethoscope',
+    aide_modif_patient:         'Stethoscope',
+    permission:                 'AlertCircle',
+    parametres:                 'AlertCircle',
+    code_referent:              'Award',
+    temoignage_supprime:        'Trash2',
+  };
 
-    const savedNotifications = localStorage.getItem('notifications');
-    if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
-    } else {
-      setNotifications(mockNotifications);
+  const normalizeNotif = (n) => ({
+    id:         n.id,
+    type:       n.type_notif || n.type || 'info',
+    title:      n.titre      || n.title   || 'Notification',
+    message:    n.message,
+    time:       n.created_at || n.time,
+    read:       n.lu         ?? n.read ?? false,
+    icon:       TYPE_ICON[n.type_notif] || n.icon || 'Bell',
+    actionLink: n.meta?.actionLink || n.actionLink || null,
+  });
+
+  const loadNotifications = async (manual = false) => {
+    if (manual) setRefreshing(true);
+    try {
+      const data = await getNotifications();
+      const list = Array.isArray(data) ? data : (data.items ?? []);
+      setNotifications(list.map(normalizeNotif));
+    } catch {
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+      if (manual) setTimeout(() => setRefreshing(false), 600);
     }
-    setLoading(false);
   };
 
-  const saveNotifications = (updatedNotifications) => {
-    setNotifications(updatedNotifications);
-    localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+  const markAsRead = async (notificationId, actionLink) => {
+    setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
+    try { await marquerNotifLue(notificationId); } catch { /* optimistic */ }
+    if (actionLink) navigate(actionLink);
   };
 
-  const markAsRead = (notificationId, actionLink) => {
-    const updatedNotifications = notifications.map(notif =>
-      notif.id === notificationId ? { ...notif, read: true } : notif
-    );
-    saveNotifications(updatedNotifications);
-    navigate(actionLink);
+  const markAllAsRead = async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    try { await marquerToutesLues(); } catch { /* optimistic */ }
   };
 
-  const markAllAsRead = () => {
-    const updatedNotifications = notifications.map(notif => ({ ...notif, read: true }));
-    saveNotifications(updatedNotifications);
-  };
-
-  const deleteNotification = (notificationId, e) => {
+  const deleteNotification = async (notificationId, e) => {
     e.stopPropagation();
-    const updatedNotifications = notifications.filter(notif => notif.id !== notificationId);
-    saveNotifications(updatedNotifications);
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    try { await supprimerNotif(notificationId); } catch { /* optimistic */ }
   };
 
-  const clearReadNotifications = () => {
-    const updatedNotifications = notifications.filter(notif => !notif.read);
-    saveNotifications(updatedNotifications);
+  const clearReadNotifications = async () => {
+    setNotifications(prev => prev.filter(n => !n.read));
+    try { await supprimerNotifsLues(); } catch { /* optimistic */ }
   };
 
   const formatTime = (dateString) => {
-    const date = new Date(dateString);
+    const utc = dateString && !/Z$|[+-]\d{2}:?\d{2}$/.test(dateString) ? dateString + 'Z' : dateString;
+    const date = new Date(utc);
     const now = new Date();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);
@@ -142,7 +108,7 @@ export default function Notifications() {
   };
 
   const getIcon = (iconName) => {
-    const icons = { Stethoscope, AlertCircle, MessageCircle, Users, Award, CheckCircle };
+    const icons = { Stethoscope, AlertCircle, MessageCircle, Users, Award, CheckCircle, FileText, Bell, Trash2 };
     return icons[iconName] || Bell;
   };
 
@@ -180,7 +146,15 @@ export default function Notifications() {
               : 'Toutes vos notifications sont lues'}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <button
+            onClick={() => loadNotifications(true)}
+            title="Rafraîchir"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-(--t3) hover:bg-(--sf3) rounded-lg transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Rafraîchir
+          </button>
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
@@ -254,8 +228,14 @@ export default function Notifications() {
                   <div className="flex items-start gap-4">
                     {/* Icône */}
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0
-                      ${isUnread ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-(--sf3)'}`}>
-                      <Icon className={`w-5 h-5 ${isUnread ? 'text-blue-600 dark:text-blue-300' : 'text-(--t4)'}`} />
+                      ${isUnread ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-(--sf3)'}`}
+                      style={{ transform: 'translateZ(0)' }}>
+                      <Icon
+                        size={20}
+                        strokeWidth={1.75}
+                        style={{ display: 'block', flexShrink: 0 }}
+                        className={isUnread ? 'text-blue-600 dark:text-blue-300' : 'text-(--t4)'}
+                      />
                     </div>
 
                     {/* Contenu */}

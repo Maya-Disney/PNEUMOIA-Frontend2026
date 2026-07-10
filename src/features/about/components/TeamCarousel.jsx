@@ -8,7 +8,7 @@ export default function TeamCarousel() {
 
   const teamMembers = [
     { id: 1, name: "Pouqoum Paule", role: "Backend Dev", description: "15 ans à l'hôpital Général de Douala. Il voulait que son expérience serve au-delà de son cabinet." },
-    { id: 2, name: "Jean Dupont", role: "Pneumologue", description: "Expert en pathologies respiratoires chroniques." },
+    { id: 2, name: "Tagne eKale", role: "Pneumologue", description: "Expert en pathologies respiratoires chroniques." },
     { id: 3, name: "Marie Camara", role: "Chef de service", description: "Spécialiste en imagerie pulmonaire." },
     { id: 4, name: "Paul Ngassa", role: "Data Scientist", description: "Expert en IA médicale." },
     { id: 5, name: "Sophie Laurent", role: "Chercheur", description: "Doctorante en pneumologie." },

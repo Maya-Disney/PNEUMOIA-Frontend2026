@@ -1,15 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { brand } from "../theme";
 
-const BRAND     = "#0a5c55";
-const BRAND_MID = "#0f766e";
-const BRAND_L   = "#0d9488";
-
-const PHRASES = [
-  "Bon retour parmi nous, Administrateur",
+const MESSAGES = [
+  "Bon retour, Administrateur",
   "Bienvenue, Administrateur",
-  "Content de vous revoir, Administrateur",
+  "Tableau de bord, Administrateur",
 ];
+
+const ADMIN_WORD  = "Administrateur";
+const ADMIN_COLOR = "#a7f3d0";
+
+const TYPE_SPEED  = 70;   // ms / lettre
+const ERASE_SPEED = 35;   // ms / lettre (effacement plus rapide)
+const PAUSE_FULL  = 2200; // pause quand le message est complet
+const PAUSE_EMPTY = 350;  // pause avant le prochain message
 
 const JOURS   = ["L","M","M","J","V","S","D"];
 const MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
@@ -25,43 +30,58 @@ function getWeekNumber(d) {
 function getDaysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
 function getFirstDay(y, m)    { const d = new Date(y, m, 1).getDay(); return d === 0 ? 6 : d - 1; }
 
-// Hook typewriter — écrit puis efface
-function useTypewriter(phrases, typeSpeed = 55, deleteSpeed = 30, pause = 1800) {
-  const [display, setDisplay] = useState("");
-  const [phraseIdx, setPhraseIdx] = useState(0);
-  const [phase, setPhase] = useState("typing"); // "typing" | "pausing" | "deleting"
-
-  useEffect(() => {
-    const phrase = phrases[phraseIdx];
-
-    if (phase === "typing") {
-      if (display.length < phrase.length) {
-        const t = setTimeout(() => setDisplay(phrase.slice(0, display.length + 1)), typeSpeed);
-        return () => clearTimeout(t);
-      } else {
-        const t = setTimeout(() => setPhase("deleting"), pause);
-        return () => clearTimeout(t);
-      }
-    }
-
-    if (phase === "deleting") {
-      if (display.length > 0) {
-        const t = setTimeout(() => setDisplay(display.slice(0, -1)), deleteSpeed);
-        return () => clearTimeout(t);
-      } else {
-        setPhraseIdx(i => (i + 1) % phrases.length);
-        setPhase("typing");
-      }
-    }
-  }, [display, phase, phraseIdx]);
-
-  return display;
+/** Colorie le mot "Administrateur" avec ADMIN_COLOR, laisse le reste en blanc. */
+function ColoredText({ text }) {
+  const idx = text.indexOf(ADMIN_WORD);
+  if (idx === -1) return <span>{text}</span>;
+  return (
+    <>
+      <span>{text.slice(0, idx)}</span>
+      <span style={{ color: ADMIN_COLOR }}>{text.slice(idx, idx + ADMIN_WORD.length)}</span>
+      <span>{text.slice(idx + ADMIN_WORD.length)}</span>
+    </>
+  );
 }
 
 export default function WelcomeBanner({ dark }) {
   const now = new Date();
-  const text = useTypewriter(PHRASES);
 
+  // ── Typewriter ──
+  const [msgIdx,    setMsgIdx]    = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [phase,     setPhase]     = useState("typing"); // "typing" | "pausing" | "erasing"
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    const full = MESSAGES[msgIdx];
+
+    if (phase === "typing") {
+      if (displayed.length < full.length) {
+        timeoutRef.current = setTimeout(
+          () => setDisplayed(full.slice(0, displayed.length + 1)),
+          TYPE_SPEED
+        );
+      } else {
+        timeoutRef.current = setTimeout(() => setPhase("erasing"), PAUSE_FULL);
+      }
+    } else if (phase === "erasing") {
+      if (displayed.length > 0) {
+        timeoutRef.current = setTimeout(
+          () => setDisplayed(d => d.slice(0, -1)),
+          ERASE_SPEED
+        );
+      } else {
+        timeoutRef.current = setTimeout(() => {
+          setMsgIdx(i => (i + 1) % MESSAGES.length);
+          setPhase("typing");
+        }, PAUSE_EMPTY);
+      }
+    }
+
+    return () => clearTimeout(timeoutRef.current);
+  }, [displayed, phase, msgIdx]);
+
+  // ── Calendrier ──
   const [calYear,  setCalYear]  = useState(now.getFullYear());
   const [calMonth, setCalMonth] = useState(now.getMonth());
 
@@ -78,6 +98,7 @@ export default function WelcomeBanner({ dark }) {
     else setCalMonth(m => m + 1);
   }
 
+  // ── Infos ──
   const pad      = (n) => String(n).padStart(2, "0");
   const JNOMS    = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
   const dayName  = JNOMS[(now.getDay() || 7) - 1].toUpperCase();
@@ -86,74 +107,75 @@ export default function WelcomeBanner({ dark }) {
   const pctAnnee = Math.round((now - new Date(now.getFullYear(), 0, 1)) / (365.25 * 86400000) * 100);
   const trim     = `T${Math.ceil((now.getMonth() + 1) / 3)} · ${now.getFullYear()}`;
 
-  // Coloriser "Administrateur" en teal clair
-  const adminWord = "Administrateur";
-  const adminIdx  = text.indexOf(adminWord);
-  let before = text, colored = "", after = "";
-  if (adminIdx !== -1) {
-    before  = text.slice(0, adminIdx);
-    colored = text.slice(adminIdx, adminIdx + adminWord.length);
-    after   = text.slice(adminIdx + adminWord.length);
-  }
+  const showCursor = phase === "typing" || phase === "erasing";
 
   return (
     <div
       className="relative w-full rounded-2xl overflow-hidden flex flex-col sm:flex-row items-stretch"
-      style={{
-        background: `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_MID} 55%, ${BRAND_L} 100%)`,
-        minHeight: 170,
-      }}
+      style={{ background: brand.gradient, minHeight: 190 }}
     >
-      {/* Motif */}
-      <div style={{ position:"absolute", inset:0, opacity:.04,
-        backgroundImage:"radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)",
-        backgroundSize:"20px 20px", pointerEvents:"none" }} />
-      <div style={{ position:"absolute", top:-60, right:270, width:200, height:200, borderRadius:"50%",
-        background:"radial-gradient(circle, rgba(255,255,255,.1), transparent 70%)", pointerEvents:"none" }} />
-      <div style={{ position:"absolute", bottom:-40, left:-40, width:160, height:160, borderRadius:"50%",
-        background:"radial-gradient(circle, rgba(255,255,255,.06), transparent 70%)", pointerEvents:"none" }} />
+      {/* Motif de points discret */}
+      <div style={{
+        position: "absolute", inset: 0, opacity: .04,
+        backgroundImage: "radial-gradient(circle at 2px 2px, #fff 1px, transparent 0)",
+        backgroundSize: "20px 20px", pointerEvents: "none",
+      }} />
 
-      {/* ── Gauche ── */}
-      <div className="relative flex-1 flex flex-col justify-between p-5 md:p-6">
+      {/* Cercles décoratifs — identiques à l'original */}
+      <div style={{
+        position: "absolute", top: -60, right: 270, width: 200, height: 200,
+        borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(255,255,255,.1), transparent 70%)",
+        pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", bottom: -40, left: -40, width: 160, height: 160,
+        borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(255,255,255,.06), transparent 70%)",
+        pointerEvents: "none",
+      }} />
 
-        <p className="text-[10px] font-bold uppercase tracking-widest mb-3"
-          style={{ color:"rgba(255,255,255,.5)" }}>
+      {/* ── Section gauche ── */}
+      <div className="relative flex-1 flex flex-col justify-between p-6 md:p-8">
+
+        {/* Date */}
+        <p className="text-[12px] font-bold uppercase tracking-widest mb-3"
+          style={{ color: "rgba(255,255,255,.5)" }}>
           {dateStr} · SEMAINE {semaine}
         </p>
 
-        {/* Texte typewriter */}
-        <div className="mb-5" style={{ minHeight: 90 }}>
-          <p style={{
-            fontSize: 36,
-            fontWeight: 900,
-            letterSpacing: "-0.5px",
-            lineHeight: 1.15,
-            color: "#fff",
-          }}>
-            {before}
-            <span style={{ color:"#5eead4", textShadow:"0 0 40px rgba(94,234,212,.4)" }}>
-              {colored}
-            </span>
-            {after}
+        {/* Message typewriter */}
+        <div className="mb-5 min-h-[76px] flex flex-col justify-center">
+          <p className="text-4xl md:text-5xl font-black leading-tight text-white">
+            <ColoredText text={displayed} />
             {/* Curseur clignotant */}
-            <span style={{
-              display: "inline-block",
-              width: 2,
-              height: "0.85em",
-              background: "#5eead4",
-              marginLeft: 3,
-              verticalAlign: "middle",
-              borderRadius: 2,
-              animation: "blink 1s step-end infinite",
-            }}/>
+            {showCursor && (
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-block",
+                  width: "2px",
+                  height: "0.85em",
+                  marginLeft: "3px",
+                  verticalAlign: "middle",
+                  background: ADMIN_COLOR,
+                  borderRadius: "1px",
+                  animation: "wb-blink 1s step-end infinite",
+                }}
+              />
+            )}
           </p>
         </div>
 
-        {/* Pills */}
+        {/* Pills info */}
         <div className="flex flex-wrap gap-2">
           {[`Sem. ${semaine}`, `${pctAnnee}% de l'année`, trim].map(p => (
-            <span key={p} className="text-[10px] font-bold px-3 py-1 rounded-full"
-              style={{ background:"rgba(255,255,255,.14)", color:"#fff", border:"1px solid rgba(255,255,255,.2)" }}>
+            <span key={p} className="text-[12px] font-bold px-3 py-1.5 rounded-full"
+              style={{
+                background: "rgba(255,255,255,.14)",
+                color: "#fff",
+                border: "1px solid rgba(255,255,255,.2)",
+              }}>
               {p}
             </span>
           ))}
@@ -161,41 +183,50 @@ export default function WelcomeBanner({ dark }) {
       </div>
 
       {/* ── Calendrier ── */}
-      <div className="relative shrink-0 m-3 md:m-4 rounded-xl p-3 md:p-4 w-full sm:w-60"
+      <div className="relative shrink-0 m-3 md:m-4 rounded-xl p-3 md:p-4 w-full sm:w-64"
         style={{
-          background:     dark ? "rgba(13,17,23,.78)" : "rgba(255,255,255,.92)",
+          background: dark ? "rgba(13,17,23,.78)" : "rgba(255,255,255,.92)",
           backdropFilter: "blur(10px)",
         }}>
 
+        {/* Header mois */}
         <div className="flex items-center justify-between mb-3">
-          <button onClick={prev} className="w-6 h-6 flex items-center justify-center rounded-lg transition-colors hover:bg-black/10">
-            <ChevronLeft size={13} className={dark ? "text-white" : "text-gray-600"} />
+          <button onClick={prev}
+            className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-black/10">
+            <ChevronLeft size={14} className={dark ? "text-white" : "text-gray-600"} />
           </button>
-          <p className={`text-[12px] font-bold ${dark ? "text-white" : "text-gray-800"}`}>
+          <p className={`text-[14px] font-bold ${dark ? "text-white" : "text-gray-800"}`}>
             {MOIS_FR[calMonth]} {calYear}
           </p>
-          <button onClick={next} className="w-6 h-6 flex items-center justify-center rounded-lg transition-colors hover:bg-black/10">
-            <ChevronRight size={13} className={dark ? "text-white" : "text-gray-600"} />
+          <button onClick={next}
+            className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-black/10">
+            <ChevronRight size={14} className={dark ? "text-white" : "text-gray-600"} />
           </button>
         </div>
 
+        {/* Noms des jours */}
         <div className="grid grid-cols-7 mb-1">
           {JOURS.map((j, i) => (
-            <p key={i} className={`text-center text-[9px] font-bold py-0.5 ${dark ? "text-white/40" : "text-gray-400"}`}>{j}</p>
+            <p key={i} className={`text-center text-[11px] font-bold py-0.5 ${dark ? "text-white/40" : "text-gray-400"}`}>
+              {j}
+            </p>
           ))}
         </div>
 
+        {/* Cases */}
         <div className="grid grid-cols-7 gap-y-0.5">
           {cells.map((day, i) => (
-            <div key={i} className="flex items-center justify-center h-6">
+            <div key={i} className="flex items-center justify-center h-7">
               {day ? (
                 <button
-                  className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-semibold transition-all ${
-                    isToday(day) ? "text-white font-black"
-                      : dark ? "text-white/70 hover:bg-white/10"
-                      : "text-gray-700 hover:bg-gray-100"
+                  className={`w-7 h-7 flex items-center justify-center rounded-full text-[12px] font-semibold transition-all ${
+                    isToday(day)
+                      ? "text-white font-black"
+                      : dark
+                        ? "text-white/70 hover:bg-white/10"
+                        : "text-gray-700 hover:bg-gray-100"
                   }`}
-                  style={isToday(day) ? { background: BRAND_MID } : {}}
+                  style={isToday(day) ? { background: brand.DEFAULT } : {}}
                 >
                   {day}
                 </button>
@@ -205,8 +236,8 @@ export default function WelcomeBanner({ dark }) {
         </div>
       </div>
 
-      {/* CSS blink */}
-      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
+      {/* Keyframe curseur */}
+      <style>{`@keyframes wb-blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
     </div>
   );
 }

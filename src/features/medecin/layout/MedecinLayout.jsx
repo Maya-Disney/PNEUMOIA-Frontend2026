@@ -25,23 +25,28 @@ export default function MedecinLayout() {
     if (path.includes('/patients')) return 'Patients';
     if (path.includes('/partage')) return 'Partage';
     if (path.includes('/cas-cliniques')) return 'Cas cliniques';
+    if (path.includes('/mes-publications')) return 'Mes publications';
+    if (path.includes('/mon-equipe')) return 'Mon équipe';
+    if (path.includes('/commentaires')) return 'Commentaires';
+    if (path.includes('/monitoring')) return 'Monitoring';
     if (path.includes('/messagerie')) return 'Messagerie';
     if (path.includes('/notifications')) return 'Notifications';
     if (path.includes('/recherche')) return 'Recherche';
     if (path.includes('/profil')) return 'Mon profil';
     if (path.includes('/parametres')) return 'Paramètres';
     if (path.includes('/historique')) return 'Historique';
-    return 'Dashboard';
+    if (path.includes('/corbeille')) return 'Corbeille';
+    return 'Tableau de bord';
   };
 
   // Calculer la marge gauche
   const getMarginLeft = () => {
     if (!isDesktop) return '0px';
-    return isCollapsed ? '100px' : '260px';
+    return isCollapsed ? '86px' : '260px';
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--t1)] transition-colors duration-300">
+    <div className="min-h-screen bg-(--bg) text-(--t1) transition-colors duration-300">
       <Sidebar 
         sidebarOpen={sidebarOpen} 
         setSidebarOpen={setSidebarOpen}
@@ -59,7 +64,7 @@ export default function MedecinLayout() {
           pageTitle={getPageTitle()}
         />
         
-        <main className="p-6 md:p-8 overflow-y-auto no-scrollbar" style={{ maxHeight: 'calc(100vh - 80px)' }}>
+        <main className="px-4 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 overflow-y-auto" style={{ height: 'calc(100vh - 64px)' }}>
           <Outlet />
         </main>
       </div>

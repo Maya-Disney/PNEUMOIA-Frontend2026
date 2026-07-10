@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import doctorStory from '../../../assets/images/tools.png'; // Ajoute ton image
+import doctorStory from '../../../assets/images/pneu15.jpg';
 
 export default function StorySection() {
   const stats = [
@@ -21,12 +21,12 @@ export default function StorySection() {
             viewport={{ once: true }}
             className="relative"
           >
-            <div className="rounded-2xl shadow-2xl">
-              <img 
+            <div className="rounded-2xl shadow-2xl overflow-hidden max-w-md mx-auto aspect-square">
+              <img
                 src={doctorStory}
                 alt="Docteur consultant un patient"
-                className="w-full h-auto object-cover"
-              /> 
+                className="w-full h-full object-cover"
+              />
             </div>
           </motion.div>
 
@@ -52,7 +52,7 @@ export default function StorySection() {
             
             {/* Description */}
             <p className="text-[var(--t2)] leading-relaxed mb-8">
-              En 2024, un pneumologue de Douala reçoit un patient en détresse respiratoire. Son confrère 
+              En 2026, un pneumologue de Douala reçoit un patient en détresse respiratoire. Son confrère 
               l'avait examiné la veille et posé une conclusion différente. Ni l'un ni l'autre n'avait tort 
               – il n'existait simplement pas de cadre commun.
               <br /><br />

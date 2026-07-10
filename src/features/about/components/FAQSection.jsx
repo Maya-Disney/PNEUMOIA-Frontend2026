@@ -1,32 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 
+const STATIC_FAQS = [
+  {
+    question: "D'où naît l'idée de créer une telle application ?",
+    answer: "L'idée est née du constat que plusieurs pneumologues pouvaient poser des diagnostics différents pour un même patient, faute de cadre commun. En mars 2025, trois pneumologues ont commencé à formaliser leur expérience collective pour créer une plateforme d'aide au diagnostic."
+  },
+  {
+    question: "Comment fonctionne l'intelligence artificielle ?",
+    answer: "Notre IA est entraînée sur plus de 2 millions de clichés radiologiques. Elle analyse les images pulmonaires et identifie les pathologies avec une précision de 99.2%, en se basant sur des critères cliniques validés par des experts."
+  },
+  {
+    question: "Les données des patients sont-elles sécurisées ?",
+    answer: "Oui, toutes les données sont anonymisées et hébergées en France. Notre plateforme est conforme au RGPD et aux normes de sécurité médicale. Seuls les professionnels de santé autorisés y ont accès."
+  },
+  {
+    question: "L'application est-elle accessible à tous les médecins ?",
+    answer: "Oui, elle est accessible à tous les pneumologues et médecins généralistes après validation de leurs justificatifs professionnels. L'inscription est gratuite et un compte est activé sous 72h après vérification."
+  },
+  {
+    question: "Quelles pathologies sont détectées par l'application ?",
+    answer: "L'application détecte 10 pathologies pulmonaires : Pneumonie, Tuberculose, Pneumothorax, COVID-19, Effusion, Atélectasie, Infiltration, Masse, Nodule et Fibrose."
+  }
+];
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
 export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState(null);
+  const [faqs, setFaqs] = useState(STATIC_FAQS);
 
-  const faqs = [
-    {
-      question: "D'où naît l'idée de créer une telle application ?",
-      answer: "L'idée est née du constat que plusieurs pneumologues pouvaient poser des diagnostics différents pour un même patient, faute de cadre commun. En mars 2025, trois pneumologues ont commencé à formaliser leur expérience collective pour créer une plateforme d'aide au diagnostic."
-    },
-    {
-      question: "Comment fonctionne l'intelligence artificielle ?",
-      answer: "Notre IA est entraînée sur plus de 2 millions de clichés radiologiques. Elle analyse les images pulmonaires et identifie les pathologies avec une précision de 99.2%, en se basant sur des critères cliniques validés par des experts."
-    },
-    {
-      question: "Les données des patients sont-elles sécurisées ?",
-      answer: "Oui, toutes les données sont anonymisées et hébergées en France. Notre plateforme est conforme au RGPD et aux normes de sécurité médicale. Seuls les professionnels de santé autorisés y ont accès."
-    },
-    {
-      question: "L'application est-elle accessible à tous les médecins ?",
-      answer: "Oui, elle est accessible à tous les pneumologues et médecins généralistes après validation de leurs justificatifs professionnels. L'inscription est gratuite et un compte est activé sous 72h après vérification."
-    },
-    {
-      question: "Quelles pathologies sont détectées par l'application ?",
-      answer: "L'application détecte 10 pathologies pulmonaires : Pneumonie, Tuberculose, Pneumothorax, COVID-19, Effusion, Atélectasie, Infiltration, Masse, Nodule et Fibrose."
-    }
-  ];
+  useEffect(() => {
+    fetch(`${API_URL}/faq-public`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setFaqs([...STATIC_FAQS, ...data.map(f => ({ question: f.question, answer: f.reponse }))]);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const toggleFAQ = (index) => {
     setOpenIndex(openIndex === index ? null : index);
@@ -73,7 +87,7 @@ export default function FAQSection() {
                   <ChevronDown className="w-5 h-5 text-blue-600" />
                 </motion.div>
               </button>
-              
+
               <AnimatePresence>
                 {openIndex === index && (
                   <motion.div
