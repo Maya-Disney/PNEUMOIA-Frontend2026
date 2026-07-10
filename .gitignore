@@ -12,6 +12,18 @@ dist
 dist-ssr
 *.local
 
+# Variables d'environnement
+.env
+.env.*
+src/.env
+src/.env.*
+
+# Vite cache
+.vite/
+
+# Claude Code local config
+.claude/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
