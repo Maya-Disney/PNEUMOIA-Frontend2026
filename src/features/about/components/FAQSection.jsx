@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react';
 const STATIC_FAQS = [
   {
     question: "D'où naît l'idée de créer une telle application ?",
-    answer: "L'idée est née du constat que plusieurs pneumologues pouvaient poser des diagnostics différents pour un même patient, faute de cadre commun. En mars 2025, trois pneumologues ont commencé à formaliser leur expérience collective pour créer une plateforme d'aide au diagnostic."
+    answer: "L'idée est née du constat que plusieurs pneumologues pouvaient poser des diagnostics différents pour un même patient, faute de cadre commun. En mars 2026, trois pneumologues ont commencé à formaliser leur expérience collective pour créer une plateforme d'aide au diagnostic."
   },
   {
     question: "Comment fonctionne l'intelligence artificielle ?",

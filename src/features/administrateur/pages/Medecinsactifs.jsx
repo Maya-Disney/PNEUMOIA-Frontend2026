@@ -26,9 +26,14 @@ function avatarColor(str) {
   return colors[Math.abs(h)%colors.length];
 }
 
-function getStatut(derniereActivite) {
-  if (!derniereActivite) return "Inactif";
-  const diffJours = (NOW - new Date(derniereActivite)) / (1000 * 3600 * 24);
+function getStatut(derniereActivite, valideLeRaw) {
+  // ref = max(derniere_activite, valide_le) : la plus récente des deux
+  // Un compte validé aujourd'hui reste "Actif" même avec une ancienne connexion
+  const d1 = derniereActivite ? new Date(derniereActivite).getTime() : 0;
+  const d2 = valideLeRaw     ? new Date(valideLeRaw).getTime()      : 0;
+  const refTs = Math.max(d1, d2);
+  if (!refTs) return "Actif";
+  const diffJours = (NOW - refTs) / (1000 * 3600 * 24);
   return diffJours > 14 ? "Inactif" : "Actif";
 }
 
@@ -68,6 +73,7 @@ export default function MedecinsActifs() {
             cnom:             m.numero_rpps      || "—",
             creeLE:           m.created_at       ? fmt(new Date(m.created_at)) : "—",
             valideLE:         m.valide_le        ? fmt(new Date(m.valide_le))  : "—",
+            valideLeRaw:      m.valide_le        || null,
             derniereActivite: m.derniere_activite || null,
             concordanceIA:    m.concordance_ia   || null,
             patients:         m.nb_patients      || 0,
@@ -77,6 +83,7 @@ export default function MedecinsActifs() {
             activiteRecente:  m.activite_recente || [],
             photo_url:        m.photo_url        || null,
             avatarColor:      avatarColor(`${m.prenom||""}${m.nom||""}`),
+            statutEffectif:   m.statut_effectif  || null,
           })));
         }
       })
@@ -86,7 +93,7 @@ export default function MedecinsActifs() {
 
   const medecinsAvecStatut = medecins.map(m => ({
     ...m,
-    statut:      getStatut(m.derniereActivite),
+    statut:      m.statutEffectif || getStatut(m.derniereActivite, m.valideLeRaw),
     joursInactif: joursInactivite(m.derniereActivite),
   }));
 
@@ -314,9 +321,13 @@ export default function MedecinsActifs() {
                 <p className={`text-[13px] font-semibold ${dark?"text-white":"text-gray-800"}`}>{modalePhoto.nom}</p>
                 <p className={`text-[13px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{modalePhoto.specialite} · {modalePhoto.cnom}</p>
                 <div className="flex items-center justify-center gap-1.5 mt-1">
-                  {getStatut(modalePhoto.derniereActivite)==="Actif"
+                  {modalePhoto.statut === "Actif"
                     ? <><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"/><span className="text-[14px] font-bold text-emerald-600">Actif</span></>
-                    : <><span className="w-1.5 h-1.5 rounded-full bg-gray-400"/><span className="text-[14px] font-bold text-gray-400">Inactif — {joursInactivite(modalePhoto.derniereActivite)}j</span></>
+                    : <><span className="w-1.5 h-1.5 rounded-full bg-gray-400"/><span className="text-[14px] font-bold text-gray-400">
+                        {modalePhoto.joursInactif !== null
+                          ? `Inactif — ${modalePhoto.joursInactif}j sans connexion`
+                          : "Inactif — jamais connecté"}
+                      </span></>
                   }
                 </div>
               </div>

@@ -56,7 +56,7 @@ export default function StorySection() {
               l'avait examiné la veille et posé une conclusion différente. Ni l'un ni l'autre n'avait tort 
               – il n'existait simplement pas de cadre commun.
               <br /><br />
-              En mars 2025, trois pneumologues commencent à écrire. Pas du code – des questions cliniques. 
+              En mars 2026, trois pneumologues commencent à écrire. Pas du code – des questions cliniques. 
               Pendant des mois, ils mettent en forme leur expérience collective jusqu'à ce que deux médecins 
               différents, face au même patient, arrivent à la même conclusion.
             </p>
