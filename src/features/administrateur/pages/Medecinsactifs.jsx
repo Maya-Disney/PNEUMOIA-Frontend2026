@@ -111,7 +111,7 @@ export default function MedecinsActifs() {
 
   function exportExcel() {
     const ws = XLSX.utils.json_to_sheet(liste.map((m,i) => ({
-      "#":i+1, Nom:m.nom, CNOM:m.cnom, Spécialité:m.specialite,
+      "#":i+1, Nom:m.nom, "N° d'ordre":m.cnom, Spécialité:m.specialite,
       Établissement:m.hopital, Ville:m.ville, Statut:m.statut,
       "Jours inactif": m.joursInactif ?? "—",
       "Créé le":m.creeLE, "Validé le":m.valideLE,

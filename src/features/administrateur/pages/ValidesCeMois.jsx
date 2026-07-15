@@ -88,7 +88,7 @@ function ModalePhoto({ doc: m, onClose, dark }) {
         }
         <div className="text-center">
           <p className={`text-[14px] font-bold ${dark ? "text-white" : "text-gray-800"}`}>{m.name}</p>
-          <p className={`text-[14px] mt-0.5 ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{m.specialite} · CNOM {m.cnom}</p>
+          <p className={`text-[14px] mt-0.5 ${dark ? "text-[#484f58]" : "text-gray-400"}`}>{m.specialite} · N° d'ordre {m.cnom}</p>
         </div>
       </div>
     </Modal>
@@ -195,7 +195,7 @@ function ModaleDossier({ doc: m, onClose, dark }) {
         <div className="rounded-xl border overflow-hidden" style={{ background: surface.bg, borderColor: surface.border }}>
           {[
             { l: "Médecin",       v: m.name },
-            { l: "CNOM",          v: m.cnom, mono: true },
+            { l: "N° d'ordre",    v: m.cnom, mono: true },
             { l: "Établissement", v: m.hopital },
             { l: "Date demande",  v: formatFull(m.dateDemande) },
           ].map(({ l, v, mono }) => (

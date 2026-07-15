@@ -144,7 +144,7 @@ export default function RegisterModal({ isOpen, onClose }) {
         return true;
       case 2:
         if (!form.specialite.trim()) { toast.error('La spécialité est requise.'); return false; }
-        if (!form.numeroRPPS.trim()) { toast.error('Le numéro RPPS est requis.'); return false; }
+        if (!form.numeroRPPS.trim()) { toast.error("Le numéro d'ordre est requis."); return false; }
         return true;
       case 3:
         if (!docsOk) { toast.error(`Il manque encore ${DOCUMENTS_REQUIS.length - uploadedCount} document(s).`); return false; }
@@ -492,7 +492,7 @@ export default function RegisterModal({ isOpen, onClose }) {
                           <input type="text" value={form.specialite} onChange={e => upd('specialite', e.target.value)} className={inputClass} />
                         </div>
                         <div>
-                          <label className={labelClass}>Numéro RPPS *</label>
+                          <label className={labelClass}>Numéro d'ordre *</label>
                           <input type="text" value={form.numeroRPPS} onChange={e => upd('numeroRPPS', e.target.value)} placeholder="11 chiffres" className={inputClass} />
                         </div>
                         <div>

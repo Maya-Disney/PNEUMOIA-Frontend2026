@@ -55,7 +55,7 @@ function ModalePhoto({ r, onClose, dark }) {
         }
         <div className="text-center">
           <p className={`text-[14px] font-bold ${dark?"text-white":"text-gray-800"}`}>{r.nom}</p>
-          <p className={`text-[14px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.specialite} · CNOM {r.cnom}</p>
+          <p className={`text-[14px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{r.specialite} · N° d'ordre {r.cnom}</p>
         </div>
       </div>
     </Modal>
@@ -227,7 +227,7 @@ export default function Refusees() {
 
   function exportExcel() {
     const ws = XLSX.utils.json_to_sheet(filtered.map((r,i)=>({
-      "#":i+1,Nom:r.nom,CNOM:r.cnom,Spécialité:r.specialite,
+      "#":i+1,Nom:r.nom,"N° d'ordre":r.cnom,Spécialité:r.specialite,
       Établissement:r.hopital,Ville:r.ville,
       "Date demande":r.dateDemande,"Date refus":r.dateRefus,
       Motif:r.motif,"Refusé par":r.refusePar,
@@ -548,7 +548,7 @@ export default function Refusees() {
                 <span>Supprimer <strong>{target.nom}</strong> ? Action irréversible.</span>
               </div>
               <div className={`rounded-xl border px-4 py-3 text-[15px] ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
-                {[{l:"Médecin",v:target.nom},{l:"CNOM",v:target.cnom},{l:"Motif",v:target.motif},{l:"Refusé le",v:target.dateRefus}].map(({l,v})=>(
+                {[{l:"Médecin",v:target.nom},{l:"N° d'ordre",v:target.cnom},{l:"Motif",v:target.motif},{l:"Refusé le",v:target.dateRefus}].map(({l,v})=>(
                   <div key={l} className={`flex items-center justify-between py-1.5 border-b last:border-0 ${dark?"border-[#21262d]":"border-gray-100"}`}>
                     <span className={dark?"text-[#484f58]":"text-gray-400"}>{l}</span>
                     <span className={`font-semibold truncate max-w-[160px] ${dark?"text-[#8b949e]":"text-gray-700"}`}>{v}</span>

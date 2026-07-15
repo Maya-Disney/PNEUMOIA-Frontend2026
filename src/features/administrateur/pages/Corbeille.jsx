@@ -95,7 +95,7 @@ function ModalePhoto({ r, onClose, dark }) {
         }
         <div className="text-center">
           <p className="text-[14px] font-bold" style={{ color: txt.primary }}>{r.nom}</p>
-          <p className="text-[14px] mt-0.5" style={{ color: txt.subtle }}>{r.specialite} · CNOM {r.cnom}</p>
+          <p className="text-[14px] mt-0.5" style={{ color: txt.subtle }}>{r.specialite} · N° d'ordre {r.cnom}</p>
         </div>
       </div>
     </Modal>
@@ -430,7 +430,7 @@ export default function Corbeille() {
             <div className="rounded-xl border px-4 py-3 text-[13px]" style={{ background: surface.bg, borderColor: surface.border }}>
               {[
                 {l:"Médecin",        v:modaleRestore.nom},
-                {l:"CNOM",           v:modaleRestore.cnom},
+                {l:"N° d'ordre",     v:modaleRestore.cnom},
                 {l:"Ancien statut",  v:modaleRestore.ancienStatut},
                 {l:"Supprimé le",    v:fmt(modaleRestore.dateSuppression)},
                 {l:"Jours restants", v:`${joursRestants(modaleRestore.dateSuppression)} jours`},
@@ -468,7 +468,7 @@ export default function Corbeille() {
             <div className="rounded-xl border px-4 py-3 text-[13px]" style={{ background: surface.bg, borderColor: surface.border }}>
               {[
                 {l:"Médecin",       v:modaleDelete.nom},
-                {l:"CNOM",          v:modaleDelete.cnom},
+                {l:"N° d'ordre",    v:modaleDelete.cnom},
                 {l:"Email",         v:modaleDelete.email},
                 {l:"Supprimé par",  v:modaleDelete.supprimePar},
                 {l:"Motif",         v:modaleDelete.motifSuppression},
