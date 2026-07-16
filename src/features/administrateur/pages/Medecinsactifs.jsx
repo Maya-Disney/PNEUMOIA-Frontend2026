@@ -218,7 +218,7 @@ export default function MedecinsActifs() {
                 <Td dark={dark}>
                   <div className={m.statut==="Inactif" ? "opacity-50" : ""}>
                     <PersonCell dark={dark} avatarColor={m.avatarColor} initials={m.initials}
-                      name={m.nom} subtitle={m.specialite} onClick={()=>setModalePhoto(m)} photoUrl={m.photo_url} />
+                      name={m.nom} subtitle="Pneumologue" onClick={()=>setModalePhoto(m)} photoUrl={m.photo_url} />
                   </div>
                 </Td>
 
@@ -319,7 +319,7 @@ export default function MedecinsActifs() {
               }
               <div className="text-center">
                 <p className={`text-[13px] font-semibold ${dark?"text-white":"text-gray-800"}`}>{modalePhoto.nom}</p>
-                <p className={`text-[13px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{modalePhoto.specialite} · {modalePhoto.cnom}</p>
+                <p className={`text-[13px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>Pneumologue · {modalePhoto.cnom}</p>
                 <div className="flex items-center justify-center gap-1.5 mt-1">
                   {modalePhoto.statut === "Actif"
                     ? <><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"/><span className="text-[14px] font-bold text-emerald-600">Actif</span></>

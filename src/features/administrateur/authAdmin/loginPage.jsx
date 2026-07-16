@@ -327,7 +327,8 @@ export default function AdminLogin() {
 
         {/* Contenu */}
         <div style={{ position:"relative", zIndex:1, textAlign:"center", padding:"0 44px", display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>
-          <div style={{ width:130, height:130, borderRadius:"50%", background:"#ffffff", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:8, boxShadow:"0 6px 24px rgba(0,0,0,.25)" }}>
+          <div onClick={() => navigate("/")} title="Retour à l'accueil"
+            style={{ width:130, height:130, borderRadius:"50%", background:"#ffffff", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:8, boxShadow:"0 6px 24px rgba(0,0,0,.25)", cursor:"pointer" }}>
             <img src={logo} alt="PneumoIA" style={{ height:108, width:108, objectFit:"contain" }} />
           </div>
           <h1 style={{ fontSize:46, fontWeight:900, color:"#ffffff", letterSpacing:3, textTransform:"uppercase", margin:0, lineHeight:1 }}>
@@ -358,7 +359,8 @@ export default function AdminLogin() {
             <div style={{ position:"absolute", top:-40, left:-40, width:120, height:120, borderRadius:"50%", background:"radial-gradient(circle at 32% 32%, #6ef7df, #004a3a)", opacity:.8 }} />
             <div style={{ position:"absolute", bottom:-50, right:-50, width:160, height:160, borderRadius:"50%", background:"radial-gradient(circle at 28% 28%, #5df5d8, #003d30)", opacity:.8 }} />
             <div style={{ position:"absolute", bottom:"20%", left:-20, width:70, height:70, borderRadius:"50%", background:"radial-gradient(circle at 32% 32%, #a7f3e4, #006652)", opacity:.7 }} />
-            <div style={{ position:"relative", zIndex:1, width:80, height:80, borderRadius:"50%", background:"#fff", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(0,0,0,.2)" }}>
+            <div onClick={() => navigate("/")} title="Retour à l'accueil"
+              style={{ position:"relative", zIndex:1, width:80, height:80, borderRadius:"50%", background:"#fff", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 16px rgba(0,0,0,.2)", cursor:"pointer" }}>
               <img src={logo} alt="PneumoIA" style={{ height:64, width:64, objectFit:"contain" }} />
             </div>
             <div style={{ position:"relative", zIndex:1, textAlign:"center" }}>

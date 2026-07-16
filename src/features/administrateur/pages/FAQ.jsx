@@ -275,23 +275,23 @@ export default function FAQ() {
             }
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto min-w-0">
           <button
             onClick={() => setRefreshKey(k => k + 1)}
             disabled={loadingQ || loadingF}
             title="Actualiser"
-            className={`p-2 rounded-xl border transition-colors ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+            className={`p-2 rounded-xl border transition-colors shrink-0 ${dark?"border-[#21262d] text-[#8b949e] hover:bg-[#21262d]":"border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
             <RefreshCw size={16} className={(loadingQ || loadingF) ? "animate-spin" : ""} />
           </button>
-          <div className={`flex gap-1 p-1 rounded-xl border ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-100 border-gray-200"}`}>
+          <div className={`flex gap-1 p-1 rounded-xl border overflow-x-auto min-w-0 ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-100 border-gray-200"}`}>
           <button onClick={()=>setOnglet("attente")}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[15px] font-bold transition-all"
+            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[15px] font-bold transition-all shrink-0 whitespace-nowrap"
             style={onglet==="attente"?{background:brand.DEFAULT,color:"#fff"}:{color:dark?"#484f58":"#9ca3af"}}>
             <Clock size={12}/> En attente
             {nbAttente>0&&<span className="bg-orange-500 text-white text-[15px] font-black px-1.5 py-0.5 rounded-full">{nbAttente}</span>}
           </button>
           <button onClick={()=>setOnglet("historique")}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[15px] font-bold transition-all"
+            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[15px] font-bold transition-all shrink-0 whitespace-nowrap"
             style={onglet==="historique"?{background:brand.DEFAULT,color:"#fff"}:{color:dark?"#484f58":"#9ca3af"}}>
             <MessageSquare size={12}/> Historique
             <span className={`text-[15px] font-black px-1.5 py-0.5 rounded-full ${onglet==="historique"?"bg-white/20 text-white":dark?"bg-[#21262d] text-[#484f58]":"bg-gray-200 text-gray-500"}`}>
@@ -299,7 +299,7 @@ export default function FAQ() {
             </span>
           </button>
           <button onClick={()=>setOnglet("faq")}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[15px] font-bold transition-all"
+            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[15px] font-bold transition-all shrink-0 whitespace-nowrap"
             style={onglet==="faq"?{background:brand.DEFAULT,color:"#fff"}:{color:dark?"#484f58":"#9ca3af"}}>
             <HelpCircle size={12}/> FAQ publiées
             <span className={`text-[15px] font-black px-1.5 py-0.5 rounded-full ${onglet==="faq"?"bg-white/20 text-white":dark?"bg-[#21262d] text-[#484f58]":"bg-gray-200 text-gray-500"}`}>
@@ -307,7 +307,7 @@ export default function FAQ() {
             </span>
           </button>
           <button onClick={()=>setOnglet("brouillons")}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[15px] font-bold transition-all"
+            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[15px] font-bold transition-all shrink-0 whitespace-nowrap"
             style={onglet==="brouillons"?{background:brand.DEFAULT,color:"#fff"}:{color:dark?"#484f58":"#9ca3af"}}>
             <HelpCircle size={12}/> Brouillons
             <span className={`text-[15px] font-black px-1.5 py-0.5 rounded-full ${onglet==="brouillons"?"bg-white/20 text-white":dark?"bg-[#21262d] text-[#484f58]":"bg-gray-200 text-gray-500"}`}>

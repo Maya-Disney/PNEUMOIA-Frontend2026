@@ -352,7 +352,7 @@ export default function Commentaires() {
               : paginated.map(r=>(
                 <div key={r.id} className="rounded-2xl border p-5"
                   style={{ ...cardStyle, ...(r.nouveau ? { borderColor: dark?"rgba(234,88,12,0.35)":"#fed7aa" } : {}) }}>
-                  <div className="flex items-start gap-4 flex-wrap">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       {r.photo_url
                         ? <img src={r.photo_url} alt={r.nom}
@@ -384,7 +384,7 @@ export default function Commentaires() {
                       </div>
                     </div>
                     {/* Actions */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 sm:ml-auto">
                       <button onClick={()=>setModaleArchive(r)}
                         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold border transition-colors"
                         style={{ borderColor: brand.lighter, background: dark?"rgba(0,158,130,0.10)":"rgba(0,158,130,0.06)", color: brand.DEFAULT }}

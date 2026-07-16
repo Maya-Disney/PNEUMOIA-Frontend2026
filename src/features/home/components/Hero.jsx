@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Play, X } from 'lucide-react';
+import imgReal1 from '../../../assets/images/RealMedecin1.jpeg';
 import img1 from '../../../assets/images/medecin2.jpg';
 import img2 from '../../../assets/images/medecin15.jpg';
 import img3 from '../../../assets/images/medecin14.jpg';
@@ -13,7 +14,7 @@ import img8 from '../../../assets/images/medecin27.jpg';
 import demoVideo from '../../../assets/video/demo.mp4';
 import RegisterModal from '../../../components/modals/RegisterModal';
 
-const slides = [img1, img2, img3, img4, img5, img6, img7, img8];
+const slides = [imgReal1, img1, img2, img3, img4, img5, img6, img7, img8];
 
 export default function Hero() {
   const [showVideo, setShowVideo] = useState(false);

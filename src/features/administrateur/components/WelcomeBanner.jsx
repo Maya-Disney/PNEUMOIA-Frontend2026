@@ -136,17 +136,17 @@ export default function WelcomeBanner({ dark }) {
       }} />
 
       {/* ── Section gauche ── */}
-      <div className="relative flex-1 flex flex-col justify-between p-6 md:p-8">
+      <div className="relative flex-1 flex flex-col justify-between p-4 sm:p-6 md:p-8">
 
         {/* Date */}
-        <p className="text-[12px] font-bold uppercase tracking-widest mb-3"
+        <p className="text-[10px] sm:text-[12px] font-bold uppercase tracking-widest mb-2 sm:mb-3"
           style={{ color: "rgba(255,255,255,.5)" }}>
           {dateStr} · SEMAINE {semaine}
         </p>
 
         {/* Message typewriter */}
-        <div className="mb-5 min-h-[76px] flex flex-col justify-center">
-          <p className="text-4xl md:text-5xl font-black leading-tight text-white">
+        <div className="mb-4 sm:mb-5 min-h-[40px] sm:min-h-[76px] flex flex-col justify-center">
+          <p className="text-2xl sm:text-4xl md:text-5xl font-black leading-tight text-white">
             <ColoredText text={displayed} />
             {/* Curseur clignotant */}
             {showCursor && (
@@ -168,9 +168,9 @@ export default function WelcomeBanner({ dark }) {
         </div>
 
         {/* Pills info */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {[`Sem. ${semaine}`, `${pctAnnee}% de l'année`, trim].map(p => (
-            <span key={p} className="text-[12px] font-bold px-3 py-1.5 rounded-full"
+            <span key={p} className="text-[10px] sm:text-[12px] font-bold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full"
               style={{
                 background: "rgba(255,255,255,.14)",
                 color: "#fff",
@@ -183,23 +183,23 @@ export default function WelcomeBanner({ dark }) {
       </div>
 
       {/* ── Calendrier ── */}
-      <div className="relative shrink-0 m-3 md:m-4 rounded-xl p-3 md:p-4 w-full sm:w-64"
+      <div className="relative shrink-0 m-2.5 sm:m-3 md:m-4 rounded-xl p-2.5 sm:p-3 md:p-4 w-full sm:w-64 max-w-full"
         style={{
           background: dark ? "rgba(13,17,23,.78)" : "rgba(255,255,255,.92)",
           backdropFilter: "blur(10px)",
         }}>
 
         {/* Header mois */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
           <button onClick={prev}
-            className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-black/10">
+            className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-black/10 shrink-0">
             <ChevronLeft size={14} className={dark ? "text-white" : "text-gray-600"} />
           </button>
-          <p className={`text-[14px] font-bold ${dark ? "text-white" : "text-gray-800"}`}>
+          <p className={`text-[13px] sm:text-[14px] font-bold ${dark ? "text-white" : "text-gray-800"}`}>
             {MOIS_FR[calMonth]} {calYear}
           </p>
           <button onClick={next}
-            className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-black/10">
+            className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-black/10 shrink-0">
             <ChevronRight size={14} className={dark ? "text-white" : "text-gray-600"} />
           </button>
         </div>
@@ -207,7 +207,7 @@ export default function WelcomeBanner({ dark }) {
         {/* Noms des jours */}
         <div className="grid grid-cols-7 mb-1">
           {JOURS.map((j, i) => (
-            <p key={i} className={`text-center text-[11px] font-bold py-0.5 ${dark ? "text-white/40" : "text-gray-400"}`}>
+            <p key={i} className={`text-center text-[10px] sm:text-[11px] font-bold py-0.5 ${dark ? "text-white/40" : "text-gray-400"}`}>
               {j}
             </p>
           ))}
@@ -216,10 +216,10 @@ export default function WelcomeBanner({ dark }) {
         {/* Cases */}
         <div className="grid grid-cols-7 gap-y-0.5">
           {cells.map((day, i) => (
-            <div key={i} className="flex items-center justify-center h-7">
+            <div key={i} className="flex items-center justify-center h-6 sm:h-7">
               {day ? (
                 <button
-                  className={`w-7 h-7 flex items-center justify-center rounded-full text-[12px] font-semibold transition-all ${
+                  className={`w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full text-[11px] sm:text-[12px] font-semibold transition-all ${
                     isToday(day)
                       ? "text-white font-black"
                       : dark

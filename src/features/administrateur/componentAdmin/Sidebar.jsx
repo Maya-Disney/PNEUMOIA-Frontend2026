@@ -127,8 +127,8 @@ export default function Sidebar({ dark, onClose }) {
       {/* Logo */}
       <div className="h-[96px] flex items-center justify-center px-4 shrink-0 relative"
         style={{ borderBottom:`1px solid ${border}` }}>
-        <img src={logo} alt="PneumoIA"
-          style={{ height:74, width:"auto", objectFit:"contain", maxWidth:200, filter:"none" }}/>
+        <img src={logo} alt="PneumoIA" onClick={() => navigate("/")} title="Retour à l'accueil"
+          style={{ height:74, width:"auto", objectFit:"contain", maxWidth:200, filter:"none", cursor:"pointer" }}/>
         <button onClick={() => onClose?.()}
           className="absolute right-3 top-1/2 -translate-y-1/2 lg:hidden"
           style={{ color: dark ? ITEM_TX_D : SEC_L }}>

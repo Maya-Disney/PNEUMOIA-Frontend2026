@@ -305,7 +305,7 @@ export default function JournalAudit() {
             {[1,2,3,4].map(i => <div key={i} className="h-10 rounded-xl animate-pulse" style={{ background: dark ? "#21262d" : "#f3f4f6" }} />)}
           </div>
         ) : (
-          <div>
+          <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>

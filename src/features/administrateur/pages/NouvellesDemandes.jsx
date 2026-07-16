@@ -380,7 +380,6 @@ export default function NouvellesDemandes() {
   const [modaleDossier,  setModaleDossier]  = useState(null);
   const [modaleValider,  setModaleValider]  = useState(null);
   const [modaleRefuser,  setModaleRefuser]  = useState(null);
-  const [activationInfo, setActivationInfo] = useState(null);
   const [toast,          setToast]          = useState(null);
 
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -448,10 +447,7 @@ export default function NouvellesDemandes() {
   async function handleAction(id, action, extra={}) {
     try {
       if (action === "valide") {
-        const data = await validerMedecin(id);
-        if (!data.email_envoye) {
-          setActivationInfo({ email: data.email_medecin, lien: data.lien_activation });
-        }
+        await validerMedecin(id);
       } else if (action === "rejete") {
         const motif = extra.motif || "Dossier incomplet";
         await rejeterMedecin(id, motif);
@@ -734,23 +730,6 @@ export default function NouvellesDemandes() {
       {modaleDossier && <ModaleDossier doc={modaleDossier} dark={dark} onClose={()=>setModaleDossier(null)} onUpdateDocs={handleUpdateDocs}/>}
       {modaleValider && <ModaleValider doc={modaleValider} dark={dark} onClose={()=>setModaleValider(null)} onConfirm={handleValider}/>}
       {modaleRefuser && <ModaleRefuser doc={modaleRefuser} dark={dark} onClose={()=>setModaleRefuser(null)} onConfirm={handleRefuser}/>}
-
-      {activationInfo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="w-full max-w-md rounded-2xl border shadow-2xl p-6" style={{ background: surface.card, borderColor: surface.border, color: txt.primary }}>
-            <p className="font-bold text-[15px] mb-1">E-mail non reçu ?</p>
-            <p className="text-[15px] mb-3" style={{ color: txt.subtle }}>Copiez ce lien et transmettez-le manuellement à <strong>{activationInfo.email}</strong></p>
-            <div className="flex items-center gap-2 p-3 rounded-xl border text-[15px] font-mono break-all" style={{ background: surface.bg, borderColor: surface.border }}>
-              <span className="flex-1">{activationInfo.lien}</span>
-              <button onClick={()=>navigator.clipboard.writeText(activationInfo.lien)}
-                className="shrink-0 px-2 py-1 bg-blue-600 text-white rounded-lg text-[14px] font-bold hover:bg-blue-700">Copier</button>
-            </div>
-            <button onClick={()=>setActivationInfo(null)}
-              className="mt-4 w-full py-2 rounded-xl text-[14px] font-bold text-white transition-colors"
-              style={{background:brand.DEFAULT}}>Fermer</button>
-          </div>
-        </div>
-      )}
 
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-[14px] font-semibold text-white ${toast.type==="success"?"bg-blue-700":"bg-red-600"}`}>
