@@ -111,7 +111,7 @@ function ModaleSuppression({ m, onClose, onConfirm, dark }) {
           <span>Supprimer définitivement <strong>{m.nom}</strong> ? Action irréversible.</span>
         </div>
         <div className={`rounded-xl border divide-y text-[14px] ${dark?"bg-[#0d1117] border-[#21262d] divide-[#21262d]":"bg-gray-50 border-gray-100 divide-gray-100"}`}>
-          {[{l:"Médecin",v:m.nom},{l:"CNOM",v:m.cnom},{l:"Établissement",v:m.hopital},{l:"Statut",v:m.statut}].map(({l,v})=>(
+          {[{l:"Médecin",v:m.nom},{l:"N° d'ordre",v:m.cnom},{l:"Établissement",v:m.hopital},{l:"Statut",v:m.statut}].map(({l,v})=>(
             <div key={l} className="flex items-center justify-between px-4 py-2.5">
               <span className={dark?"text-[#484f58]":"text-gray-400"}>{l}</span>
               <span className={`font-medium ${dark?"text-[#8b949e]":"text-gray-700"}`}>{v}</span>
@@ -328,7 +328,7 @@ const { dark } = useOutletContext() || {};
               <InfoField label="Email"              value={m.email}/>
               <InfoField label="Statut"             value={statutAffiche}  badge/>
               <InfoField label="Téléphone"         value={m.telephone}/>
-              <InfoField label="N° CNOM"           value={m.cnom}         mono/>
+              <InfoField label="N° d'ordre"         value={m.cnom}         mono/>
               <InfoField label="Date d'ajout"      value={m.creeLE}/>
               <InfoField label="Validé le"         value={m.valideLE}     teal/>
               <InfoField label="Dernière activité" value={act}/>

@@ -525,7 +525,7 @@ export default function Profile() {
             </h2>
             <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1">{formData.specialite}</p>
             <p className="text-sm text-(--t3) mt-2">{formData.etablissement}</p>
-            <p className="text-xs text-(--t4) mt-1">RPPS: {formData.numeroRPPS}</p>
+            <p className="text-xs text-(--t4) mt-1">N° d'ordre : {formData.numeroRPPS}</p>
 
             <div className="flex justify-center gap-3 mt-4">
               {[Briefcase, Globe, Share2, Link2].map((Icon, i) => (
@@ -615,7 +615,7 @@ export default function Profile() {
               </div>
 
               <div>
-                <label className={labelCls}>Numéro RPPS <span className="text-(--t4) font-normal normal-case">(non modifiable)</span></label>
+                <label className={labelCls}>Numéro d'ordre <span className="text-(--t4) font-normal normal-case">(non modifiable)</span></label>
                 <div className="flex items-center gap-2"><IdCard className="w-4 h-4 text-(--t4)" /><p className="text-sm text-(--t1)">{formData.numeroRPPS}</p></div>
               </div>
 

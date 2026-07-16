@@ -31,7 +31,7 @@ const MOTIFS = [
   "Documents flous / illisibles",
   "Document bientôt périmé",
   "Document expiré",
-  "N° CNOM invalide ou introuvable",
+  "N° d'ordre invalide ou introuvable",
   "Photo d'identité non conforme",
   "Informations incohérentes",
   "Signature manquante",
@@ -99,7 +99,7 @@ function ModaleProfil({ doc: m, onClose, dark }) {
         }
         <div className="text-center">
           <p className="text-[14px] font-bold" style={{ color: txt.primary }}>{m.name}</p>
-          <p className="text-[14px] mt-0.5" style={{ color: txt.subtle }}>{m.specialite} · CNOM {m.cnom}</p>
+          <p className="text-[14px] mt-0.5" style={{ color: txt.subtle }}>{m.specialite} · N° d'ordre {m.cnom}</p>
         </div>
       </div>
     </Modal>
@@ -150,7 +150,7 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
         </div>
 
         <div className="rounded-xl border overflow-hidden" style={{ background: surface.bg, borderColor: surface.border }}>
-          {[{l:"Médecin",v:m.name},{l:"Spécialité",v:m.specialite},{l:"CNOM",v:m.cnom,mono:true},{l:"Établissement",v:m.hopital},{l:"E-mail",v:m.email},{l:"Téléphone",v:m.telephone},{l:"Soumis",v:formatFull(m.submittedAt)}].map(({l,v,mono})=>(
+          {[{l:"Médecin",v:m.name},{l:"Spécialité",v:m.specialite},{l:"N° d'ordre",v:m.cnom,mono:true},{l:"Établissement",v:m.hopital},{l:"E-mail",v:m.email},{l:"Téléphone",v:m.telephone},{l:"Soumis",v:formatFull(m.submittedAt)}].map(({l,v,mono})=>(
             <div key={l} className="flex items-center justify-between px-4 py-2.5 border-b last:border-0" style={{ borderColor: surface.borderSoft }}>
               <span className="text-[15px]" style={{ color: txt.subtle }}>{l}</span>
               <span className={`text-[15px] font-medium ${mono?"font-mono":""}`} style={{ color: txt.secondary }}>{v}</span>
@@ -314,7 +314,7 @@ function ModaleValider({ doc: m, onClose, onConfirm, dark }) {
           <span>Le compte de <strong>{m.name}</strong> sera activé. Un e-mail d'activation lui sera envoyé.</span>
         </div>
         <div className="rounded-xl border overflow-hidden" style={{ background: surface.bg, borderColor: surface.border }}>
-          {[{l:"Médecin",v:m.name},{l:"CNOM",v:m.cnom},{l:"E-mail",v:m.email},{l:"Ville",v:m.ville},{l:"Soumis",v:formatFull(m.submittedAt)}].map(({l,v})=>(
+          {[{l:"Médecin",v:m.name},{l:"N° d'ordre",v:m.cnom},{l:"E-mail",v:m.email},{l:"Ville",v:m.ville},{l:"Soumis",v:formatFull(m.submittedAt)}].map(({l,v})=>(
             <div key={l} className="flex items-center justify-between px-4 py-2.5 border-b last:border-0" style={{ borderColor: surface.borderSoft }}>
               <span className="text-[15px]" style={{ color: txt.subtle }}>{l}</span>
               <span className="text-[15px] font-medium" style={{ color: txt.secondary }}>{v}</span>
@@ -484,7 +484,7 @@ export default function NouvellesDemandes() {
 
   function exportExcel() {
     const ws = XLSX.utils.json_to_sheet(pending.map((d,i)=>({
-      "#":i+1, Nom:d.name, CNOM:d.cnom, Spécialité:d.specialite,
+      "#":i+1, Nom:d.name, "N° d'ordre":d.cnom, Spécialité:d.specialite,
       Établissement:d.hopital, Ville:d.ville, Email:d.email, Téléphone:d.telephone,
       "Statut dossier":docState(d), "Soumis le":formatFull(d.submittedAt), "En attente":elapsedStr(d.submittedAt),
     })));

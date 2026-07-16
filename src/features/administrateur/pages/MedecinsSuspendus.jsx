@@ -73,7 +73,7 @@ function ModalePhoto({ m, onClose, dark }) {
         }
         <div className="text-center">
           <p className={`text-[14px] font-bold ${dark?"text-white":"text-gray-800"}`}>{m.nom}</p>
-          <p className={`text-[14px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.specialite} · CNOM {m.cnom}</p>
+          <p className={`text-[14px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.specialite} · N° d'ordre {m.cnom}</p>
         </div>
       </div>
     </Modal>
@@ -634,7 +634,7 @@ export default function MedecinsSuspendus() {
             <div className={`rounded-xl border px-4 py-3 text-[15px] ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
               {[
                 {l:"Médecin",      v:modaleReactiver.nom},
-                {l:"CNOM",         v:modaleReactiver.cnom},
+                {l:"N° d'ordre",   v:modaleReactiver.cnom},
                 {l:"E-mail",       v:modaleReactiver.email},
                 {l:"Raison susp.", v:modaleReactiver.raison},
                 {l:"Durée susp.",  v:modaleReactiver.duree},
@@ -692,7 +692,7 @@ export default function MedecinsSuspendus() {
             <div className={`rounded-xl border px-4 py-3 text-[15px] ${dark?"bg-[#0d1117] border-[#21262d]":"bg-gray-50 border-gray-100"}`}>
               {[
                 {l:"Médecin",      v:modaleSuppr.nom},
-                {l:"CNOM",         v:modaleSuppr.cnom},
+                {l:"N° d'ordre",   v:modaleSuppr.cnom},
                 {l:"E-mail",       v:modaleSuppr.email},
                 {l:"Raison",       v:modaleSuppr.raison},
                 {l:"Suspendu le",  v:fmtDT(modaleSuppr.suspenduLe)},

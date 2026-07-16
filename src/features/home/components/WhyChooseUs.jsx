@@ -12,7 +12,7 @@ export default function WhyChooseUsSection() {
   ];
 
   return (
-    <section className="py-20 px-4 bg-linear-to-br ml-5 mr-5 from-blue-50 to-(--sf)">
+    <section className="py-20 px-4 bg-linear-to-br ml-5 mr-5 from-(--bg) to-(--sf)">
       <div className="max-w-7xl mx-auto">
         {/* Deux cards alignées horizontalement */}
         <div className="grid lg:grid-cols-2 gap-16">
