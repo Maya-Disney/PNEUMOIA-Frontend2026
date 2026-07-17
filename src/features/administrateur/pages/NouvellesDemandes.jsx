@@ -109,20 +109,14 @@ function ModaleProfil({ doc: m, onClose, dark }) {
 function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
   const surface = getSurface(dark);
   const txt     = getText(dark);
-  const [docs,    setDocs]   = useState(m.documents.map(d => ({...d, status: "pending"})));
-  const [opened,  setOpened] = useState({});
-  const [apercu,  setApercu] = useState(null);
+  const [docs,   setDocs]  = useState(m.documents.map(d => ({...d, status: "pending"})));
+  const [apercu, setApercu] = useState(null);
 
   const verified = docs.filter(d => d.status==="verified").length;
   const total    = docs.length;
   const allOk    = verified === total;
 
-  function markOpened(i) {
-    setOpened(prev => ({...prev, [i]: true}));
-  }
-
   function toggleDoc(i) {
-    if (!opened[i]) return;
     setDocs(prev => {
       const next = [...prev];
       next[i] = { ...next[i], status: next[i].status === "verified" ? "pending" : "verified" };
@@ -152,7 +146,7 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
             : (dark?"bg-amber-900/20 border-amber-700/40 text-amber-300":"bg-amber-50 border-amber-200 text-amber-700")}`}>
           {allOk
             ? `✓ Tous les documents vérifiés — dossier complet`
-            : `${verified}/${total} documents vérifiés — cliquez sur chaque document pour le marquer`}
+            : `${verified}/${total} documents vérifiés — cliquez sur "Voir" pour ouvrir et vérifier chaque document`}
         </div>
 
         <div className="rounded-xl border overflow-hidden" style={{ background: surface.bg, borderColor: surface.border }}>
@@ -181,30 +175,14 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
 
             function handleView(e) {
               e.stopPropagation();
-              markOpened(i);
+              if (!isVerified) toggleDoc(i);
               setApercu(d);
             }
             return (
               <div key={i} className="flex items-center gap-3 px-4 py-3 border-b last:border-0" style={{ borderColor: surface.borderSoft }}>
 
-                <button onClick={() => toggleDoc(i)}
-                  title={!opened[i] ? "Ouvrez d'abord le document pour pouvoir le valider" : isVerified ? "Décocher" : "Marquer comme vérifié"}
-                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all
-                    ${!opened[i] ? "cursor-not-allowed opacity-35" : "cursor-pointer"}
-                    ${isVerified ? "border-blue-500 bg-blue-500" : "hover:border-blue-500"}`}
-                  style={!isVerified ? { borderColor: opened[i] ? txt.subtle : surface.border, background: surface.bg } : undefined}>
-                  {isVerified && (
-                    <svg width="11" height="11" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                  )}
-                </button>
-
                 <div className="flex-1 min-w-0">
                   <span className="text-[15px] font-medium" style={{ color: txt.secondary }}>{d.label}</span>
-                  {!opened[i] && !isVerified && (
-                    <span className="ml-2 text-[15px]" style={{ color: txt.subtle }}>← ouvrir pour valider</span>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -230,7 +208,7 @@ function ModaleDossier({ doc: m, onClose, onUpdateDocs, dark }) {
         </div>
 
         <p className="text-[14px] text-center" style={{ color: txt.subtle }}>
-          Cochez chaque document après l'avoir vérifié · Les fichiers sont fournis par le médecin à l'inscription
+          Cliquez sur "Voir" pour consulter et valider chaque document · Les fichiers sont fournis par le médecin à l'inscription
         </p>
       </div>
 

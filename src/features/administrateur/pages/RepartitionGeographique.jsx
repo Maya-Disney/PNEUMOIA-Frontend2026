@@ -14,7 +14,8 @@ const MOIS_LABELS = [
   "Juillet","Août","Septembre","Octobre","Novembre","Décembre",
 ];
 
-const ANNEES = [2026, 2025, 2026];
+const _curYear = Math.max(new Date().getFullYear(), 2026);
+const ANNEES = Array.from({ length: _curYear - 2025 }, (_, i) => 2026 + i);
 
 export default function RepartitionGeo() {
   const { dark } = useOutletContext() || {};

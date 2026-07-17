@@ -43,7 +43,7 @@ function endOfToday() {
 export default function DashActivite({ dark }) {
   const now      = new Date();
   const yearList = Array.from(
-    { length: Math.max(1, now.getFullYear() - 2025) },
+    { length: Math.max(1, now.getFullYear() - 2024) },
     (_, i) => now.getFullYear() - i
   );
   const surface  = getSurface(dark);

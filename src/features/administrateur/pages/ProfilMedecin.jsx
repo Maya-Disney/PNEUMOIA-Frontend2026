@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from "react";
-import { useParams, useNavigate, useOutletContext, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import { getMedecinById, suspendreMedecin, supprimerMedecin } from "../api/adminApi";
 import { AlertTriangle, ArrowLeft, Trash2, X, FileDown, Cpu, Calendar, User, PauseCircle } from "lucide-react";
 import { brand, getSurface, getText } from "../theme";
@@ -13,10 +13,23 @@ function fmt(d) {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
+// ref = max(derniere_activite, valide_le) — la plus récente des deux
+// Un compte validé aujourd'hui est "Actif" même si une ancienne connexion existait
+function getStatutEffectif(statutBackend, derniereActivite, valideLE) {
+  if (statutBackend !== "Actif") return statutBackend;
+  const d1 = derniereActivite ? new Date(derniereActivite).getTime() : 0;
+  const d2 = valideLE         ? new Date(valideLE).getTime()         : 0;
+  const refTs = Math.max(d1, d2);
+  if (!refTs) return "Actif";
+  const diffJours = (new Date() - refTs) / (1000 * 3600 * 24);
+  return diffJours > 14 ? "Inactif" : "Actif";
+}
+
 // Convertit les champs API vers le format local attendu par le JSX
 function normaliserMedecin(data) {
   const initials = `${(data.prenom?.[0] || "").toUpperCase()}${(data.nom?.[0] || "").toUpperCase()}`;
   const statutMap = { valide: "Actif", suspendu: "Suspendu", en_attente: "En attente", rejete: "Refusé" };
+  const statutBase = statutMap[data.statut] || data.statut || "Inactif";
   return {
     id:               data.id,
     initials,
@@ -32,7 +45,7 @@ function normaliserMedecin(data) {
     patients:         data.nb_patients      || 0,
     consultations:    data.nb_consultations || 0,
     concordanceIA:    data.concordance_ia   || null,
-    statut:           statutMap[data.statut] || data.statut || "Inactif",
+    statut:           data.statut_effectif || getStatutEffectif(statutBase, data.derniere_activite, data.valide_le),
     derniereActivite: data.derniere_activite || null,
     creeLE:           data.created_at ? fmt(new Date(data.created_at)) : "—",
     valideLE:         data.valide_le  ? fmt(new Date(data.valide_le))  : "—",
@@ -94,7 +107,8 @@ function ModaleSuppression({ m, onClose, onConfirm, dark }) {
       </>}>
       <div className="flex flex-col gap-3">
         <div className={`flex items-start gap-2 px-4 py-3 rounded-xl border text-[15px] ${dark?"bg-red-900/20 border-red-700/40 text-red-300":"bg-red-50 border-red-200 text-red-700"}`}>
-          <AlertTriangle size={13} className="shrink-0 mt-0.5"/>Supprimer définitivement <strong className="mx-1">{m.nom}</strong> ? Action irréversible.
+          <AlertTriangle size={13} className="shrink-0 mt-0.5"/>
+          <span>Supprimer définitivement <strong>{m.nom}</strong> ? Action irréversible.</span>
         </div>
         <div className={`rounded-xl border divide-y text-[14px] ${dark?"bg-[#0d1117] border-[#21262d] divide-[#21262d]":"bg-gray-50 border-gray-100 divide-gray-100"}`}>
           {[{l:"Médecin",v:m.nom},{l:"N° d'ordre",v:m.cnom},{l:"Établissement",v:m.hopital},{l:"Statut",v:m.statut}].map(({l,v})=>(
@@ -112,27 +126,24 @@ function ModaleSuppression({ m, onClose, onConfirm, dark }) {
 export default function ProfilMedecin() {
   const { id }   = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { dark } = useOutletContext() || {};
+const { dark } = useOutletContext() || {};
   const [m,           setM]           = useState(null);
+  const [loading,     setLoading]     = useState(true);
   const [modaleSusp,  setModaleSusp]  = useState(false);
   const [modaleSuppr, setModaleSuppr] = useState(false);
   const [modalePhoto, setModalePhoto] = useState(false);
   const [toast,       setToast]       = useState(null);
 
   useEffect(() => {
-    // Affichage instantané avec les données passées via navigate(state) depuis MedecinsActifs,
-    // en attendant la réponse fraîche de l'API (qui remplacera cet état ci-dessous).
-    const fromState = location.state?.medecin;
-    if (fromState?.email) setM(fromState);
-
-    // Toujours recharger depuis le backend pour avoir les stats à jour (rang, concordance, etc.)
+    setLoading(true);
     getMedecinById(id)
-      .then(data => setM(normaliserMedecin(data)))
+      .then(data => {
+        setM(normaliserMedecin(data));
+      })
       .catch(() => {
-        if (fromState?.email) return;
         navigate("/administrateur/medecins");
-      });
+      })
+      .finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
@@ -170,7 +181,36 @@ export default function ProfilMedecin() {
     document.head.appendChild(s); window.print(); document.head.removeChild(s);
   }
 
-  if (!m) return null;
+  if (loading || !m) {
+    const surface = getSurface(dark);
+    const pulse = `rounded-xl animate-pulse ${dark ? "bg-[#21262d]" : "bg-gray-100"}`;
+    return (
+      <div className="flex flex-col gap-5 max-w-[1400px] mx-auto">
+        <div className={`rounded-2xl border px-6 py-5 ${dark ? "bg-[#161b22] border-[#21262d]" : "bg-white border-gray-100"}`}>
+          <div className="flex items-center gap-4">
+            <div className={`w-14 h-14 rounded-full ${pulse}`}/>
+            <div className="flex flex-col gap-2">
+              <div className={`h-5 w-48 ${pulse}`}/>
+              <div className={`h-3 w-72 ${pulse}`}/>
+              <div className={`h-6 w-16 rounded-full ${pulse}`}/>
+            </div>
+          </div>
+        </div>
+        <div className={`rounded-2xl border px-6 py-5 ${dark ? "bg-[#161b22] border-[#21262d]" : "bg-white border-gray-100"}`}>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+            {Array.from({length: 8}).map((_,i) => (
+              <div key={i} className="flex flex-col gap-1.5">
+                <div className={`h-3 w-20 ${pulse}`}/>
+                <div className={`h-4 w-40 ${pulse}`}/>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const statutAffiche = m.statut;
 
   const act = m.derniereActivite ? new Date(m.derniereActivite).toLocaleString("fr-FR") : "—";
   const dark_c = (light, dk) => dark ? dk : light;
@@ -181,13 +221,20 @@ export default function ProfilMedecin() {
   const tx3 = dark ? "text-[#484f58]" : "text-gray-400";
   const divider = dark ? "border-[#21262d]" : "border-gray-100";
 
+  function statutStyle(s) {
+    if (s === "Actif")    return { bg:"#ecfdf5", color:"#065f46", border:"0.5px solid #6ee7b7" };
+    if (s === "Suspendu") return { bg:"#fff7ed", color:"#c2410c", border:"0.5px solid #fed7aa" };
+    return                       { bg:"#f3f4f6", color:"#6b7280", border:"0.5px solid #d1d5db" };
+  }
+
   const InfoField = ({label, value, mono=false, teal=false, badge=false}) => (
     <div>
       <p className={`text-[15px] mb-1 ${tx3}`}>{label}</p>
       {badge
-        ? <span style={{display:"inline-block",padding:"2px 10px",borderRadius:99,fontSize:13,fontWeight:500,
-            background:value==="Actif"?"#ecfdf5":"#fef9c3",color:value==="Actif"?"#065f46":"#854d0e",
-            border:value==="Actif"?"0.5px solid #6ee7b7":"0.5px solid #fde68a"}}>{value}</span>
+        ? (() => { const s = statutStyle(value); return (
+            <span style={{display:"inline-block",padding:"2px 10px",borderRadius:99,fontSize:13,fontWeight:500,
+              background:s.bg,color:s.color,border:s.border}}>{value}</span>
+          ); })()
         : <p className={`text-[14px] font-medium ${mono?"font-mono":""} ${teal?"text-blue-800":tx1}`}>{value||"—"}</p>
       }
     </div>
@@ -250,7 +297,10 @@ export default function ProfilMedecin() {
                 <h1 className={`text-[22px] font-semibold leading-tight ${tx1}`}>{m.nom}</h1>
                 <p className={`text-[14px] mt-0.5 ${tx3}`}>{m.specialite} · {m.hopital} · {m.ville}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span style={{display:"inline-block",padding:"2px 10px",borderRadius:99,fontSize:13,fontWeight:500,background:m.statut==="Actif"?"#ecfdf5":"#fef9c3",color:m.statut==="Actif"?"#065f46":"#854d0e",border:m.statut==="Actif"?"0.5px solid #6ee7b7":"0.5px solid #fde68a"}}>{m.statut}</span>
+                  {(() => { const s = statutStyle(statutAffiche); return (
+                    <span style={{display:"inline-block",padding:"2px 10px",borderRadius:99,fontSize:13,fontWeight:500,
+                      background:s.bg,color:s.color,border:s.border}}>{statutAffiche}</span>
+                  ); })()}
                   <span style={{display:"inline-block",padding:"2px 10px",borderRadius:99,fontSize:13,fontWeight:500,background:"#e6f7f4",color:"#007a64",border:"0.5px solid #6ee7b7"}}>CNOM vérifié</span>
                 </div>
               </div>
@@ -276,7 +326,7 @@ export default function ProfilMedecin() {
             <p className={`text-[14px] font-medium mb-4 ${tx1}`}>Informations du membre</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
               <InfoField label="Email"              value={m.email}/>
-              <InfoField label="Statut"             value={m.statut}       badge/>
+              <InfoField label="Statut"             value={statutAffiche}  badge/>
               <InfoField label="Téléphone"         value={m.telephone}/>
               <InfoField label="N° d'ordre"         value={m.cnom}         mono/>
               <InfoField label="Date d'ajout"      value={m.creeLE}/>
@@ -287,8 +337,13 @@ export default function ProfilMedecin() {
           </div>
 
           <div className="hidden lg:flex flex-col gap-2.5">
-            <KpiCard bg="#f0fdf4" bdr="#bbf7d0" iconBg="#009e82" icon={<User size={17}/>}
-              label="Statut" labelColor="#059669" value={m.statut} valueColor="#065f46"/>
+            {(() => {
+              const sk = statutAffiche === "Actif"   ? { bg:"#f0fdf4",bdr:"#bbf7d0",ibg:"#009e82",lc:"#059669",vc:"#065f46" }
+                       : statutAffiche === "Suspendu" ? { bg:"#fff7ed",bdr:"#fed7aa",ibg:"#f97316",lc:"#ea580c",vc:"#c2410c" }
+                       : { bg:"#f3f4f6",bdr:"#d1d5db",ibg:"#9ca3af",lc:"#6b7280",vc:"#374151" };
+              return <KpiCard bg={sk.bg} bdr={sk.bdr} iconBg={sk.ibg} icon={<User size={17}/>}
+                label="Statut" labelColor={sk.lc} value={statutAffiche} valueColor={sk.vc}/>;
+            })()}
             <KpiCard bg="#fff7ed" bdr="#fed7aa" iconBg="#f97316" icon={<Cpu size={17}/>}
               label="Concordance IA" labelColor="#ea580c"
               value={m.concordanceIA ? `${m.concordanceIA}%` : "—"} valueColor="#9a3412"/>
@@ -364,11 +419,11 @@ export default function ProfilMedecin() {
                 <p className={`text-[13px] font-semibold ${dark?"text-white":"text-gray-800"}`}>{m.nom}</p>
                 <p className={`text-[12px] mt-0.5 ${dark?"text-[#484f58]":"text-gray-400"}`}>{m.specialite} · {m.cnom}</p>
                 <div className="flex items-center justify-center gap-1.5 mt-1">
-                  {m.statut==="Actif"
+                  {statutAffiche==="Actif"
                     ?<><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"/><span className="text-[12px] font-bold text-emerald-600">Actif</span></>
-                    :m.statut==="Suspendu"
+                    :statutAffiche==="Suspendu"
                     ?<><span className="w-1.5 h-1.5 rounded-full bg-red-400"/><span className="text-[12px] font-bold text-red-500">Suspendu</span></>
-                    :<><span className="w-1.5 h-1.5 rounded-full bg-gray-400"/><span className="text-[12px] font-bold text-gray-400">{m.statut}</span></>
+                    :<><span className="w-1.5 h-1.5 rounded-full bg-gray-400"/><span className="text-[12px] font-bold text-gray-400">{statutAffiche}</span></>
                   }
                 </div>
               </div>

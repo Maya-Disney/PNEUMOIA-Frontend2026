@@ -17,7 +17,7 @@ export const PATIENTS_DATA = {
     city: "Douala",
     profession: "Enseignant",
     consultations: 8,
-    createdAt: "2025-01-12",
+    createdAt: "2026-01-12",
     iaConcordance: 85,
     iaConfidence: "Haute confiance",
     antecedents: ["Tabagisme sevré 2020", "Hypertension artérielle", "Chirurgie appendice 2015"],
@@ -35,7 +35,7 @@ export const PATIENTS_DATA = {
     notes: "Patient coopératif. Toux productive depuis 48h. Réévaluation J+2.",
     iaHistory: [
       { date: "2026-03-09", diagnosis: "Pneumonie bactérienne", confidence: 85, concordant: true, details: "Opacités alvéolaires" },
-      { date: "2025-10-15", diagnosis: "Bronchite aiguë", confidence: 78, concordant: true, details: "Toux sèche" }
+      { date: "2026-10-15", diagnosis: "Bronchite aiguë", confidence: 78, concordant: true, details: "Toux sèche" }
     ],
     iaDifferentials: [
       { name: "Tuberculose", probability: 28 },
@@ -51,7 +51,7 @@ export const PATIENTS_DATA = {
     ],
     timeline: [
       { date: "2026-03-09", doctor: "Dr. Nom", title: "Pneumonie bactérienne", note: "Amoxicilline 1g x 3/j.", ia: 85, concordant: true },
-      { date: "2025-10-15", doctor: "Dr. Nom", title: "Bronchite aiguë", note: "Guérison J+10.", ia: 78, concordant: true }
+      { date: "2026-10-15", doctor: "Dr. Nom", title: "Bronchite aiguë", note: "Guérison J+10.", ia: 78, concordant: true }
     ],
     shareAccess: [{ name: "Dr. Martin", role: "Pneumologue", accessDate: "2026-03-07" }]
   },
@@ -90,7 +90,7 @@ export const PATIENTS_DATA = {
     notes: "BPCO stable. SpO2 légèrement basse. Sevrage tabagique recommandé.",
     iaHistory: [
       { date: "2026-03-10", diagnosis: "BPCO stade II", confidence: 83, concordant: true },
-      { date: "2025-12-15", diagnosis: "BPCO exacerbation", confidence: 79, concordant: true }
+      { date: "2026-12-15", diagnosis: "BPCO exacerbation", confidence: 79, concordant: true }
     ],
     iaDifferentials: [
       { name: "Asthme sévère", probability: 22 },
@@ -103,7 +103,7 @@ export const PATIENTS_DATA = {
     ],
     timeline: [
       { date: "2026-03-10", doctor: "Dr. Nom", title: "BPCO bilan trim.", note: "Stable. SpO2 92%.", ia: 83, concordant: true },
-      { date: "2025-12-15", doctor: "Dr. Nom", title: "BPCO exacerbation", note: "Cortico 5j.", ia: 79, concordant: true }
+      { date: "2026-12-15", doctor: "Dr. Nom", title: "BPCO exacerbation", note: "Cortico 5j.", ia: 79, concordant: true }
     ],
     shareAccess: []
   },
@@ -125,7 +125,7 @@ export const PATIENTS_DATA = {
     city: "Yaoundé",
     profession: "Retraité",
     consultations: 5,
-    createdAt: "2025-11-15",
+    createdAt: "2026-11-15",
     iaConcordance: 82,
     iaConfidence: "Haute confiance",
     antecedents: ["Diabète type 2", "Immunodépression cortico", "Contact TB confirmé"],
@@ -137,12 +137,12 @@ export const PATIENTS_DATA = {
     ],
     vitals: { spo2: 89, fr: 26, temp: 37.8, pa: "142/91", fc: 104, poids: "61 kg" },
     documents: [
-      { name: "BK crachat positif", type: "lab", date: "2025-11-15", size: "234 KB" },
-      { name: "Radio thorax initiale", type: "radio", date: "2025-11-15", size: "1.9 MB" }
+      { name: "BK crachat positif", type: "lab", date: "2026-11-15", size: "234 KB" },
+      { name: "Radio thorax initiale", type: "radio", date: "2026-11-15", size: "1.9 MB" }
     ],
     notes: "SUIVI DEPASSE depuis 28/02/2026. Traitement TB phase intensive.",
     iaHistory: [
-      { date: "2025-11-15", diagnosis: "Tuberculose pulmonaire", confidence: 82, concordant: true }
+      { date: "2026-11-15", diagnosis: "Tuberculose pulmonaire", confidence: 82, concordant: true }
     ],
     iaDifferentials: [
       { name: "Pneumonie bactérienne", probability: 18 },
@@ -155,7 +155,7 @@ export const PATIENTS_DATA = {
     ],
     timeline: [
       { date: "2026-02-28", doctor: "Dr. Nom", title: "TB suivi J+105", note: "BK négatif.", ia: 79, concordant: true },
-      { date: "2025-11-15", doctor: "Dr. Nom", title: "TB diagnostic", note: "BK+ confirmé.", ia: 82, concordant: true }
+      { date: "2026-11-15", doctor: "Dr. Nom", title: "TB diagnostic", note: "BK+ confirmé.", ia: 82, concordant: true }
     ],
     shareAccess: []
   },
@@ -206,7 +206,7 @@ export const PATIENTS_DATA = {
     timeline: [
       { date: "2026-03-05", doctor: "Dr. Nom", title: "Asthme contrôlé", note: "VEMS 78%.", ia: 91, concordant: true }
     ],
-    shareAccess: [{ name: "Dr. Kamga", role: "Allergologue", accessDate: "2025-12-10" }]
+    shareAccess: [{ name: "Dr. Kamga", role: "Allergologue", accessDate: "2026-12-10" }]
   },
   5: {
     id: 5,
@@ -226,7 +226,7 @@ export const PATIENTS_DATA = {
     city: "Bafoussam",
     profession: "Mineur",
     consultations: 3,
-    createdAt: "2025-04-20",
+    createdAt: "2026-04-20",
     iaConcordance: 81,
     iaConfidence: "Haute confiance",
     antecedents: ["Tabagisme 35 PA", "Silicose professionnelle", "HTA traitée"],
@@ -237,7 +237,7 @@ export const PATIENTS_DATA = {
     ],
     vitals: { spo2: 88, fr: 28, temp: 37.2, pa: "148/95", fc: 102, poids: "70 kg" },
     documents: [
-      { name: "EFR VEMS 38%", type: "efr", date: "2025-04-20", size: "1.5 MB" }
+      { name: "EFR VEMS 38%", type: "efr", date: "2026-04-20", size: "1.5 MB" }
     ],
     notes: "BPCO très sévère. SpO2 88%. OLT en discussion.",
     iaHistory: [

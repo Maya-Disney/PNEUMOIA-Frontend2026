@@ -5,7 +5,12 @@ WORKDIR /app
 
 # Installer les dépendances d'abord (meilleur cache Docker)
 COPY package*.json ./
-RUN npm ci
+# --legacy-peer-deps : eslint-plugin-import n'a pas encore de release supportant eslint 10
+# (eslint est un devDependency, uniquement utilisé pour `npm run lint`, pas pour `vite build`)
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 10000 && \
+    npm config set fetch-retry-maxtimeout 60000 && \
+    npm ci --legacy-peer-deps
 
 # Copier le code source
 COPY . .

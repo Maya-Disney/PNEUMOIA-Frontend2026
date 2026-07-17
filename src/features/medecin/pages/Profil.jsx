@@ -100,7 +100,7 @@ export default function Profile() {
   ];
 
   const achievements = [
-    { title: 'Expert en Pneumonie', date: '2025', icon: Award, color: 'blue' },
+    { title: 'Expert en Pneumonie', date: '2026', icon: Award, color: 'blue' },
     { title: 'Top Contributeur', date: '2026', icon: Award, color: 'purple' },
     { title: '100 Cas partagés', date: '2026', icon: Award, color: 'emerald' }
   ];
