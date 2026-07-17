@@ -344,17 +344,6 @@ export default function MedecinsActifs() {
   setModaleSuppr(null);
  },[modaleSuppr]);
 
-  function exportExcel() {
-    const ws = XLSX.utils.json_to_sheet(liste.map((m,i) => ({
-      "#":i+1, Nom:m.nom, "N° d'ordre":m.cnom, Spécialité:m.specialite,
-      Établissement:m.hopital, Ville:m.ville, Statut:m.statut,
-      "Jours inactif": m.joursInactif ?? "—",
-      "Créé le":m.creeLE, "Validé le":m.valideLE,
-    })));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Médecins");
-    XLSX.writeFile(wb, `medecins_${new Date().toISOString().slice(0,10)}.xlsx`);
-  }
  const page  = darkMode?"bg-gray-950 text-white":"bg-gray-50 text-gray-900";
  const card  = darkMode?"bg-gray-900 border-gray-800":"bg-white border-gray-200";
  const th    = darkMode?"bg-gray-800/80 text-gray-400":"bg-gray-50 text-gray-500";
