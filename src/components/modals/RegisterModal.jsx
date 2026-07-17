@@ -647,7 +647,6 @@ export default function RegisterModal({ isOpen, onClose }) {
                         </div>
                       </>
                     )}
-
                   </motion.div>
                 </AnimatePresence>
               </div>
