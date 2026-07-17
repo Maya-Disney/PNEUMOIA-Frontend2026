@@ -9,10 +9,15 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../medecin/contexts/ThemeContext';
 import logo from '../../../assets/images/logo.png';
+import { createNotifSound } from '../../../utils/notifSound';
+import notifSoundUrl from '../../../assets/audio/ship-bell-two-chimes-102730.mp3';
 
 const P = '#2563eb';
 const P2 = '#1d4ed8';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
+// ── Notification sound (fichier importé, débloqué dès la 1ère interaction) ───
+const playNotifSound = createNotifSound(notifSoundUrl);
 
 function getPerms() {
   try { return JSON.parse(localStorage.getItem('aide_permissions') || '{}'); } catch { return {}; }
@@ -45,6 +50,7 @@ export default function AideLayout() {
   const [notifCount, setNotifCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const userMenuRef = useRef(null);
+  const prevNotifCount = useRef(null);
   const navigate    = useNavigate();
   const location    = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -93,7 +99,14 @@ export default function AideLayout() {
     if (!token) return;
     fetch(`${API_URL}/notifications/count`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : { count: 0 })
-      .then(d => setNotifCount(d.count || 0))
+      .then(d => {
+        const newCount = d.count || 0;
+        if (prevNotifCount.current !== null && newCount > prevNotifCount.current) {
+          playNotifSound();
+        }
+        prevNotifCount.current = newCount;
+        setNotifCount(newCount);
+      })
       .catch(() => {});
   };
 

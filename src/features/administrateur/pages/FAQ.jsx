@@ -362,7 +362,6 @@ export default function FAQ() {
                         <p className={`text-[14px] font-bold cursor-pointer hover:underline ${tx1}`} onClick={()=>setModalePhoto(q)}>{q.medecin}</p>
                         <span className={`text-[14px] font-mono ${tx3}`}>{q.cnom}</span>
                         <span className={`text-[14px] ${tx3}`}>· {q.ville}</span>
-                        <BadgeCat cat={q.categorie}/>
                       </div>
                       <p className={`text-[15px] font-medium ${tx1} mb-1.5`}>{q.question}</p>
                       <DateLine label="Posée" date={q.date} dark={dark}/>

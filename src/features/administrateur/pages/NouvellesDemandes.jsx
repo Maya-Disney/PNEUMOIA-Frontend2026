@@ -545,8 +545,8 @@ export default function NouvellesDemandes() {
           )}
         </div>
 
-        <div>
-        <table className="w-full border-collapse">
+        <div className="w-full overflow-x-auto">
+        <table className="w-full border-collapse min-w-160">
             <thead>
               <tr>
                 <Th dark={dark} center style={{width: 40}}>#</Th>

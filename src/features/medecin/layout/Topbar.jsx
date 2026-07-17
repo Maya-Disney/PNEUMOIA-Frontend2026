@@ -7,28 +7,13 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import { createNotifSound } from '../../../utils/notifSound';
+import notifSoundUrl from '../../../assets/audio/bell.mp3';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
-function playNotifSound() {
-  try {
-    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
-    const t    = ctx.currentTime;
-    [[587.33, 0], [739.99, 0.13], [880, 0.26]].forEach(([freq, delay]) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, t + delay);
-      gain.gain.linearRampToValueAtTime(0.22, t + delay + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.5);
-      osc.start(t + delay);
-      osc.stop(t + delay + 0.55);
-    });
-  } catch { /* audio non supporté ou bloqué */ }
-}
+// ── Notification sound (fichier importé, débloqué dès la 1ère interaction) ───
+const playNotifSound = createNotifSound(notifSoundUrl);
 
 export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
   const [searchQuery,  setSearchQuery]  = useState('');

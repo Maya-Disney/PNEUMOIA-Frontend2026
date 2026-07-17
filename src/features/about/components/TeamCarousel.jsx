@@ -7,15 +7,16 @@ export default function TeamCarousel() {
   const [itemsPerPage, setItemsPerPage] = useState(4);
 
   const teamMembers = [
-    { id: 1, name: "Pouqoum Paule", role: "Backend Dev", description: "15 ans à l'hôpital Général de Douala. Il voulait que son expérience serve au-delà de son cabinet." },
-    { id: 2, name: "Tagne eKale", role: "Pneumologue", description: "Expert en pathologies respiratoires chroniques." },
-    { id: 3, name: "Marie Camara", role: "Chef de service", description: "Spécialiste en imagerie pulmonaire." },
-    { id: 4, name: "Paul Ngassa", role: "Data Scientist", description: "Expert en IA médicale." },
-    { id: 5, name: "Sophie Laurent", role: "Chercheur", description: "Doctorante en pneumologie." },
-    { id: 6, name: "Alain Mbarga", role: "Backend Dev", description: "Passionné par la technologie médicale." },
-    { id: 7, name: "Claire Ngo", role: "UX Designer", description: "Conçoit des interfaces intuitives." },
-    { id: 8, name: "David Fouda", role: "Pneumologue", description: "Expert en pathologies respiratoires." },
-    { id: 9, name: "Elise Tchinda", role: "Chef de projet", description: "Coordinatrice de l'équipe." }
+    { id: 1, name: "Mayang Marc Arthur", role: "Chef de projet", description: "Il orchestre chaque étape du projet avec rigueur et vision. Son leadership assure la cohérence entre toutes les équipes techniques." },
+    { id: 2, name: "Maya Disney Olive", role: "Développeuse Backend", description: "Elle conçoit une architecture robuste et sécurisée pour toute la plateforme. Passionnée par la fiabilité des systèmes, elle veille à la performance des APIs." },
+    { id: 3, name: "Pougoum Kiepouo Paule R.", role: "Développeuse Backend", description: "Elle construit les fondations logiques qui font tourner PneumoIA au quotidien. Rigoureuse et méthodique, elle transforme chaque besoin métier en code fiable." },
+    { id: 4, name: "Doungmo Lagoung Valdes", role: "Développeur Frontend", description: "Il donne vie aux interfaces avec fluidité et précision. Son souci du détail rend chaque écran agréable à utiliser." },
+    { id: 5, name: "Bete Owatta Junior C.", role: "Développeur Frontend", description: "Il traduit les maquettes en expériences interactives et réactives. Toujours à l'écoute des utilisateurs, il peaufine chaque interaction." },
+    { id: 6, name: "Djeuha Jumeli Alex T.", role: "Analyse de données", description: "Il transforme les données brutes en informations exploitables pour l'équipe médicale. Son regard analytique éclaire les décisions stratégiques du projet." },
+    { id: 7, name: "Bechem Laura Antonia F.", role: "Designeuse UI/UX", description: "Elle imagine des parcours utilisateurs simples et intuitifs. Son sens esthétique donne à PneumoIA une identité visuelle chaleureuse et professionnelle." },
+    { id: 8, name: "Nsenga Nana Megane Larissa", role: "Designeuse UI/UX", description: "Elle place l'utilisateur au centre de chaque interface qu'elle conçoit. Créative et attentive, elle veille à l'accessibilité de chaque écran." },
+    { id: 9, name: "Faith Ekei", role: "Testeuse", description: "Elle traque la moindre anomalie avant qu'elle n'atteigne les utilisateurs. Sa rigueur garantit la stabilité de chaque nouvelle fonctionnalité." },
+    { id: 10, name: "Ngwa Alan Ferry", role: "Testeur", description: "Il s'assure que chaque parcours fonctionne sans accroc, sur tous les scénarios possibles. Sa patience et sa précision renforcent la qualité globale du produit." }
   ];
 
   useEffect(() => {

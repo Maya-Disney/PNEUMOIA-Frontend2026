@@ -9,6 +9,8 @@ import { brand, getSurface, getText } from "../theme";
 import { useAdminTheme } from "../context/useAdminTheme";
 import { getDemandes, getQuestions, getAvis, getAdminNotifications, getRequetesMedecins } from "../api/adminApi";
 import { mapMedecin } from "../api/demandesData";
+import { createNotifSound } from "../../../utils/notifSound";
+import notifSoundUrl from "../../../assets/audio/notification-bell-sound.mp3";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function notifElapsed(d) {
@@ -31,27 +33,8 @@ function notifAvatarColor(str) {
   return colors[Math.abs(h) % colors.length];
 }
 
-// ── Notification sound (Web Audio API — no file needed) ──────────────────────
-function playNotifSound() {
-  try {
-    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
-    const t    = ctx.currentTime;
-    // Ascending 3-note chime : D5 → F#5 → A5 (arpège majeur)
-    [[587.33, 0], [739.99, 0.13], [880, 0.26]].forEach(([freq, delay]) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, t + delay);
-      gain.gain.linearRampToValueAtTime(0.22, t + delay + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.5);
-      osc.start(t + delay);
-      osc.stop(t + delay + 0.55);
-    });
-  } catch { /* audio non supporté ou bloqué */ }
-}
+// ── Notification sound (fichier importé, débloqué dès la 1ère interaction) ───
+const playNotifSound = createNotifSound(notifSoundUrl);
 
 // ── Sub-components (no hooks — safe to define at module level) ────────────────
 function NotifSectionHeader({ label, count, Icon, color, txt }) {

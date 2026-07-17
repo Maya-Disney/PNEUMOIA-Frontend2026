@@ -382,7 +382,7 @@ export default function RequetesMedecins() {
 
                   <div className="flex-1 px-5 py-4">
                     {/* Ligne 1 : avatar + nom + badges + date */}
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <Avatar
                           nom={req.nom_medecin}
@@ -459,7 +459,7 @@ export default function RequetesMedecins() {
                       </div>
 
                       {/* Bouton action */}
-                      <div className="shrink-0 flex flex-col items-end gap-2 mt-1">
+                      <div className="shrink-0 flex flex-col items-end gap-2 mt-1 self-end sm:self-auto">
                         {isDeblocage && req.statut !== "resolu" && req.statut !== "ferme" ? (
                           <button
                             onClick={() => handleDebloquer(req)}
