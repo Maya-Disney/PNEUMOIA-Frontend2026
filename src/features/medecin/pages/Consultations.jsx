@@ -9,7 +9,7 @@ import {
 } from '../services/api';
 
 import {
-  UserPlus, Stethoscope, CheckCircle, AlertCircle,
+  UserPlus, Stethoscope, CheckCircle, AlertCircle, Shield,
   Brain, Pill, Activity, ClipboardList, AlertTriangle, Info, Zap, Target, LineChart,
   Search, X, XCircle, Circle, User, Phone, Calendar as CalendarIcon,
   Briefcase, Loader2, Globe, MapPin, Unlock, Users, FileText,
@@ -1242,8 +1242,6 @@ const createAndContinue = async () => {
               ]} icon={Droplet} />
             </div>
           </FormCard>
-            <div className="grid md:grid-cols-2 gap-3">
-          </FormCard>
 
           {isTemoinJehovah && (
             <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 flex items-start gap-2">
@@ -1260,6 +1258,7 @@ const createAndContinue = async () => {
       <div className="flex justify-end">
         <button onClick={createAndContinue} disabled={isSaving} className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all flex items-center gap-2">
           {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+          {isSaving ? 'Enregistrement…' : 'Continuer →'}
         </button>
       </div>
     </div>
@@ -1276,7 +1275,6 @@ const createAndContinue = async () => {
             <RadioOption label="Ancien fumeur" name="tabagisme" checked={antecedents.tabagisme === 'ancien'}   onChange={() => setAntecedents({...antecedents, tabagisme: 'ancien'})} />
           </div>
           </div>
-        )}
         <div className="mt-3">
           <CheckboxField label="Consommation d'alcool" checked={antecedents.alcool} onChange={(c) => setAntecedents({...antecedents, alcool: c})} />
         </div>

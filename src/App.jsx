@@ -59,7 +59,7 @@ import RepartitionGeo      from './features/administrateur/pages/RepartitionGeog
 import CourbeActivite      from './features/administrateur/pages/Courbesactives';
 import PerformancesIA      from './features/administrateur/pages/PerformanceIA';
 import Parametres          from './features/administrateur/pages/Parametres';
-import NouvellesDemandes   from './features/administrateur/pages/NouvellesDemandes';
+import NouvellesDemandes   from './features/administrateur/pages/nouvellesDemandes';
 import ProfilMedecin       from './features/administrateur/pages/ProfilMedecin';
 import CorbeilleAdmin      from './features/administrateur/pages/Corbeille';
 import FAQ                 from './features/administrateur/pages/FAQ';
