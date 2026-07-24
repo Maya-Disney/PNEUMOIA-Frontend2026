@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useToast } from '../../../contexts/ToastContext';
 import { TablePagination } from '../../../components/ui/TablePagination';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useProfil } from '../hooks/useAuth';
 import { isNetworkError, sauvegarderAction } from '../../../services/offlineManager';
 import {
@@ -660,7 +660,7 @@ function IATab({ p }) {
   );
 }
 
-function HistoryTab({ p, onAvisSaved }) {
+function HistoryTab({ p, onAvisSaved, autoAvisConsultationId }) {
   const [avisModal,   setAvisModal]   = useState(null);
   const [avisData,    setAvisData]    = useState({
     concordanceIA: null, diagnosticFinal: '', diagnosticAutre: '',
@@ -671,6 +671,25 @@ function HistoryTab({ p, onAvisSaved }) {
   const [savingAvis,  setSavingAvis]  = useState(false);
   const [expanded,    setExpanded]    = useState({});
   const [avisSuccess, setAvisSuccess] = useState(false);
+  const autoOpenDone = useRef(false);
+
+  // Auto-ouvrir le modal d'avis si on vient du carousel dashboard
+  useEffect(() => {
+    if (!autoAvisConsultationId || !p?.tl?.length || autoOpenDone.current) return;
+    const t = p.tl.find(item => item.consultation_id === autoAvisConsultationId);
+    if (!t) return;
+    autoOpenDone.current = true;
+    setAvisModal(t);
+    setAvisData({
+      concordanceIA: null,
+      diagnosticFinal: t.title && t.title !== 'Consultation' ? t.title : '',
+      diagnosticAutre: '',
+      medicaments: '', conseilsMaison: '', recommandations: '',
+      arretTravail: false, dureeArret: '7',
+      hospitalisation: false, motifHospitalisation: '',
+      suivi: '7 jours', observations: '',
+    });
+  }, [autoAvisConsultationId, p?.tl]);
 
   const handleSaveAvis = async () => {
     if (!avisModal) return;
@@ -897,8 +916,8 @@ function HistoryTab({ p, onAvisSaved }) {
                       <div className="p-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-lg text-xs text-amber-800 dark:text-amber-200 italic">"{t.note}"</div>
                     </div>
                   )}
-                  {/* Télécharger le PDF de cette consultation */}
-                  {t.consultation_id && t.statut === 'terminee' && (
+                  {/* Télécharger le PDF — uniquement après avis complet (concordance donnée) */}
+                  {t.consultation_id && t.statut === 'terminee' && t.concordance !== null && t.concordance !== undefined && (
                     <button
                       onClick={async () => {
                         try {
@@ -1428,7 +1447,7 @@ function AccessTab({ p }) {
 
 // ─── DETAIL PANEL ──────────────────────────────────────────────────────
 
-function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPatientDeleted }) {
+function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPatientDeleted, autoAvisConsultationId }) {
   const navigate = useNavigate();
   const [tab,             setTab]             = useState("dossier");
   const [showModal,       setShowModal]       = useState(false);
@@ -1436,7 +1455,7 @@ function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPat
   const [editData,        setEditData]        = useState({});
   const [isSaving,        setIsSaving]        = useState(false);
 
-  useEffect(() => { setTab("dossier"); }, [patient?.id]);
+  useEffect(() => { setTab(autoAvisConsultationId ? "history" : "dossier"); }, [patient?.id]); // eslint-disable-line
   useEffect(() => {
     if (patient) setEditData({
       nom:                  patient.nom || '',
@@ -1605,7 +1624,7 @@ function DetailPanel({ patient, onClose, onStatusChange, onPatientUpdated, onPat
       >
         {tab === "dossier" && <DossierTab p={patient} />}
         {tab === "ia" && <IATab p={patient} />}
-        {tab === "history" && <HistoryTab p={patient} onAvisSaved={(consultationId, avisResult) => {
+        {tab === "history" && <HistoryTab p={patient} autoAvisConsultationId={autoAvisConsultationId} onAvisSaved={(consultationId, avisResult) => {
           onPatientUpdated?.(patient.id, {
             tl: (patient.tl || []).map(t =>
               t.consultation_id === consultationId
@@ -1921,6 +1940,10 @@ function Toast({ toasts, remove }) {
 export default function PatientsPage() {
   const toast = useToast();
   const { profil } = useProfil();
+  const [searchParams] = useSearchParams();
+  const autoPatientId = searchParams.get('patient_id');
+  const autoAvisId    = searchParams.get('open_avis');
+
   const [patients,   setPatients]   = useState({});
   const [selected,   setSelected]   = useState(null);
   const [filter,     setFilter]     = useState("all");
@@ -2002,7 +2025,36 @@ export default function PatientsPage() {
         try { localStorage.setItem('_cache_patients', JSON.stringify({ ts: Date.now(), data })); } catch {}
 
         setOfflineCache(false);
-        setPatients(_buildPatientsObj(data));
+        const patientsObj = _buildPatientsObj(data);
+        setPatients(patientsObj);
+
+        // Charger en parallèle : cas graves, partagés, alertes sans-avis
+        const headers = { Authorization: `Bearer ${token}` };
+        const [gravesRes, partagesRes, alertesRes] = await Promise.allSettled([
+          fetch(`${BASE_URL}/consultations/cas-graves`,    { headers }),
+          fetch(`${BASE_URL}/patients/mes-partages`,       { headers }),
+          fetch(`${BASE_URL}/patients/alertes-dashboard`,  { headers }),
+        ]);
+        const graves   = gravesRes.status   === 'fulfilled' && gravesRes.value.ok   ? await gravesRes.value.json()   : [];
+        const partages = partagesRes.status === 'fulfilled' && partagesRes.value.ok ? await partagesRes.value.json() : [];
+        const alertes  = alertesRes.status  === 'fulfilled' && alertesRes.value.ok  ? await alertesRes.value.json()  : { en_attente: [] };
+
+        const urgentIds   = new Set(graves.map(g => g.patient_id).filter(Boolean));
+        const partagesIds = new Set(partages.map(p => p.patient_id).filter(Boolean));
+        const sansAvisIds = new Set((alertes.en_attente || []).map(e => e.patient_id).filter(Boolean));
+
+        setPatients(prev => {
+          const updated = { ...prev };
+          for (const id of Object.keys(updated)) {
+            updated[id] = {
+              ...updated[id],
+              status:    urgentIds.has(id)   ? 'urgent' : updated[id].status,
+              shared:    partagesIds.has(id),
+              sans_avis: sansAvisIds.has(id),
+            };
+          }
+          return updated;
+        });
       } catch (err) {
         // Mode offline : essayer le cache localStorage
         if (isNetworkError(err) || !navigator.onLine) {
@@ -2216,8 +2268,9 @@ export default function PatientsPage() {
       || p.name.toLowerCase().includes(search.toLowerCase())
       || (p.diag || '').toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === "all"
-      || (filter === "urgent" && p.status === "urgent")
-      || (filter === "shared" && p.shared);
+      || (filter === "urgent"   && p.status === "urgent")
+      || (filter === "shared"   && p.shared)
+      || (filter === "sans_avis" && p.sans_avis);
     return matchSearch && matchFilter;
   });
 
@@ -2236,6 +2289,13 @@ export default function PatientsPage() {
   }, []);
 
   const currentPatient = selected ? patients[selected] : null;
+
+  // Auto-sélection depuis URL params (venant du carousel dashboard)
+  useEffect(() => {
+    if (autoPatientId && patients[autoPatientId] && !selected) {
+      setSelected(autoPatientId);
+    }
+  }, [autoPatientId, patients, selected]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
@@ -2289,9 +2349,10 @@ export default function PatientsPage() {
             >
               <div className="flex items-center gap-1.5 bg-(--sf) border border-(--ln) rounded-xl p-1.5 shadow-sm">
                 {[
-                  { id: "all",    label: "Tous",     count: Object.keys(patients).length },
-                  { id: "urgent", label: "Urgents",  count: Object.values(patients).filter(p => p.status === 'urgent').length || undefined },
-                  { id: "shared", label: "Partagés" },
+                  { id: "all",      label: "Tous",      count: Object.keys(patients).length },
+                  { id: "urgent",   label: "Urgents",   count: Object.values(patients).filter(p => p.status === 'urgent').length   || undefined },
+                  { id: "sans_avis",label: "Sans avis", count: Object.values(patients).filter(p => p.sans_avis).length            || undefined },
+                  { id: "shared",   label: "Partagés",  count: Object.values(patients).filter(p => p.shared).length               || undefined },
                 ].map(f => (
                   <motion.button
                     key={f.id}
@@ -2385,6 +2446,7 @@ export default function PatientsPage() {
               onStatusChange={handleStatusChange}
               onPatientUpdated={handlePatientUpdated}
               onPatientDeleted={handlePatientDeleted}
+              autoAvisConsultationId={selected === autoPatientId ? autoAvisId : null}
             />
           )}
         </div>

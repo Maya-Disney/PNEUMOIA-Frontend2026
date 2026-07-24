@@ -57,11 +57,12 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
           }
           prevNotifCount.current = newCount;
           setNotifCount(newCount);
+          window.dispatchEvent(new CustomEvent('notifCountUpdate', { detail: newCount }));
         }
       } catch {}
     };
     fetchNotifCount();
-    const interval = setInterval(fetchNotifCount, 30_000);
+    const interval = setInterval(fetchNotifCount, 60_000);
     return () => clearInterval(interval);
   }, []);
 
