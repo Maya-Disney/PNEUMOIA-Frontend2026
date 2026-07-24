@@ -33,9 +33,6 @@ function notifAvatarColor(str) {
   return colors[Math.abs(h) % colors.length];
 }
 
-// ── Notification sound (fichier importé, débloqué dès la 1ère interaction) ───
-const playNotifSound = createNotifSound(notifSoundUrl);
-
 // ── Sub-components (no hooks — safe to define at module level) ────────────────
 function NotifSectionHeader({ label, count, Icon, color, txt }) {
   return (
@@ -136,6 +133,13 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0, onMenuClick 
   const notifRef    = useRef(null);
   const bellRef     = useRef(null);
   const prevCount   = useRef(null); // null = premier chargement
+  const playNotifSoundRef = useRef(null);
+
+  // Créé/débloqué seulement quand le topbar admin est réellement monté
+  // (jamais sur la landing page publique).
+  useEffect(() => {
+    playNotifSoundRef.current = createNotifSound(notifSoundUrl);
+  }, []);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef    = useRef(null);
   const avatarRef     = useRef(null);
@@ -223,10 +227,10 @@ export default function Topbar({ dark, setDark, corbeilleCount = 0, onMenuClick 
 
       const newTotal = newInscriptions.length + newFaq.length + newComments.length + newPatientNotifs.length + newDeblocageNotifs.length;
 
-      // Premier chargement avec notifs → son immédiat
-      // Polling suivant avec plus de notifs → son d'alerte
-      if (prevCount.current === null ? newTotal > 0 : newTotal > prevCount.current) {
-        playNotifSound();
+      // Pas de son au premier chargement : uniquement quand de nouvelles
+      // notifications arrivent après l'ouverture de la page.
+      if (prevCount.current !== null && newTotal > prevCount.current) {
+        playNotifSoundRef.current?.();
       }
       prevCount.current = newTotal;
 

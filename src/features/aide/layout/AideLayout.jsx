@@ -16,9 +16,6 @@ const P = '#2563eb';
 const P2 = '#1d4ed8';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
-// ── Notification sound (fichier importé, débloqué dès la 1ère interaction) ───
-const playNotifSound = createNotifSound(notifSoundUrl);
-
 function getPerms() {
   try { return JSON.parse(localStorage.getItem('aide_permissions') || '{}'); } catch { return {}; }
 }
@@ -51,6 +48,7 @@ export default function AideLayout() {
   const [refreshing, setRefreshing] = useState(false);
   const userMenuRef = useRef(null);
   const prevNotifCount = useRef(null);
+  const playNotifSoundRef = useRef(null);
   const navigate    = useNavigate();
   const location    = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -58,6 +56,12 @@ export default function AideLayout() {
 
   const perms = getPerms();
   const [info, setInfo] = useState(getInfo());
+
+  // Créé/débloqué seulement quand le layout aide-soignant est réellement monté
+  // (jamais sur la landing page publique).
+  useEffect(() => {
+    playNotifSoundRef.current = createNotifSound(notifSoundUrl);
+  }, []);
 
   useEffect(() => {
     if (localStorage.getItem('role') !== 'aide_soignant') { navigate('/'); return; }
@@ -102,7 +106,7 @@ export default function AideLayout() {
       .then(d => {
         const newCount = d.count || 0;
         if (prevNotifCount.current !== null && newCount > prevNotifCount.current) {
-          playNotifSound();
+          playNotifSoundRef.current?.();
         }
         prevNotifCount.current = newCount;
         setNotifCount(newCount);

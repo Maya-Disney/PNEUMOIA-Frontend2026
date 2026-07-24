@@ -12,19 +12,23 @@ import notifSoundUrl from '../../../assets/audio/bell.mp3';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
-// ── Notification sound (fichier importé, débloqué dès la 1ère interaction) ───
-const playNotifSound = createNotifSound(notifSoundUrl);
-
 export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
   const [searchQuery,  setSearchQuery]  = useState('');
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifCount,   setNotifCount]   = useState(0);
   const [refreshing,   setRefreshing]   = useState(false);
   const prevNotifCount = useRef(null);
+  const playNotifSoundRef = useRef(null);
   const userMenuRef = useRef(null);
   const navigate    = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { profil }  = useProfil();
+
+  // Créé/débloqué seulement quand le topbar médecin est réellement monté
+  // (jamais sur la landing page publique).
+  useEffect(() => {
+    playNotifSoundRef.current = createNotifSound(notifSoundUrl);
+  }, []);
 
   useEffect(() => {
     const fetchNotifCount = async () => {
@@ -38,7 +42,7 @@ export default function Topbar({ sidebarOpen, setSidebarOpen, pageTitle }) {
           const data = await res.json();
           const newCount = data.count || 0;
           if (prevNotifCount.current !== null && newCount > prevNotifCount.current) {
-            playNotifSound();
+            playNotifSoundRef.current?.();
           }
           prevNotifCount.current = newCount;
           setNotifCount(newCount);
