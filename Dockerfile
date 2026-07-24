@@ -4,13 +4,13 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Installer les dépendances d'abord (meilleur cache Docker)
-COPY package*.json ./
-# --legacy-peer-deps : eslint-plugin-import n'a pas encore de release supportant eslint 10
-# (eslint est un devDependency, uniquement utilisé pour `npm run lint`, pas pour `vite build`)
+COPY package.json ./
+# npm install (pas npm ci) : régénère le lock pour Linux alpine
+# npm ci utiliserait le lock Windows qui manque @rolldown/binding-linux-x64-musl
 RUN npm config set fetch-retries 5 && \
     npm config set fetch-retry-mintimeout 10000 && \
     npm config set fetch-retry-maxtimeout 60000 && \
-    npm ci --legacy-peer-deps
+    npm install --legacy-peer-deps
 
 # Copier le code source
 COPY . .

@@ -22,6 +22,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, ChartTooltip, ChartLegend);
 import { useProfil } from '../hooks/useAuth';
+import PatientsAlerteCarousel from '../components/PatientsAlerteCarousel';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -400,6 +401,9 @@ export default function Dashboard() {
           );
         })}
       </div>
+
+      {/* Alertes patients — carousel visible dès le haut du dashboard */}
+      <PatientsAlerteCarousel />
 
       {/* Graphique + Contenu principal */}
       <div className="grid lg:grid-cols-3 gap-8">

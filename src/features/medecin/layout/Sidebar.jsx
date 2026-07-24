@@ -62,24 +62,14 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, onCollapsedChange
 
   useEffect(() => {
     fetchPartageBadge().then(setBadge);
-    const t = setInterval(() => fetchPartageBadge().then(setBadge), 60_000);
+    const t = setInterval(() => fetchPartageBadge().then(setBadge), 120_000);
     return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
-    const fetchNotifCount = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      try {
-        const r = await fetch(`${API_URL}/notifications/count`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (r.ok) { const d = await r.json(); setNotifCount(d.count || 0); }
-      } catch {}
-    };
-    fetchNotifCount();
-    const t = setInterval(fetchNotifCount, 30_000);
-    return () => clearInterval(t);
+    const handler = (e) => setNotifCount(e.detail);
+    window.addEventListener('notifCountUpdate', handler);
+    return () => window.removeEventListener('notifCountUpdate', handler);
   }, []);
 
   useEffect(() => {
@@ -227,7 +217,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, onCollapsedChange
       {expanded && (
         <div className="px-5 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.12)' }}>
           <p className="text-[10px] font-medium select-none" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            PneumoIA v2.0 · 2026
+            PneumoIA  2026
           </p>
         </div>
       )}

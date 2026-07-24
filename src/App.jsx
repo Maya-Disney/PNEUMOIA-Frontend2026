@@ -52,7 +52,7 @@ import AdminDashboard      from './features/administrateur/pages/Dashboard';
 import ValidesCeMois       from './features/administrateur/pages/ValidesCeMois';
 import Refusees            from './features/administrateur/pages/Refuses';
 import MedecinsSuspendus   from './features/administrateur/pages/MedecinsSuspendus';
-import MedecinsActifs      from './features/administrateur/pages/Medecinsactifs';
+import MedecinsActifs      from './features/administrateur/pages/MedecinsActifs';
 import JournalAudit        from './features/administrateur/pages/JournalAudit';
 import Statistiques        from './features/administrateur/pages/Statistiques';
 import RepartitionGeo      from './features/administrateur/pages/RepartitionGeographique';

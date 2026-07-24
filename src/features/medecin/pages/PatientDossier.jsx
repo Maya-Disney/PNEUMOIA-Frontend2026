@@ -109,12 +109,49 @@ function MaladieBadge({ maladie, rank }) {
 }
 
 // ── Consultation accordéon ─────────────────────────────────────────
-function ConsultationCard({ consultation, index }) {
+function ConsultationCard({ consultation, index, onAvisSubmitted }) {
   const [open, setOpen] = useState(index === 0);
+  const [showAvisForm, setShowAvisForm] = useState(false);
+  const [avisForm, setAvisForm] = useState({ concordanceIA: null, diagnosticFinal: '', observations: '' });
+  const [savingAvis, setSavingAvis] = useState(false);
+  const [avisOk, setAvisOk] = useState(false);
+
   const diag = consultation.diagnostic;
   const feedback = consultation.feedback;
   const etat = diag?.etat_patient;
   const cfg = ETAT_CFG[etat] || ETAT_CFG.stable;
+
+  const handleSubmitAvis = async () => {
+    setSavingAvis(true);
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+      await fetch(`${BASE_URL}/consultations/${consultation.id}/opinion`, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          observations: avisForm.observations || null,
+          medicaments: null, conseils_maison: null, recommandations: null,
+          arret_travail: false, hospitalisation: false, suivi: '7 jours',
+          partage: { actif: false, anonymiser: true, type: null, destinataire_id: null, envoyer_mail_patient: false },
+        }),
+      });
+      if (diag?.id && avisForm.concordanceIA !== null) {
+        await fetch(`${BASE_URL}/diagnostic/${diag.id}/feedback`, {
+          method: 'POST', headers,
+          body: JSON.stringify({
+            concordance: avisForm.concordanceIA,
+            diagnostic_final: avisForm.diagnosticFinal || (diag.maladies?.[0]?.nom ?? ''),
+            commentaire: avisForm.observations || null,
+          }),
+        });
+      }
+      setAvisOk(true);
+      setShowAvisForm(false);
+      setTimeout(() => setAvisOk(false), 3000);
+      onAvisSubmitted?.();
+    } catch (e) { alert(`Erreur : ${e.message}`); }
+    finally { setSavingAvis(false); }
+  };
 
   const symptomes = consultation.symptomes || {};
   const symptomesActifs = Object.entries(symptomes).filter(([, v]) => v === true || v === 1 || v === 'oui');
@@ -269,7 +306,80 @@ function ConsultationCard({ consultation, index }) {
                   <p className="text-sm text-(--t2) leading-relaxed italic mt-1">« {feedback.commentaire} »</p>
                 )}
                 {!feedback?.diagnostic_final && !consultation.avis_medecin && !feedback?.commentaire && (
-                  <p className="text-xs text-(--t4) italic">L'avis du médecin n'a pas encore été soumis pour cette consultation.</p>
+                  avisOk ? (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Avis enregistré avec succès.
+                    </p>
+                  ) : showAvisForm ? (
+                    <div className="space-y-3 mt-2">
+                      {/* Concordance IA */}
+                      {diag?.maladies?.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-(--t3) uppercase tracking-widest mb-2">Concordance avec l'IA</p>
+                          <div className="flex gap-2">
+                            {[
+                              { val: true,  label: '✓ Concordant',     cls: 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' },
+                              { val: false, label: '✗ Non concordant', cls: 'border-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400' },
+                            ].map(({ val, label, cls }) => (
+                              <button key={String(val)}
+                                onClick={() => setAvisForm(f => ({ ...f, concordanceIA: val }))}
+                                className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-all ${avisForm.concordanceIA === val ? cls : 'border-(--ln) text-(--t4) hover:border-(--t3)'}`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* Diagnostic final */}
+                      {diag?.maladies?.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-(--t3) uppercase tracking-widest mb-2">Diagnostic retenu</p>
+                          <select
+                            value={avisForm.diagnosticFinal}
+                            onChange={e => setAvisForm(f => ({ ...f, diagnosticFinal: e.target.value }))}
+                            className="w-full text-sm bg-(--sf) border border-(--ln) rounded-xl px-3 py-2 text-(--t1) focus:outline-none focus:border-blue-400"
+                          >
+                            <option value="">— Sélectionner —</option>
+                            {(diag.maladies || []).map((m, i) => (
+                              <option key={i} value={m.nom || m.name}>{m.nom || m.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      {/* Observations */}
+                      <div>
+                        <p className="text-xs font-semibold text-(--t3) uppercase tracking-widest mb-2">Observations / Avis clinique</p>
+                        <textarea
+                          rows={3}
+                          value={avisForm.observations}
+                          onChange={e => setAvisForm(f => ({ ...f, observations: e.target.value }))}
+                          placeholder="Saisissez votre avis clinique…"
+                          className="w-full text-sm bg-(--sf) border border-(--ln) rounded-xl px-3 py-2 text-(--t1) placeholder:text-(--t4) focus:outline-none focus:border-blue-400 resize-none"
+                        />
+                      </div>
+                      {/* Actions */}
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => setShowAvisForm(false)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-medium text-(--t3) hover:text-(--t1) hover:bg-(--sf2) transition-all border border-(--ln)">
+                          Annuler
+                        </button>
+                        <button onClick={handleSubmitAvis} disabled={savingAvis}
+                          className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-all disabled:opacity-60">
+                          {savingAvis ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                          Soumettre l'avis
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-(--t4) italic">L'avis du médecin n'a pas encore été soumis pour cette consultation.</p>
+                      <button onClick={() => setShowAvisForm(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-all shrink-0 ml-3">
+                        <Send className="w-3 h-3" /> Donner mon avis
+                      </button>
+                    </div>
+                  )
                 )}
               </div>
 
@@ -680,7 +790,7 @@ export default function PatientDossier() {
             ) : (
               <div className="space-y-3">
                 {consultations.map((c, i) => (
-                  <ConsultationCard key={c.id} consultation={c} index={i} />
+                  <ConsultationCard key={c.id} consultation={c} index={i} onAvisSubmitted={load} />
                 ))}
               </div>
             )}

@@ -9,7 +9,7 @@ import {
 } from '../services/api';
 
 import {
-  UserPlus, Stethoscope, CheckCircle, AlertCircle,
+  UserPlus, Stethoscope, CheckCircle, AlertCircle, Shield,
   Brain, Pill, Activity, ClipboardList, AlertTriangle, Info, Zap, Target, LineChart,
   Search, X, XCircle, Circle, User, Phone, Calendar as CalendarIcon,
   Briefcase, Loader2, Globe, MapPin, Unlock, Users, FileText,
@@ -28,14 +28,12 @@ const Toast = ({ message, type, onClose }) => {
     const timer = setTimeout(onClose, 4000);
     return () => clearTimeout(timer);
   }, [onClose]);
-
   const bgColors = {
     success: 'bg-emerald-600',
     error: 'bg-red-600',
     warning: 'bg-amber-500',
     info: 'bg-blue-600'
   };
-
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
@@ -1203,7 +1201,6 @@ const createAndContinue = async () => {
           <Search className="w-4 h-4 inline mr-1.5" /> Patient existant
         </button>
       </div>
-
       {showSearch && (
         <div className="bg-[var(--sf)] rounded-lg border border-(--ln) p-4">
           <h3 className="font-medium text-sm mb-3">Rechercher un patient</h3>
@@ -1219,7 +1216,6 @@ const createAndContinue = async () => {
           ))}
         </div>
       )}
-
       {!showSearch && (
         <>
           <FormCard title="Identité du patient" icon={<User className="w-4 h-4" />}>
@@ -1247,13 +1243,6 @@ const createAndContinue = async () => {
             </div>
           </FormCard>
 
-          <FormCard title="Personne à contacter en cas d'urgence" icon={<Phone className="w-4 h-4" />}>
-            <div className="grid md:grid-cols-2 gap-3">
-              <InputField label="Nom" value={patientInfo.personneAContacter} onChange={(e) => setPatientInfo({...patientInfo, personneAContacter: e.target.value})} />
-              <InputField label="Téléphone" type="tel" value={patientInfo.telephoneUrgence} onChange={(e) => setPatientInfo({...patientInfo, telephoneUrgence: e.target.value})} icon={Phone} />
-            </div>
-          </FormCard>
-
           {isTemoinJehovah && (
             <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
@@ -1269,12 +1258,11 @@ const createAndContinue = async () => {
       <div className="flex justify-end">
         <button onClick={createAndContinue} disabled={isSaving} className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all flex items-center gap-2">
           {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-          Continuer →
+          {isSaving ? 'Enregistrement…' : 'Continuer →'}
         </button>
       </div>
     </div>
   );
-
   // Étape 2: Antécédents médicaux
   const renderStepAntecedents = () => (
     <div className="space-y-4">
@@ -1286,13 +1274,7 @@ const createAndContinue = async () => {
             <RadioOption label="Fumeur"       name="tabagisme" checked={antecedents.tabagisme === 'fumeur'}     onChange={() => setAntecedents({...antecedents, tabagisme: 'fumeur'})} />
             <RadioOption label="Ancien fumeur" name="tabagisme" checked={antecedents.tabagisme === 'ancien'}   onChange={() => setAntecedents({...antecedents, tabagisme: 'ancien'})} />
           </div>
-        </div>
-        {antecedents.tabagisme === 'fumeur' && (
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <InputField label="Cigarettes/jour" type="number" value={antecedents.cigarettesParJour} onChange={(e) => setAntecedents({...antecedents, cigarettesParJour: parseInt(e.target.value) || 0})} />
-            <InputField label="Années de tabagisme" type="number" value={antecedents.dureeTabagisme} onChange={(e) => setAntecedents({...antecedents, dureeTabagisme: parseInt(e.target.value) || 0})} />
           </div>
-        )}
         <div className="mt-3">
           <CheckboxField label="Consommation d'alcool" checked={antecedents.alcool} onChange={(c) => setAntecedents({...antecedents, alcool: c})} />
         </div>
@@ -1321,7 +1303,6 @@ const createAndContinue = async () => {
           <InputField label="Allergies médicamenteuses" value={antecedents.allergieMedicaments} onChange={(e) => setAntecedents({...antecedents, allergieMedicaments: e.target.value})} placeholder="Pénicilline, aspirine..." />
         </div>
       </FormCard>
-
       <FormCard title="Expositions professionnelles" icon={<Briefcase className="w-4 h-4" />}>
         <div className="space-y-3">
           <CheckboxField label="Profession à risque (amiante, mines, silice...)" checked={antecedents.professionRisque} onChange={(c) => setAntecedents({...antecedents, professionRisque: c})} />
@@ -1420,7 +1401,6 @@ const createAndContinue = async () => {
               </div>
             )}
           </div>
-
           <div className="p-3 bg-[var(--sf2)] rounded-lg">
             <CheckboxField label="Toux" checked={consultation.toux} onChange={(c) => setConsultation({...consultation, toux: c})} />
             {consultation.toux && (
@@ -1442,7 +1422,6 @@ const createAndContinue = async () => {
               </div>
             )}
           </div>
-
           <div className="p-3 bg-[var(--sf2)] rounded-lg">
             <CheckboxField label="Dyspnée (essoufflement)" checked={consultation.dyspnee} onChange={(c) => setConsultation({...consultation, dyspnee: c})} />
             {consultation.dyspnee && (
@@ -1460,7 +1439,6 @@ const createAndContinue = async () => {
               </div>
             )}
           </div>
-
           <div className="p-3 bg-[var(--sf2)] rounded-lg">
             <CheckboxField label="Douleur thoracique" checked={consultation.douleurThoracique} onChange={(c) => setConsultation({...consultation, douleurThoracique: c})} />
             {consultation.douleurThoracique && (
@@ -1929,7 +1907,6 @@ const createAndContinue = async () => {
       {currentStep === 2 && renderStepAntecedents()}
       {currentStep === 3 && renderStepSymptomes()}
       {currentStep === 4 && renderStepDiagnostic()}
-
       <AnimatePresence>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>

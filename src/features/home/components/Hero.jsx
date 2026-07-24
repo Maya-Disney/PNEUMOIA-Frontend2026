@@ -47,7 +47,6 @@ export default function Hero() {
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
-
             {/* Côté gauche - Contenu texte avec animations */}
             <motion.div
               initial={{ opacity: 0, x: -50 }}
@@ -94,7 +93,6 @@ export default function Hero() {
                   Inscrire maintenant
                   <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.button>
-
                 {/* Bouton secondaire "Voir la démo" - avec texte blanc au hover */}
                 <motion.button
                           whileHover={{ scale: 1.05 }}
@@ -107,7 +105,6 @@ export default function Hero() {
                 </motion.button>
               </motion.div>
             </motion.div>
-
             {/* Côté droit - Image du médecin avec animations */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
@@ -164,7 +161,6 @@ export default function Hero() {
                 }}
                 className="absolute -top-2 sm:-top-4 -right-2 sm:-right-4 w-20 sm:w-32 h-20 sm:h-32 bg-blue-300 rounded-full blur-3xl"
               />
-
               {/* Cercle animé 2 - indigo, bas gauche, pulse en décalage */}
               <motion.div
                 animate={{
@@ -192,7 +188,6 @@ export default function Hero() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
           {/* Backdrop noir semi-transparent avec blur */}
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowVideo(false)} />
-
           {/* Conteneur de la vidéo avec animation */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
